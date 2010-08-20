@@ -12,7 +12,7 @@ $(INSTALLED_KERNEL_TARGET): $(TARGET_PREBUILT_KERNEL) | $(ACP)
 $(KERNEL_OUT):
 	mkdir -p $(KERNEL_OUT)
 
-$(KERNEL_CONFIG): $(LOCAL_PATH)/arch/arm/configs/openetna
+$(KERNEL_CONFIG): $(LOCAL_PATH)/arch/arm/configs/openetna | $(ACP)
 	$(transform-prebuilt-to-target)
 
 $(TARGET_PREBUILT_KERNEL): $(KERNEL_OUT) $(KERNEL_CONFIG)
