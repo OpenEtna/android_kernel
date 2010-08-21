@@ -34,7 +34,7 @@
 
 #define GPIO_LCD_BL_EN  	34
 
-#define MAX_BRIGHTNESS 		0x63	/* 100 */
+#define MAX_BRIGHTNESS 		0x63	/* 99 */
 #define DEFAULT_BRIGHTNESS 	0x40	/* 64 */
 
 #define MODULE_NAME    "bl_bd6083"
