@@ -27,14 +27,8 @@ obj-$(CONFIG_PCMCIA_ATMEL)      += atmel_cs.o
 obj-$(CONFIG_PRISM54)		+= prism54/
 
 obj-$(CONFIG_HOSTAP)		+= hostap/
-# BEGIN : 0001888 cosmichigh26@lge.com 2009-11-10
-# ADD 0001888: [WLAN] Add and modify some source codes in Kernel level about WLAN
-obj-$(CONFIG_BCM4325)		+= bcm4325/
-# END : 0001888 cosmichigh26@lge.com 2009-11-10
-# BEGIN: 0004777 mingi.sung@lge.com 2010-03-09
-# ADD 0004777: [WLAN] Add static buffer when Wi-Fi turning on
-obj-$(CONFIG_BRCM_USE_STATIC_BUF)	+= bcm4325/
-# END: 0004777 mingi.sung@lge.com 2010-03-09
+obj-$(CONFIG_BCM4325)		+= bcm4329/
+obj-$(CONFIG_BRCM_USE_STATIC_BUF)	+= bcm4329/
 obj-$(CONFIG_B43)		+= b43/
 obj-$(CONFIG_B43LEGACY)		+= b43legacy/
 obj-$(CONFIG_ZD1211RW)		+= zd1211rw/
