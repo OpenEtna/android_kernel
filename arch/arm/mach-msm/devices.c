@@ -1003,9 +1003,20 @@ struct clk msm_clocks_7x01a[] = {
 	CLK_PCOM("tsif_ref_clk",	TSIF_REF_CLK,	NULL, 0),
 	CLK_PCOM("tv_dac_clk",	TV_DAC_CLK,	NULL, 0),
 	CLK_PCOM("tv_enc_clk",	TV_ENC_CLK,	NULL, 0),
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-03-11, for solving problem of disconnecting QPST */
+#if defined(CONFIG_MACH_EVE)
+	CLK_PCOM("uart_clk",	UART1_CLK,	&msm_device_uart1.dev, 0),
+	CLK_PCOM("uart_clk",	UART2_CLK,	&msm_device_uart2.dev, 0),
+	CLK_PCOM("uart_clk",	UART3_CLK,	&msm_device_uart3.dev, 0),
+#else /* qualcomm or google */	
+
 	CLK_PCOM("uart_clk",	UART1_CLK,	&msm_device_uart1.dev, OFF),
 	CLK_PCOM("uart_clk",	UART2_CLK,	&msm_device_uart2.dev, 0),
 	CLK_PCOM("uart_clk",	UART3_CLK,	&msm_device_uart3.dev, OFF),
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [cleaneye@lge.com] 2009-03-11 */
+
+
 	CLK_PCOM("uartdm_clk",	UART1DM_CLK,	&msm_device_uart_dm1.dev, OFF),
 	CLK_PCOM("uartdm_clk",	UART2DM_CLK,	&msm_device_uart_dm2.dev, 0),
 #ifdef CONFIG_USB_MSM_OTG_72K

@@ -153,6 +153,7 @@ void __init msm_map_msm7x30_io(void)
 }
 #endif /* CONFIG_ARCH_MSM7X30 */
 
+
 #ifdef CONFIG_MACH_QSD8X50_COMET
 static struct map_desc comet_io_desc[] __initdata = {
 	MSM_DEVICE(VIC),
@@ -181,6 +182,31 @@ void __init msm_map_comet_io(void)
 	msm_map_io(comet_io_desc, ARRAY_SIZE(comet_io_desc));
 }
 #endif /* CONFIG_MACH_QSD8X50_COMET */
+
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-03-23, eve specific io map */
+#if defined(CONFIG_MACH_EVE)
+//For eve's vibrator.
+static struct map_desc eve_io_desc[] __initdata = {
+	MSM_DEVICE(WEB), 
+};
+
+void __init msm_map_eve_io(void)
+{
+#if 0 /* [zugwan@lge.com] 2009-05-22, not needed */
+        int i;
+
+	BUG_ON(!ARRAY_SIZE(eve_io_desc));
+	for (i = 0; i < ARRAY_SIZE(eve_io_desc); i++)
+		if (eve_io_desc[i].virtual ==
+				(unsigned long)MSM_SHARED_RAM_BASE)
+			eve_io_desc[i].pfn =
+				__phys_to_pfn(msm_shared_ram_phys);
+#endif
+
+	iotable_init(eve_io_desc, ARRAY_SIZE(eve_io_desc));
+}
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [cleaneye@lge.com] 2009-03-23, eve specific io map */
 
 void __iomem *
 __msm_ioremap(unsigned long phys_addr, size_t size, unsigned int mtype)

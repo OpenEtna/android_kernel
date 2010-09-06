@@ -36,7 +36,6 @@
 #endif
 
 #include "smd_private.h"
-#include "smd_rpcrouter.h"
 #include "acpuclock.h"
 #include "clock.h"
 #include "proc_comm.h"
@@ -45,7 +44,13 @@
 #include "gpio.h"
 #include "timer.h"
 #include "pm.h"
+/* LGE_CHANGE_S [bluerti@lge.com] 2009-06-15 <Add RPC > */
+#include <mach/msm_rpcrouter.h>	
 
+#define PMPROG 0x30000061
+#define PMVERS 0x00010001
+#define ONCRPC_PM_RESET_BY_LINUX	63
+/* LGE_CHANGE_E [bluerti@lge.com] 2009-06-15 <Add RPC > */
 enum {
 	MSM_PM_DEBUG_SUSPEND = 1U << 0,
 	MSM_PM_DEBUG_POWER_COLLAPSE = 1U << 1,
@@ -56,6 +61,26 @@ enum {
 	MSM_PM_DEBUG_IDLE = 1U << 6,
 };
 static int msm_pm_debug_mask;
+
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-08-14, for passing hidden reset information */
+#if defined(CONFIG_MACH_EVE)
+struct smem_hw_reset_id_type {
+	unsigned int magic_1;
+	unsigned int magic_2;
+};
+
+enum {
+	MSM_PM_NO_HIDDEN_RESET = 0,
+	MSM_PM_HIDDEN_RESET,
+};
+
+#define HW_RESET_LGE_HIDDEN_RESET_MAGIC1     0xABCDEF01
+#define HW_RESET_LGE_HIDDEN_RESET_MAGIC2     0x23456789
+
+int eve_hidden_reset = 0;
+
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE [cleaneye@lge.com] 2009-08-14 */
 module_param_named(debug_mask, msm_pm_debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 
 #ifdef CONFIG_MSM_SLEEP_TIME_OVERRIDE
@@ -72,6 +97,47 @@ static int msm_pm_idle_sleep_min_time = CONFIG_MSM7X00A_IDLE_SLEEP_MIN_TIME;
 module_param_named(idle_sleep_min_time, msm_pm_idle_sleep_min_time, int, S_IRUGO | S_IWUSR | S_IWGRP);
 static int msm_pm_idle_spin_time = CONFIG_MSM7X00A_IDLE_SPIN_TIME;
 module_param_named(idle_spin_time, msm_pm_idle_spin_time, int, S_IRUGO | S_IWUSR | S_IWGRP);
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-08-14, for passing hidden reset information */
+#if defined(CONFIG_MACH_EVE)
+static int msm_pm_hidden_reset = MSM_PM_NO_HIDDEN_RESET;
+module_param_named(hidden_reset, msm_pm_hidden_reset, bool, S_IRUGO | S_IWUSR | S_IWGRP);
+
+// LGE_CHANGE_S [bluerti@lge.com] 2009-08-14 
+int Is_kernel_crashed = 0;
+int msm_pm_hidden_resetting = 0;
+module_param_named(hidden_resetting, msm_pm_hidden_resetting, int, S_IRUGO | S_IWUSR | S_IWGRP);
+
+int msm_pm_boot_complete = 0;
+module_param_named(boot_complete, msm_pm_boot_complete, int, S_IRUGO | S_IWUSR | S_IWGRP);
+
+int slideon_timer_value = 1000;
+module_param_named(slideon_timer, slideon_timer_value, int, S_IRUGO | S_IWUSR | S_IWGRP);
+
+// LGE_CHANGE_E [bluerti@lge.com] 
+extern int msm_fb_refesh_enabled;
+module_param_named(msm_fb_refresh, msm_fb_refesh_enabled, bool, S_IRUGO | S_IWUSR | S_IWGRP);
+
+
+//LGE_CHANGE_S [bluerti@lge.com] 2009-08-31
+int msm_touch_option = 2;
+int msm_touch_timer_value = 800;
+
+module_param_named(touch_option, msm_touch_option, int, S_IRUGO | S_IWUSR | S_IWGRP);
+module_param_named(touch_timer_value, msm_touch_timer_value, int, S_IRUGO | S_IWUSR | S_IWGRP);
+
+// LGE_CHANGE [blue.park@lge.com] 2010-02-16
+int invalid_touch_event_time = 100;
+module_param_named(invalid_touch_time, invalid_touch_event_time, int, S_IRUGO | S_IWUSR | S_IWGRP);
+
+//LGE_CHANGE_E [bluerti@lge.com] 2009-08-31
+
+int get_status_hidden_reset(void)
+{
+	return msm_pm_hidden_reset;
+}
+
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE [cleaneye@lge.com] 2009-08-14 */
 
 #define A11S_CLK_SLEEP_EN (MSM_CSR_BASE + 0x11c)
 #define A11S_PWRDOWN (MSM_CSR_BASE + 0x440)
@@ -96,6 +162,11 @@ struct smsm_interrupt_info_ext {
 static struct msm_pm_smem_addr_t {
 	uint32_t *sleep_delay;
 	uint32_t *limit_sleep;
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-08-14, for passing hidden reset information */
+#if defined(CONFIG_MACH_EVE)
+	struct smem_hw_reset_id_type *hw_reset_id;
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [cleaneye@lge.com] 2009-08-14 */
 	struct smsm_interrupt_info *int_info;
 	struct smsm_interrupt_info_ext *int_info_ext;
 } msm_pm_sma;
@@ -170,6 +241,41 @@ static struct msm_pm_time_stats {
 		CONFIG_MSM_IDLE_STATS_FIRST_BUCKET,
 };
 
+
+/* LGE_CHANGE_S [bluerti@lge.com] 2009-06-15 <Add RPC > */
+static struct msm_rpc_endpoint *pm_vid_reset_LGE;
+
+static int msm_pm_reset_LGE(void)
+{
+	int rc = 0;
+        struct msm_pm_reset_LGE_req {
+                struct rpc_request_hdr hdr;
+		    uint32_t data_value;
+        } req;
+        
+        pm_vid_reset_LGE = msm_rpc_connect(PMPROG,
+                                        PMVERS, 0);
+        if (IS_ERR(pm_vid_reset_LGE)) {
+                printk(KERN_ERR "%s: msm_rpc_connect failed! rc = %ld\n",
+                        __func__, PTR_ERR(pm_vid_reset_LGE));
+                return -EINVAL;
+        }
+
+
+	  req.data_value =  cpu_to_be32(1);		//reset
+
+        rc = msm_rpc_call(pm_vid_reset_LGE,
+                        ONCRPC_PM_RESET_BY_LINUX,
+                        &req, sizeof(req),
+                        5 * HZ);
+        if (rc)
+                printk(KERN_ERR
+                        "%s: msm_rpc_call failed! rc = %d\n", __func__, rc);
+                
+        msm_rpc_close(pm_vid_reset_LGE);
+        return rc;
+}
+/* LGE_CHANGE_E [bluerti@lge.com] 2009-06-15 <Add RPC > */
 static void msm_pm_add_stat(enum msm_pm_time_stats_id id, int64_t t)
 {
 	int i;
@@ -250,6 +356,18 @@ static int msm_sleep(int sleep_mode, uint32_t sleep_delay,
 	unsigned long pm_saved_acpu_clk_rate = 0;
 	int ret;
 	int rv = -EINTR;
+	/* LGE_CHANGE_S [seypark@lge.com] 2009-08-04, check uart arm9 mode and prevent go to sleep */
+	#if defined(CONFIG_MACH_EVE)
+	char *boot_cmd = saved_command_line;
+	char *arm9_uart_bootcmd = "lpj=1912832 console=/dev/null";
+	int ret2;
+	ret2 = strncmp(boot_cmd, arm9_uart_bootcmd, strlen(arm9_uart_bootcmd));
+	
+	if (!ret2)	
+		return 0;
+	#endif /* CONFIG_MACH_EVE */
+	/* LGE_CHANGE_E [seypark@lge.com] 2009-08-04 */
+
 
 	if (msm_pm_debug_mask & MSM_PM_DEBUG_SUSPEND)
 		printk(KERN_INFO "msm_sleep(): "
@@ -689,17 +807,56 @@ static uint32_t restart_reason = 0x776655AA;
 
 static void msm_pm_power_off(void)
 {
-	msm_rpcrouter_close();
+/* LGE_CHANGE_S [jinwoonam@lge.com] 2009-09-19 */
+#if defined(CONFIG_MACH_EVE)
+	int data;
+	int fntype = CUSTOMER_CMD2_BATT_POWER_DOWN;
+
+	printk(KERN_EMERG "msm_pm_power_off()\n");
+
+	if (msm_proc_comm(PCOM_CUSTOMER_CMD2, &data, &fntype))
+	{
+		printk(KERN_EMERG "msm_pm_power_off() -fail!!!\n");
+	}
+#else
 	msm_proc_comm(PCOM_POWER_DOWN, 0, 0);
+#endif
+/* LGE_CHANGE_E [jinwoonam@lge.com] 2009-09-19 */
 	for (;;) ;
 }
 
 static void msm_pm_restart(char str)
 {
-	msm_rpcrouter_close();
-	msm_proc_comm(PCOM_RESET_CHIP, &restart_reason, 0);
+	/* If there's a hard reset hook and the restart_reason
+	 * is the default, prefer that to the (slower) proc_comm
+	 * reset command.
+	 */
+/* LGE_CHANGE_S [bluerti@lge.com] 2009-06-15 <implementing new API > */
+#if 0
+	if ((restart_reason == 0x776655AA) && msm_hw_reset_hook) {
+		msm_hw_reset_hook();
+	} else {
+		msm_proc_comm(PCOM_RESET_CHIP, &restart_reason, 0);
+	}
 
+	while(1) {
+		printk(KERN_INFO"%s: %x \n",__func__, restart_reason);
+		msm_proc_comm(PCOM_RESET_CHIP, &restart_reason, 0);
+		mdelay(1000);
+	}
+#endif
+	if ( (msm_pm_hidden_reset == MSM_PM_HIDDEN_RESET) && (Is_kernel_crashed == 1) ) {
+		printk(KERN_INFO"%s: passing hidden reset information\n",__func__);
+		msm_pm_sma.hw_reset_id->magic_1 = HW_RESET_LGE_HIDDEN_RESET_MAGIC1;
+		msm_pm_sma.hw_reset_id->magic_2 = HW_RESET_LGE_HIDDEN_RESET_MAGIC2;
+		printk(KERN_INFO"%s: magic_1 [%x] \n",__func__, msm_pm_sma.hw_reset_id->magic_1);
+		printk(KERN_INFO"%s: magic_2 [%x] \n",__func__, msm_pm_sma.hw_reset_id->magic_2);
+	}
+
+	printk(KERN_INFO"%s: %x \n",__func__, restart_reason);
+	msm_pm_reset_LGE();
 	for (;;) ;
+/* LGE_CHANGE_E [bluerti@lge.com] 2009-06-15 <implementing new API > */
 }
 
 static int msm_reboot_call(struct notifier_block *this, unsigned long code, void *_cmd)
@@ -901,6 +1058,30 @@ static int __init msm_pm_init(void)
 		return -ENODEV;
 	}
 
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-08-14, for passing hidden reset information */
+#if defined(CONFIG_MACH_EVE)
+	msm_pm_sma.hw_reset_id = (struct smem_hw_reset_id_type *)smem_alloc(SMEM_HW_RESET_DETECT, 8);
+	if (msm_pm_sma.hw_reset_id == NULL) {
+		printk(KERN_ERR "msm_pm_init: failed get HW_RESET_DETECT\n");
+		return -ENODEV;
+	}
+	
+	if (msm_pm_sma.hw_reset_id->magic_1 == HW_RESET_LGE_HIDDEN_RESET_MAGIC1 &&
+		msm_pm_sma.hw_reset_id->magic_2 == HW_RESET_LGE_HIDDEN_RESET_MAGIC2) {
+		eve_hidden_reset = 1;
+		printk(KERN_INFO"%s: boot from hidden reset\n",__func__);	
+		msm_pm_hidden_resetting = 1;
+		//msm_fb_refesh_enabled = 0;
+	} else {
+		msm_pm_hidden_resetting = 0;
+	}
+	printk(KERN_INFO"%s: initialize hidden reset magic_1 [%x -> 0x0] \n",__func__, msm_pm_sma.hw_reset_id->magic_1);
+	printk(KERN_INFO"%s: initialize hidden reset magic_2 [%x -> 0x0] \n",__func__, msm_pm_sma.hw_reset_id->magic_2);
+	msm_pm_sma.hw_reset_id->magic_1 = 0x0;
+	msm_pm_sma.hw_reset_id->magic_2 = 0x0;
+	
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [cleaneye@lge.com] 2009-08-14 */
 	msm_pm_sma.int_info_ext = smem_alloc(SMEM_SMSM_INT_INFO,
 		sizeof(*msm_pm_sma.int_info_ext));
 

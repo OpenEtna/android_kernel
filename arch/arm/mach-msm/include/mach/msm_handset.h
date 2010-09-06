@@ -1,5 +1,6 @@
-/*
- * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
+/* arch/arm/mach-msm/include/mach/msm_handset.h
+ *
+ * Copyright (c) 2008-2009, Code Aurora Forum. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -12,11 +13,20 @@
  *
  */
 
-#ifndef _MSM_KEYPAD_DEVICES_H
-#define _MSM_KEYPAD_DEVICES_H
+#ifndef _MSM_HANDSET_H
+#define _MSM_HANDSET_H
 
-extern struct platform_device keypad_device_7k_ffa;
-extern struct platform_device keypad_device_8k_ffa;
-extern struct platform_device keypad_device_surf;
+#include <linux/input.h>
+#include <linux/switch.h>
+
+#if defined(CONFIG_INPUT_MSM_HANDSET)
+struct input_dev *msm_get_handset_input_dev(void);
+#else
+struct input_dev *msm_get_handset_input_dev(void)
+{
+	return NULL;
+}
+#endif
+
 
 #endif

@@ -115,6 +115,16 @@
 #define MSM_SCPLL_PHYS        0xA8800000
 #define MSM_SCPLL_SIZE        SZ_4K
 
+
+/* LGE_CHANGE_S [munyoung@lge.com] 2008-11-15, for MN Register */
+#if defined(CONFIG_MACH_EVE)
+//For vibrator
+#define MSM_WEB_BASE          0xE100C000
+#define MSM_WEB_PHYS          0xA9D00000
+#define MSM_WEB_SIZE          SZ_4K
+#endif
+
+
 #define MSM_GCC_BASE	      IOMEM(0xE0008000)
 #define MSM_GCC_PHYS	      0xC0182000
 #define MSM_GCC_SIZE	      SZ_4K
