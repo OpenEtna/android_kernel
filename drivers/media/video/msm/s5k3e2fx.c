@@ -1,18 +1,57 @@
-/* Copyright (c) 2009, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2008-2009, Code Aurora Forum. All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 and
- * only version 2 as published by the Free Software Foundation.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of Code Aurora Forum nor
+ *       the names of its contributors may be used to endorse or promote
+ *       products derived from this software without specific prior written
+ *       permission.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Alternatively, provided that this notice is retained in full, this software
+ * may be relicensed by the recipient under the terms of the GNU General Public
+ * License version 2 ("GPL") and only version 2, in which case the provisions of
+ * the GPL apply INSTEAD OF those given above.  If the recipient relicenses the
+ * software under the GPL, then the identification text in the MODULE_LICENSE
+ * macro must be changed to reflect "GPLv2" instead of "Dual BSD/GPL".  Once a
+ * recipient changes the license terms to the GPL, subsequent recipients shall
+ * not relicense under alternate licensing terms, including the BSD or dual
+ * BSD/GPL terms.  In addition, the following license statement immediately
+ * below and between the words START and END shall also then apply when this
+ * software is relicensed under the GPL:
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA.
+ * START
+ *
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License version 2 and only version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * END
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  *
  */
 
@@ -292,19 +331,19 @@ struct reg_struct s5k3e2fx_reg_pat[2] =  {
 		14,
 		2608,
 		124
-	}
+  }
 };
 
-struct s5k3e2fx_work {
+struct s5k3e2fx_work_t {
 	struct work_struct work;
 };
-static struct s5k3e2fx_work *s5k3e2fx_sensorw;
+static struct s5k3e2fx_work_t *s5k3e2fx_sensorw;
 static struct i2c_client *s5k3e2fx_client;
 
-struct s5k3e2fx_ctrl {
-	const struct msm_camera_sensor_info *sensordata;
+struct s5k3e2fx_ctrl_t {
+	struct  msm_camera_sensor_info *sensordata;
 
-	int sensormode;
+	enum sensor_mode_t sensormode;
 	uint32_t fps_divider; /* init to 1 * 0x00000400 */
 	uint32_t pict_fps_divider; /* init to 1 * 0x00000400 */
 
@@ -313,10 +352,10 @@ struct s5k3e2fx_ctrl {
 	uint16_t my_reg_gain;
 	uint32_t my_reg_line_count;
 
-	enum msm_s_resolution prev_res;
-	enum msm_s_resolution pict_res;
-	enum msm_s_resolution curr_res;
-	enum msm_s_test_mode  set_test;
+	enum msm_s_resolution_t prev_res;
+	enum msm_s_resolution_t pict_res;
+	enum msm_s_resolution_t curr_res;
+	enum msm_s_test_mode_t  set_test;
 };
 
 struct s5k3e2fx_i2c_reg_conf {
@@ -324,27 +363,25 @@ struct s5k3e2fx_i2c_reg_conf {
 	unsigned char  bdata;
 };
 
-static struct s5k3e2fx_ctrl *s5k3e2fx_ctrl;
+static struct s5k3e2fx_ctrl_t *s5k3e2fx_ctrl;
 static DECLARE_WAIT_QUEUE_HEAD(s5k3e2fx_wait_queue);
-DEFINE_MUTEX(s5k3e2fx_mutex);
+DEFINE_MUTEX(s5k3e2fx_sem);
 
 static int s5k3e2fx_i2c_rxdata(unsigned short saddr, unsigned char *rxdata,
 	int length)
 {
-	struct i2c_msg msgs[] = {
-		{
-			.addr   = saddr,
-			.flags = 0,
-			.len   = 2,
-			.buf   = rxdata,
-		},
-		{
-			.addr   = saddr,
-			.flags = I2C_M_RD,
-			.len   = length,
-			.buf   = rxdata,
-		},
-	};
+  struct i2c_msg msgs[] = {
+	{ .addr   = saddr,
+		.flags = 0,
+		.len   = 2,
+		.buf   = rxdata,
+	},
+	{   .addr   = saddr,
+		.flags = I2C_M_RD,
+		.len   = length,
+		.buf   = rxdata,
+	},
+    };
 
 	if (i2c_transfer(s5k3e2fx_client->adapter, msgs, 2) < 0) {
 		CDBG("s5k3e2fx_i2c_rxdata failed!\n");
@@ -377,7 +414,7 @@ static int32_t s5k3e2fx_i2c_txdata(unsigned short saddr,
 static int32_t s5k3e2fx_i2c_write_b(unsigned short saddr, unsigned short waddr,
 	unsigned char bdata)
 {
-	int32_t rc = -EIO;
+	int32_t rc = -EFAULT;
 	unsigned char buf[4];
 
 	memset(buf, 0, sizeof(buf));
@@ -398,7 +435,7 @@ static int32_t s5k3e2fx_i2c_write_table(
 	struct s5k3e2fx_i2c_reg_conf *reg_cfg_tbl, int num)
 {
 	int i;
-	int32_t rc = -EIO;
+	int32_t rc = -EFAULT;
 	for (i = 0; i < num; i++) {
 		rc = s5k3e2fx_i2c_write_b(s5k3e2fx_client->addr,
 			reg_cfg_tbl->waddr, reg_cfg_tbl->bdata);
@@ -436,14 +473,14 @@ static int32_t s5k3e2fx_i2c_read_w(unsigned short saddr, unsigned short raddr,
 	return rc;
 }
 
-static int s5k3e2fx_probe_init_done(const struct msm_camera_sensor_info *data)
+static int s5k3e2fx_probe_init_done(struct msm_camera_sensor_info *data)
 {
 	gpio_direction_output(data->sensor_reset, 0);
 	gpio_free(data->sensor_reset);
 	return 0;
 }
 
-static int s5k3e2fx_probe_init_sensor(const struct msm_camera_sensor_info *data)
+static int s5k3e2fx_probe_init_sensor(struct msm_camera_sensor_info *data)
 {
 	int32_t  rc;
 	uint16_t chipid = 0;
@@ -464,7 +501,6 @@ static int s5k3e2fx_probe_init_sensor(const struct msm_camera_sensor_info *data)
 		goto init_probe_fail;
 
 	if (chipid != S5K3E2FX_MODEL_ID) {
-		CDBG("S5K3E2FX wrong model_id = 0x%x\n", chipid);
 		rc = -ENODEV;
 		goto init_probe_fail;
 	}
@@ -484,12 +520,12 @@ static int s5k3e2fx_init_client(struct i2c_client *client)
 	return 0;
 }
 
-static const struct i2c_device_id s5k3e2fx_i2c_id[] = {
+static const struct i2c_device_id s5k3e2fx_id[] = {
 	{ "s5k3e2fx", 0},
 	{ }
 };
 
-static int s5k3e2fx_i2c_probe(struct i2c_client *client,
+static int s5k3e2fx_probe(struct i2c_client *client,
 	const struct i2c_device_id *id)
 {
 	int rc = 0;
@@ -500,7 +536,7 @@ static int s5k3e2fx_i2c_probe(struct i2c_client *client,
 		goto probe_failure;
 	}
 
-	s5k3e2fx_sensorw = kzalloc(sizeof(struct s5k3e2fx_work), GFP_KERNEL);
+	s5k3e2fx_sensorw = kzalloc(sizeof(struct s5k3e2fx_work_t), GFP_KERNEL);
 	if (!s5k3e2fx_sensorw) {
 		CDBG("kzalloc failed.\n");
 		rc = -ENOMEM;
@@ -521,16 +557,43 @@ probe_failure:
 	return rc;
 }
 
-static struct i2c_driver s5k3e2fx_i2c_driver = {
-	.id_table = s5k3e2fx_i2c_id,
-	.probe  = s5k3e2fx_i2c_probe,
-	.remove = __exit_p(s5k3e2fx_i2c_remove),
+static int __exit s5k3e2fx_remove(struct i2c_client *client)
+{
+	struct s5k3e2fx_work_t *sensorw = i2c_get_clientdata(client);
+	free_irq(client->irq, sensorw);
+	i2c_detach_client(client);
+	s5k3e2fx_client = NULL;
+	kfree(sensorw);
+	return 0;
+}
+
+static struct i2c_driver s5k3e2fx_driver = {
+	.id_table = s5k3e2fx_id,
+	.probe  = s5k3e2fx_probe,
+	.remove = __exit_p(s5k3e2fx_remove),
 	.driver = {
 		.name = "s5k3e2fx",
 	},
 };
 
-static int32_t s5k3e2fx_test(enum msm_s_test_mode mo)
+static int32_t s5k3e2fx_init(void)
+{
+	int32_t rc = 0;
+
+	CDBG("s5k3e2fx_init called!\n");
+
+	rc = i2c_add_driver(&s5k3e2fx_driver);
+	if (IS_ERR_VALUE(rc))
+		goto init_fail;
+
+	return rc;
+
+init_fail:
+	CDBG("s5k3e2fx_init failed\n");
+	return rc;
+}
+
+static int32_t s5k3e2fx_test(enum msm_s_test_mode_t mo)
 {
 	int32_t rc = 0;
 
@@ -543,50 +606,46 @@ static int32_t s5k3e2fx_test(enum msm_s_test_mode mo)
 	return rc;
 }
 
-static int32_t s5k3e2fx_setting(enum msm_s_reg_update rupdate,
-	enum msm_s_setting rt)
+static int32_t s5k3e2fx_setting(enum msm_s_reg_update_t rupdate,
+	enum msm_s_setting_t rt)
 {
 	int32_t rc = 0;
   uint16_t num_lperf;
 
 	switch (rupdate) {
-	case S_UPDATE_PERIODIC:
-	if (rt == S_RES_PREVIEW || rt == S_RES_CAPTURE) {
+	case S_UPDATE_PERIODIC: {
+	  if (rt == S_RES_PREVIEW ||
+				rt == S_RES_CAPTURE) {
 
 		struct s5k3e2fx_i2c_reg_conf tbl_1[] = {
-			{REG_CCP_DATA_FORMAT_MSB,
-				s5k3e2fx_reg_pat[rt].ccp_data_format_msb},
-			{REG_CCP_DATA_FORMAT_LSB,
-				s5k3e2fx_reg_pat[rt].ccp_data_format_lsb},
-			{REG_X_OUTPUT_SIZE_MSB,
-				s5k3e2fx_reg_pat[rt].x_output_size_msb},
-			{REG_X_OUTPUT_SIZE_LSB,
-				s5k3e2fx_reg_pat[rt].x_output_size_lsb},
-			{REG_Y_OUTPUT_SIZE_MSB,
-				s5k3e2fx_reg_pat[rt].y_output_size_msb},
-			{REG_Y_OUTPUT_SIZE_LSB,
-				s5k3e2fx_reg_pat[rt].y_output_size_lsb},
-			{REG_X_EVEN_INC,
-				s5k3e2fx_reg_pat[rt].x_even_inc},
-			{REG_X_ODD_INC,
-				s5k3e2fx_reg_pat[rt].x_odd_inc},
-			{REG_Y_EVEN_INC,
-				s5k3e2fx_reg_pat[rt].y_even_inc},
-			{REG_Y_ODD_INC,
-				s5k3e2fx_reg_pat[rt].y_odd_inc},
-			{REG_BINNING_ENABLE,
-				s5k3e2fx_reg_pat[rt].binning_enable},
+		{REG_CCP_DATA_FORMAT_MSB,
+		  s5k3e2fx_reg_pat[rt].ccp_data_format_msb},
+		{REG_CCP_DATA_FORMAT_LSB,
+		  s5k3e2fx_reg_pat[rt].ccp_data_format_lsb},
+		{REG_X_OUTPUT_SIZE_MSB,
+		  s5k3e2fx_reg_pat[rt].x_output_size_msb},
+		{REG_X_OUTPUT_SIZE_LSB,
+		  s5k3e2fx_reg_pat[rt].x_output_size_lsb},
+		{REG_Y_OUTPUT_SIZE_MSB,
+		  s5k3e2fx_reg_pat[rt].y_output_size_msb},
+		{REG_Y_OUTPUT_SIZE_LSB,
+		  s5k3e2fx_reg_pat[rt].y_output_size_lsb},
+		{REG_X_EVEN_INC, s5k3e2fx_reg_pat[rt].x_even_inc},
+		{REG_X_ODD_INC,  s5k3e2fx_reg_pat[rt].x_odd_inc},
+		{REG_Y_EVEN_INC, s5k3e2fx_reg_pat[rt].y_even_inc},
+		{REG_Y_ODD_INC,  s5k3e2fx_reg_pat[rt].y_odd_inc},
+		{REG_BINNING_ENABLE, s5k3e2fx_reg_pat[rt].binning_enable},
 		};
 
 		struct s5k3e2fx_i2c_reg_conf tbl_2[] = {
 			{REG_FRAME_LENGTH_LINES_MSB, 0},
 			{REG_FRAME_LENGTH_LINES_LSB, 0},
 			{REG_LINE_LENGTH_PCK_MSB,
-				s5k3e2fx_reg_pat[rt].line_length_pck_msb},
+			  s5k3e2fx_reg_pat[rt].line_length_pck_msb},
 			{REG_LINE_LENGTH_PCK_LSB,
-				s5k3e2fx_reg_pat[rt].line_length_pck_lsb},
+			  s5k3e2fx_reg_pat[rt].line_length_pck_lsb},
 			{REG_SHADE_CLK_ENABLE,
-				s5k3e2fx_reg_pat[rt].shade_clk_enable},
+			  s5k3e2fx_reg_pat[rt].shade_clk_enable},
 			{REG_SEL_CCP, s5k3e2fx_reg_pat[rt].sel_ccp},
 			{REG_VPIX, s5k3e2fx_reg_pat[rt].vpix},
 			{REG_CLAMP_ON, s5k3e2fx_reg_pat[rt].clamp_on},
@@ -611,19 +670,17 @@ static int32_t s5k3e2fx_setting(enum msm_s_reg_update rupdate,
 			{REG_TX_END, s5k3e2fx_reg_pat[rt].tx_end},
 			{REG_STX_WIDTH, s5k3e2fx_reg_pat[rt].stx_width},
 			{REG_3152_RESERVED,
-				s5k3e2fx_reg_pat[rt].reg_3152_reserved},
+			  s5k3e2fx_reg_pat[rt].reg_3152_reserved},
 			{REG_315A_RESERVED,
-				s5k3e2fx_reg_pat[rt].reg_315A_reserved},
+			  s5k3e2fx_reg_pat[rt].reg_315A_reserved},
 			{REG_ANALOGUE_GAIN_CODE_GLOBAL_MSB,
-				s5k3e2fx_reg_pat[rt].
-				analogue_gain_code_global_msb},
+			  s5k3e2fx_reg_pat[rt].analogue_gain_code_global_msb},
 			{REG_ANALOGUE_GAIN_CODE_GLOBAL_LSB,
-				s5k3e2fx_reg_pat[rt].
-				analogue_gain_code_global_lsb},
+			  s5k3e2fx_reg_pat[rt].analogue_gain_code_global_lsb},
 			{REG_FINE_INTEGRATION_TIME,
-				s5k3e2fx_reg_pat[rt].fine_integration_time},
+			  s5k3e2fx_reg_pat[rt].fine_integration_time},
 			{REG_COARSE_INTEGRATION_TIME,
-				s5k3e2fx_reg_pat[rt].coarse_integration_time},
+			  s5k3e2fx_reg_pat[rt].coarse_integration_time},
 			{S5K3E2FX_REG_MODE_SELECT, S5K3E2FX_MODE_SELECT_STREAM},
 		};
 
@@ -633,9 +690,8 @@ static int32_t s5k3e2fx_setting(enum msm_s_reg_update rupdate,
 			return rc;
 
 		num_lperf = (uint16_t)
-			((s5k3e2fx_reg_pat[rt].frame_length_lines_msb << 8)
-			& 0xFF00)
-			+ s5k3e2fx_reg_pat[rt].frame_length_lines_lsb;
+		  ((s5k3e2fx_reg_pat[rt].frame_length_lines_msb << 8) &
+		   0xFF00) + s5k3e2fx_reg_pat[rt].frame_length_lines_lsb;
 
 		num_lperf = num_lperf * s5k3e2fx_ctrl->fps_divider / 0x0400;
 
@@ -655,63 +711,65 @@ static int32_t s5k3e2fx_setting(enum msm_s_reg_update rupdate,
 		if (rc < 0)
 			return rc;
 	  }
+	}
     break; /* UPDATE_PERIODIC */
-
-	case S_REG_INIT:
-	if (rt == S_RES_PREVIEW || rt == S_RES_CAPTURE) {
+	case S_REG_INIT: {
+	  if (rt == S_RES_PREVIEW ||
+			rt == S_RES_CAPTURE) {
 
 		struct s5k3e2fx_i2c_reg_conf tbl_3[] = {
-			{S5K3E2FX_REG_SOFTWARE_RESET, S5K3E2FX_SOFTWARE_RESET},
+			{S5K3E2FX_REG_SOFTWARE_RESET,
+			  S5K3E2FX_SOFTWARE_RESET},
 			{S5K3E2FX_REG_MODE_SELECT,
-				S5K3E2FX_MODE_SELECT_SW_STANDBY},
+			  S5K3E2FX_MODE_SELECT_SW_STANDBY},
 			/* PLL setting */
 			{REG_PRE_PLL_CLK_DIV,
-				s5k3e2fx_reg_pat[rt].pre_pll_clk_div},
+			  s5k3e2fx_reg_pat[rt].pre_pll_clk_div},
 			{REG_PLL_MULTIPLIER_MSB,
-				s5k3e2fx_reg_pat[rt].pll_multiplier_msb},
+			  s5k3e2fx_reg_pat[rt].pll_multiplier_msb},
 			{REG_PLL_MULTIPLIER_LSB,
-				s5k3e2fx_reg_pat[rt].pll_multiplier_lsb},
+			  s5k3e2fx_reg_pat[rt].pll_multiplier_lsb},
 			{REG_VT_PIX_CLK_DIV,
-				s5k3e2fx_reg_pat[rt].vt_pix_clk_div},
+			  s5k3e2fx_reg_pat[rt].vt_pix_clk_div},
 			{REG_VT_SYS_CLK_DIV,
-				s5k3e2fx_reg_pat[rt].vt_sys_clk_div},
+			  s5k3e2fx_reg_pat[rt].vt_sys_clk_div},
 			{REG_OP_PIX_CLK_DIV,
-				s5k3e2fx_reg_pat[rt].op_pix_clk_div},
+			  s5k3e2fx_reg_pat[rt].op_pix_clk_div},
 			{REG_OP_SYS_CLK_DIV,
-				s5k3e2fx_reg_pat[rt].op_sys_clk_div},
+			  s5k3e2fx_reg_pat[rt].op_sys_clk_div},
 			/*Data Format */
 			{REG_CCP_DATA_FORMAT_MSB,
-				s5k3e2fx_reg_pat[rt].ccp_data_format_msb},
+			  s5k3e2fx_reg_pat[rt].ccp_data_format_msb},
 			{REG_CCP_DATA_FORMAT_LSB,
-				s5k3e2fx_reg_pat[rt].ccp_data_format_lsb},
+			  s5k3e2fx_reg_pat[rt].ccp_data_format_lsb},
 			/*Output Size */
 			{REG_X_OUTPUT_SIZE_MSB,
-				s5k3e2fx_reg_pat[rt].x_output_size_msb},
+			  s5k3e2fx_reg_pat[rt].x_output_size_msb},
 			{REG_X_OUTPUT_SIZE_LSB,
-				s5k3e2fx_reg_pat[rt].x_output_size_lsb},
+			  s5k3e2fx_reg_pat[rt].x_output_size_lsb},
 			{REG_Y_OUTPUT_SIZE_MSB,
-				s5k3e2fx_reg_pat[rt].y_output_size_msb},
+			  s5k3e2fx_reg_pat[rt].y_output_size_msb},
 			{REG_Y_OUTPUT_SIZE_LSB,
-				s5k3e2fx_reg_pat[rt].y_output_size_lsb},
+			  s5k3e2fx_reg_pat[rt].y_output_size_lsb},
 			/* Binning */
 			{REG_X_EVEN_INC, s5k3e2fx_reg_pat[rt].x_even_inc},
 			{REG_X_ODD_INC, s5k3e2fx_reg_pat[rt].x_odd_inc },
 			{REG_Y_EVEN_INC, s5k3e2fx_reg_pat[rt].y_even_inc},
 			{REG_Y_ODD_INC, s5k3e2fx_reg_pat[rt].y_odd_inc},
 			{REG_BINNING_ENABLE,
-				s5k3e2fx_reg_pat[rt].binning_enable},
+			  s5k3e2fx_reg_pat[rt].binning_enable},
 			/* Frame format */
 			{REG_FRAME_LENGTH_LINES_MSB,
-				s5k3e2fx_reg_pat[rt].frame_length_lines_msb},
+			  s5k3e2fx_reg_pat[rt].frame_length_lines_msb},
 			{REG_FRAME_LENGTH_LINES_LSB,
-				s5k3e2fx_reg_pat[rt].frame_length_lines_lsb},
+			  s5k3e2fx_reg_pat[rt].frame_length_lines_lsb},
 			{REG_LINE_LENGTH_PCK_MSB,
-				s5k3e2fx_reg_pat[rt].line_length_pck_msb},
+			  s5k3e2fx_reg_pat[rt].line_length_pck_msb},
 			{REG_LINE_LENGTH_PCK_LSB,
-				s5k3e2fx_reg_pat[rt].line_length_pck_lsb},
+			  s5k3e2fx_reg_pat[rt].line_length_pck_lsb},
 			/* MSR setting */
 			{REG_SHADE_CLK_ENABLE,
-				s5k3e2fx_reg_pat[rt].shade_clk_enable},
+			  s5k3e2fx_reg_pat[rt].shade_clk_enable},
 			{REG_SEL_CCP, s5k3e2fx_reg_pat[rt].sel_ccp},
 			{REG_VPIX, s5k3e2fx_reg_pat[rt].vpix},
 			{REG_CLAMP_ON, s5k3e2fx_reg_pat[rt].clamp_on},
@@ -737,17 +795,15 @@ static int32_t s5k3e2fx_setting(enum msm_s_reg_update rupdate,
 			{REG_TX_END, s5k3e2fx_reg_pat[rt].tx_end},
 			{REG_STX_WIDTH, s5k3e2fx_reg_pat[rt].stx_width},
 			{REG_3152_RESERVED,
-				s5k3e2fx_reg_pat[rt].reg_3152_reserved},
+			  s5k3e2fx_reg_pat[rt].reg_3152_reserved},
 			{REG_315A_RESERVED,
-				s5k3e2fx_reg_pat[rt].reg_315A_reserved},
+			  s5k3e2fx_reg_pat[rt].reg_315A_reserved},
 			{REG_ANALOGUE_GAIN_CODE_GLOBAL_MSB,
-				s5k3e2fx_reg_pat[rt].
-				analogue_gain_code_global_msb},
+			  s5k3e2fx_reg_pat[rt].analogue_gain_code_global_msb},
 			{REG_ANALOGUE_GAIN_CODE_GLOBAL_LSB,
-				s5k3e2fx_reg_pat[rt].
-				analogue_gain_code_global_lsb},
+			  s5k3e2fx_reg_pat[rt].analogue_gain_code_global_lsb},
 			{REG_FINE_INTEGRATION_TIME,
-				s5k3e2fx_reg_pat[rt].fine_integration_time},
+			  s5k3e2fx_reg_pat[rt].fine_integration_time},
 			{REG_COARSE_INTEGRATION_TIME,
 				s5k3e2fx_reg_pat[rt].coarse_integration_time},
 			{S5K3E2FX_REG_MODE_SELECT, S5K3E2FX_MODE_SELECT_STREAM},
@@ -760,21 +816,23 @@ static int32_t s5k3e2fx_setting(enum msm_s_reg_update rupdate,
 		if (rc < 0)
 			return rc;
 		}
+	}
 		break; /* case REG_INIT: */
 
 	default:
-		rc = -EINVAL;
+		rc = -EFAULT;
 		break;
 	} /* switch (rupdate) */
 
 	return rc;
 }
 
-static int s5k3e2fx_sensor_open_init(const struct msm_camera_sensor_info *data)
+static int s5k3e2fx_sensor_open_init(struct msm_camera_sensor_info *data)
 {
 	int32_t  rc;
 
-	s5k3e2fx_ctrl = kzalloc(sizeof(struct s5k3e2fx_ctrl), GFP_KERNEL);
+CDBG("STEPHENL: %s %s:%d\n", __FILE__, __func__, __LINE__);
+	s5k3e2fx_ctrl = kzalloc(sizeof(struct s5k3e2fx_ctrl_t), GFP_KERNEL);
 	if (!s5k3e2fx_ctrl) {
 		CDBG("s5k3e2fx_init failed!\n");
 		rc = -ENOMEM;
@@ -812,13 +870,11 @@ static int s5k3e2fx_sensor_open_init(const struct msm_camera_sensor_info *data)
 	}
 
 	/* initialize AF */
-	rc = s5k3e2fx_i2c_write_b(s5k3e2fx_client->addr,
-			0x3146, 0x3A);
+	rc = s5k3e2fx_i2c_write_b(s5k3e2fx_client->addr, 0x3146, 0x3A);
 	if (rc < 0)
 		goto init_fail1;
 
-	rc = s5k3e2fx_i2c_write_b(s5k3e2fx_client->addr,
-			0x3130, 0x03);
+	rc = s5k3e2fx_i2c_write_b(s5k3e2fx_client->addr, 0x3130, 0x03);
 	if (rc < 0)
 		goto init_fail1;
 
@@ -841,7 +897,7 @@ static int s5k3e2fx_sensor_release(void)
 {
 	int rc = -EBADF;
 
-	mutex_lock(&s5k3e2fx_mutex);
+	down(&s5k3e2fx_sem);
 
 	s5k3e2fx_power_down();
 
@@ -854,7 +910,7 @@ static int s5k3e2fx_sensor_release(void)
 
 	CDBG("s5k3e2fx_release completed\n");
 
-	mutex_unlock(&s5k3e2fx_mutex);
+	up(&s5k3e2fx_sem);
 	return rc;
 }
 
@@ -919,28 +975,22 @@ static int32_t s5k3e2fx_set_fps(struct fps_cfg *fps)
 {
 	/* input is new fps in Q10 format */
 	int32_t rc = 0;
-	enum msm_s_setting setting;
 
 	s5k3e2fx_ctrl->fps_divider = fps->fps_div;
 
-	if (s5k3e2fx_ctrl->sensormode == SENSOR_PREVIEW_MODE)
-		setting = S_RES_PREVIEW;
-	else
-		setting = S_RES_CAPTURE;
-
   rc = s5k3e2fx_i2c_write_b(s5k3e2fx_client->addr,
 		REG_FRAME_LENGTH_LINES_MSB,
-		(((s5k3e2fx_reg_pat[setting].size_h +
-			s5k3e2fx_reg_pat[setting].blk_l) *
+		(((s5k3e2fx_reg_pat[S_RES_PREVIEW].size_h +
+			s5k3e2fx_reg_pat[S_RES_PREVIEW].blk_l) *
 			s5k3e2fx_ctrl->fps_divider / 0x400) & 0xFF00) >> 8);
 	if (rc < 0)
 		goto set_fps_done;
 
   rc = s5k3e2fx_i2c_write_b(s5k3e2fx_client->addr,
 		REG_FRAME_LENGTH_LINES_LSB,
-		(((s5k3e2fx_reg_pat[setting].size_h +
-			s5k3e2fx_reg_pat[setting].blk_l) *
-			s5k3e2fx_ctrl->fps_divider / 0x400) & 0x00FF));
+		(((s5k3e2fx_reg_pat[S_RES_PREVIEW].size_h +
+			s5k3e2fx_reg_pat[S_RES_PREVIEW].blk_l) *
+			s5k3e2fx_ctrl->fps_divider / 0x400) & 0xFF00));
 
 set_fps_done:
 	return rc;
@@ -952,11 +1002,11 @@ static int32_t s5k3e2fx_write_exp_gain(uint16_t gain, uint32_t line)
 
 	uint16_t max_legal_gain = 0x0200;
 	uint32_t ll_ratio; /* Q10 */
-	uint32_t ll_pck, fl_lines;
+	uint16_t ll_pck, fl_lines;
 	uint16_t offset = 4;
-	uint32_t  gain_msb, gain_lsb;
-	uint32_t  intg_t_msb, intg_t_lsb;
-	uint32_t  ll_pck_msb, ll_pck_lsb;
+	uint8_t  gain_msb, gain_lsb;
+	uint8_t  intg_t_msb, intg_t_lsb;
+	uint8_t  ll_pck_msb, ll_pck_lsb, tmp;
 
 	struct s5k3e2fx_i2c_reg_conf tbl[2];
 
@@ -968,10 +1018,10 @@ static int32_t s5k3e2fx_write_exp_gain(uint16_t gain, uint32_t line)
 		s5k3e2fx_ctrl->my_reg_line_count = (uint16_t)line;
 
 		fl_lines = s5k3e2fx_reg_pat[S_RES_PREVIEW].size_h +
-			s5k3e2fx_reg_pat[S_RES_PREVIEW].blk_l;
+			s5k3e2fx_reg_pat[S_RES_CAPTURE].blk_l;
 
 		ll_pck = s5k3e2fx_reg_pat[S_RES_PREVIEW].size_w +
-			s5k3e2fx_reg_pat[S_RES_PREVIEW].blk_p;
+			s5k3e2fx_reg_pat[S_RES_CAPTURE].blk_p;
 
 	} else {
 
@@ -1008,16 +1058,16 @@ static int32_t s5k3e2fx_write_exp_gain(uint16_t gain, uint32_t line)
 	ll_pck_msb = ((ll_pck / 0x400) & 0xFF00) >> 8;
 	ll_pck_lsb = (ll_pck / 0x400) & 0x00FF;
 	tbl[0].waddr = REG_LINE_LENGTH_PCK_MSB;
-	tbl[0].bdata = ll_pck_msb;
+	tbl[0].bdata = s5k3e2fx_reg_pat[S_RES_PREVIEW].line_length_pck_msb;
 	tbl[1].waddr = REG_LINE_LENGTH_PCK_LSB;
-	tbl[1].bdata = ll_pck_lsb;
+	tbl[1].bdata = s5k3e2fx_reg_pat[S_RES_PREVIEW].line_length_pck_lsb;
 	rc = s5k3e2fx_i2c_write_table(&tbl[0], ARRAY_SIZE(tbl));
 	if (rc < 0)
 		goto write_gain_done;
 
-	line = line / ll_ratio;
-	intg_t_msb = (line & 0xFF00) >> 8;
-	intg_t_lsb = (line & 0x00FF);
+	tmp = (ll_pck * 0x400) / ll_ratio;
+	intg_t_msb = (tmp & 0xFF00) >> 8;
+	intg_t_lsb = (tmp & 0x00FF);
 	tbl[0].waddr = REG_COARSE_INTEGRATION_TIME;
 	tbl[0].bdata = intg_t_msb;
 	tbl[1].waddr = REG_COARSE_INTEGRATION_TIME_LSB;
@@ -1040,7 +1090,8 @@ static int32_t s5k3e2fx_set_pict_exp_gain(uint16_t gain, uint32_t line)
 	return rc;
 }
 
-static int32_t s5k3e2fx_video_config(int mode, int res)
+static int32_t s5k3e2fx_video_config(enum sensor_mode_t mode,
+	enum sensor_resolution_t res)
 {
 	int32_t rc;
 
@@ -1075,7 +1126,7 @@ static int32_t s5k3e2fx_video_config(int mode, int res)
 	return rc;
 }
 
-static int32_t s5k3e2fx_snapshot_config(int mode)
+static int32_t s5k3e2fx_snapshot_config(enum sensor_mode_t mode)
 {
 	int32_t rc = 0;
 
@@ -1089,7 +1140,7 @@ static int32_t s5k3e2fx_snapshot_config(int mode)
 	return rc;
 }
 
-static int32_t s5k3e2fx_raw_snapshot_config(int mode)
+static int32_t s5k3e2fx_raw_snapshot_config(enum sensor_mode_t mode)
 {
 	int32_t rc = 0;
 
@@ -1103,7 +1154,8 @@ static int32_t s5k3e2fx_raw_snapshot_config(int mode)
 	return rc;
 }
 
-static int32_t s5k3e2fx_set_sensor_mode(int mode, int res)
+static int32_t s5k3e2fx_set_sensor_mode(enum sensor_mode_t mode,
+	enum sensor_resolution_t res)
 {
 	int32_t rc = 0;
 
@@ -1147,7 +1199,8 @@ static int32_t s5k3e2fx_set_default_focus(void)
 	return rc;
 }
 
-static int32_t s5k3e2fx_move_focus(int direction, int32_t num_steps)
+static int32_t s5k3e2fx_move_focus(enum sensor_move_focus_t direction,
+	int32_t num_steps)
 {
 	int32_t rc = 0;
 	int32_t i;
@@ -1174,9 +1227,11 @@ static int32_t s5k3e2fx_move_focus(int direction, int32_t num_steps)
 
 	for (i = 0; i <= 4; i++) {
 		if (actual_step >= 0)
-			s_move[i] = (((i+1)*gain+0x200)-(i*gain+0x200))/0x400;
+			s_move[i] = ((((i+1)*gain+0x200) - (i*gain+0x200))/
+				0x400);
 		else
-			s_move[i] = (((i+1)*gain-0x200)-(i*gain-0x200))/0x400;
+			s_move[i] = ((((i+1)*gain-0x200) - (i*gain-0x200))/
+				0x400);
 	}
 
 	/* Ring Damping Code */
@@ -1196,13 +1251,13 @@ static int32_t s5k3e2fx_move_focus(int direction, int32_t num_steps)
 		next_pos_msb = next_pos >> 8;
 		next_pos_lsb = next_pos & 0x00FF;
 
-		rc = s5k3e2fx_i2c_write_b(s5k3e2fx_client->addr,
-			0x3131, next_pos_msb);
+		rc = s5k3e2fx_i2c_write_b(s5k3e2fx_client->addr, 0x3131,
+			next_pos_msb);
 		if (rc < 0)
 			break;
 
-		rc = s5k3e2fx_i2c_write_b(s5k3e2fx_client->addr,
-			0x3132, next_pos_lsb);
+		rc = s5k3e2fx_i2c_write_b(s5k3e2fx_client->addr, 0x3132,
+			next_pos_lsb);
 		if (rc < 0)
 			break;
 
@@ -1217,15 +1272,15 @@ static int32_t s5k3e2fx_move_focus(int direction, int32_t num_steps)
 
 static int s5k3e2fx_sensor_config(void __user *argp)
 {
-	struct sensor_cfg_data cdata;
+	struct sensor_cfg_data_t cdata;
 	long   rc = 0;
 
 	if (copy_from_user(&cdata,
 			(void *)argp,
-			sizeof(struct sensor_cfg_data)))
+			sizeof(struct sensor_cfg_data_t)))
 		return -EFAULT;
 
-	mutex_lock(&s5k3e2fx_mutex);
+	down(&s5k3e2fx_sem);
 
 	CDBG("%s: cfgtype = %d\n", __func__, cdata.cfgtype);
 	switch (cdata.cfgtype) {
@@ -1234,7 +1289,7 @@ static int s5k3e2fx_sensor_config(void __user *argp)
 			&(cdata.cfg.gfps.pictfps));
 
 		if (copy_to_user((void *)argp, &cdata,
-				sizeof(struct sensor_cfg_data)))
+				sizeof(struct sensor_cfg_data_t)))
 			rc = -EFAULT;
 		break;
 
@@ -1242,8 +1297,8 @@ static int s5k3e2fx_sensor_config(void __user *argp)
 		cdata.cfg.prevl_pf = s5k3e2fx_get_prev_lines_pf();
 
 		if (copy_to_user((void *)argp,
-				&cdata,
-				sizeof(struct sensor_cfg_data)))
+			&cdata,
+			sizeof(struct sensor_cfg_data_t)))
 			rc = -EFAULT;
 		break;
 
@@ -1251,8 +1306,8 @@ static int s5k3e2fx_sensor_config(void __user *argp)
 		cdata.cfg.prevp_pl = s5k3e2fx_get_prev_pixels_pl();
 
 		if (copy_to_user((void *)argp,
-				&cdata,
-				sizeof(struct sensor_cfg_data)))
+			&cdata,
+			sizeof(struct sensor_cfg_data_t)))
 			rc = -EFAULT;
 		break;
 
@@ -1260,8 +1315,8 @@ static int s5k3e2fx_sensor_config(void __user *argp)
 		cdata.cfg.pictl_pf = s5k3e2fx_get_pict_lines_pf();
 
 		if (copy_to_user((void *)argp,
-				&cdata,
-				sizeof(struct sensor_cfg_data)))
+			&cdata,
+			sizeof(struct sensor_cfg_data_t)))
 			rc = -EFAULT;
 		break;
 
@@ -1269,8 +1324,8 @@ static int s5k3e2fx_sensor_config(void __user *argp)
 		cdata.cfg.pictp_pl = s5k3e2fx_get_pict_pixels_pl();
 
 		if (copy_to_user((void *)argp,
-				&cdata,
-				sizeof(struct sensor_cfg_data)))
+			&cdata,
+			sizeof(struct sensor_cfg_data_t)))
 			rc = -EFAULT;
 		break;
 
@@ -1279,8 +1334,8 @@ static int s5k3e2fx_sensor_config(void __user *argp)
 			s5k3e2fx_get_pict_max_exp_lc();
 
 		if (copy_to_user((void *)argp,
-				&cdata,
-				sizeof(struct sensor_cfg_data)))
+			&cdata,
+			sizeof(struct sensor_cfg_data_t)))
 			rc = -EFAULT;
 		break;
 
@@ -1325,65 +1380,52 @@ static int s5k3e2fx_sensor_config(void __user *argp)
 			s5k3e2fx_set_default_focus();
 		break;
 
-	case CFG_GET_AF_MAX_STEPS:
 	case CFG_SET_EFFECT:
+		rc =
+			s5k3e2fx_set_default_focus();
+		break;
+
 	case CFG_SET_LENS_SHADING:
 	default:
-		rc = -EINVAL;
+		rc = -EFAULT;
 		break;
 	}
 
-	mutex_unlock(&s5k3e2fx_mutex);
+	up(&s5k3e2fx_sem);
 	return rc;
 }
 
-static int s5k3e2fx_sensor_probe(const struct msm_camera_sensor_info *info,
-		struct msm_sensor_ctrl *s)
+int s5k3e2fx_probe_init(void *dev, void *ctrl)
 {
 	int rc = 0;
+	struct msm_camera_sensor_info *info =
+		(struct msm_camera_sensor_info *)dev;
 
-	rc = i2c_add_driver(&s5k3e2fx_i2c_driver);
-	if (rc < 0 || s5k3e2fx_client == NULL) {
-		rc = -ENOTSUPP;
+	struct msm_sensor_ctrl_t *s = (struct msm_sensor_ctrl_t *)ctrl;
+
+CDBG("STEPHENL: %s %s:%d\n", __FILE__, __func__, __LINE__);
+	rc = s5k3e2fx_init();
+	if (rc < 0)
 		goto probe_fail;
-	}
 
 	msm_camio_clk_rate_set(24000000);
 	mdelay(20);
 
+CDBG("STEPHENL: %s %s:%d\n", __FILE__, __func__, __LINE__);
 	rc = s5k3e2fx_probe_init_sensor(info);
 	if (rc < 0)
 		goto probe_fail;
 
+CDBG("STEPHENL: %s %s:%d\n", __FILE__, __func__, __LINE__);
 	s->s_init = s5k3e2fx_sensor_open_init;
 	s->s_release = s5k3e2fx_sensor_release;
 	s->s_config  = s5k3e2fx_sensor_config;
 	s5k3e2fx_probe_init_done(info);
 
+CDBG("STEPHENL: %s %s:%d\n", __FILE__, __func__, __LINE__);
 	return rc;
 
 probe_fail:
 	CDBG("SENSOR PROBE FAILS!\n");
 	return rc;
 }
-
-static int __s5k3e2fx_probe(struct platform_device *pdev)
-{
-	return msm_camera_drv_start(pdev, s5k3e2fx_sensor_probe);
-}
-
-static struct platform_driver msm_camera_driver = {
-	.probe = __s5k3e2fx_probe,
-	.driver = {
-		.name = "msm_camera_s5k3e2fx",
-		.owner = THIS_MODULE,
-	},
-};
-
-static int __init s5k3e2fx_init(void)
-{
-	return platform_driver_register(&msm_camera_driver);
-}
-
-module_init(s5k3e2fx_init);
-

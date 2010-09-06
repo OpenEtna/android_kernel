@@ -1,25 +1,64 @@
-/* Copyright (c) 2009, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2008-2009, Code Aurora Forum. All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 and
- * only version 2 as published by the Free Software Foundation.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of Code Aurora Forum nor
+ *       the names of its contributors may be used to endorse or promote
+ *       products derived from this software without specific prior written
+ *       permission.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Alternatively, provided that this notice is retained in full, this software
+ * may be relicensed by the recipient under the terms of the GNU General Public
+ * License version 2 ("GPL") and only version 2, in which case the provisions of
+ * the GPL apply INSTEAD OF those given above.  If the recipient relicenses the
+ * software under the GPL, then the identification text in the MODULE_LICENSE
+ * macro must be changed to reflect "GPLv2" instead of "Dual BSD/GPL".  Once a
+ * recipient changes the license terms to the GPL, subsequent recipients shall
+ * not relicense under alternate licensing terms, including the BSD or dual
+ * BSD/GPL terms.  In addition, the following license statement immediately
+ * below and between the words START and END shall also then apply when this
+ * software is relicensed under the GPL:
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA.
+ * START
+ *
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License version 2 and only version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * END
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  *
  */
 
 #include "mt9d112.h"
 
 
-struct register_address_value_pair const
+struct register_address_value_pair_t const
 preview_snapshot_mode_reg_settings_array[] = {
 	{0x338C, 0x2703},
 	{0x3390, 800},    /* Output Width (P) = 640 */
@@ -125,7 +164,7 @@ preview_snapshot_mode_reg_settings_array[] = {
 	{0x3390, 0x6408}, /* MODE_SPEC_EFFECTS(S) */
 };
 
-static struct register_address_value_pair const
+static struct register_address_value_pair_t const
 noise_reduction_reg_settings_array[] = {
 	{0x338C, 0xA76D},
 	{0x3390, 0x0003},
@@ -209,7 +248,8 @@ noise_reduction_reg_settings_array[] = {
 	{0x3390, 6},
 };
 
-static const struct mt9d112_i2c_reg_conf const lens_roll_off_tbl[] = {
+
+struct mt9d112_i2c_reg_conf const lens_roll_off_tbl[] = {
 	{ 0x34CE, 0x81A0, WORD_LEN, 0 },
 	{ 0x34D0, 0x6331, WORD_LEN, 0 },
 	{ 0x34D2, 0x3394, WORD_LEN, 0 },
@@ -286,7 +326,8 @@ static const struct mt9d112_i2c_reg_conf const lens_roll_off_tbl[] = {
 	{ 0x3542, 0x0000, WORD_LEN, 0 }
 };
 
-static const struct mt9d112_i2c_reg_conf const pll_setup_tbl[] = {
+
+struct mt9d112_i2c_reg_conf const pll_setup_tbl[] = {
 	{ 0x341E, 0x8F09, WORD_LEN, 0 },
 	{ 0x341C, 0x0250, WORD_LEN, 0 },
 	{ 0x341E, 0x8F09, WORD_LEN, 5 },
@@ -294,7 +335,7 @@ static const struct mt9d112_i2c_reg_conf const pll_setup_tbl[] = {
 };
 
 /* Refresh Sequencer */
-static const struct mt9d112_i2c_reg_conf const sequencer_tbl[] = {
+struct mt9d112_i2c_reg_conf const sequencer_tbl[] = {
 	{ 0x338C, 0x2799, WORD_LEN, 0},
 	{ 0x3390, 0x6440, WORD_LEN, 5},
 	{ 0x338C, 0x279B, WORD_LEN, 0},
@@ -305,18 +346,18 @@ static const struct mt9d112_i2c_reg_conf const sequencer_tbl[] = {
 	{ 0x3390, 0x0006, WORD_LEN, 5}
 };
 
-struct mt9d112_reg mt9d112_regs = {
+struct mt9d112_reg_t mt9d112_regs = {
 	.prev_snap_reg_settings = &preview_snapshot_mode_reg_settings_array[0],
-	.prev_snap_reg_settings_size = ARRAY_SIZE(
-		preview_snapshot_mode_reg_settings_array),
+	.prev_snap_reg_settings_size =
+		ARRAY_SIZE(preview_snapshot_mode_reg_settings_array),
 	.noise_reduction_reg_settings = &noise_reduction_reg_settings_array[0],
-	.noise_reduction_reg_settings_size = ARRAY_SIZE(
-		noise_reduction_reg_settings_array),
-	.plltbl = pll_setup_tbl,
+	.noise_reduction_reg_settings_size =
+		ARRAY_SIZE(noise_reduction_reg_settings_array),
+	.plltbl = &pll_setup_tbl[0],
 	.plltbl_size = ARRAY_SIZE(pll_setup_tbl),
-	.stbl = sequencer_tbl,
+	.stbl = &sequencer_tbl[0],
 	.stbl_size = ARRAY_SIZE(sequencer_tbl),
-	.rftbl = lens_roll_off_tbl,
+	.rftbl = &lens_roll_off_tbl[0],
 	.rftbl_size = ARRAY_SIZE(lens_roll_off_tbl)
 };
 
