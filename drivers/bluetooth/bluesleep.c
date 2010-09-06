@@ -25,6 +25,10 @@
    2007-Jan-24  Motorola         Added mbm_handle_ioi() call to ISR.
 
 */
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#define DEBUG
+// END: 0002333 chpark9@lge.com 2009-12-26
 
 #include <linux/module.h>	/* kernel module definitions */
 #include <linux/errno.h>
@@ -52,6 +56,7 @@
 #include <net/bluetooth/hci_core.h> /* event notifications */
 #include "hci_uart.h"
 
+
 #define BT_SLEEP_DBG
 #ifndef BT_SLEEP_DBG
 #define BT_DBG(fmt, arg...)
@@ -62,6 +67,18 @@
 
 #define VERSION		"1.1"
 #define PROC_DIR	"bluetooth/sleep"
+
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifndef FEATURE_USE_BTLA
+// Attention : The current polarity value is 0.
+#define FEATURE_USE_BTLA
+#endif/*FEATURE_USE_BTLA*/
+
+#ifdef FEATURE_USE_BTLA
+#define BT_PORT_NUM	0
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
 
 struct bluesleep_info {
 	unsigned host_wake;
@@ -83,8 +100,12 @@ DECLARE_DELAYED_WORK(sleep_workqueue, bluesleep_sleep_work);
 #define bluesleep_rx_idle()     schedule_delayed_work(&sleep_workqueue, 0)
 #define bluesleep_tx_idle()     schedule_delayed_work(&sleep_workqueue, 0)
 
-/* 1 second timeout */
-#define TX_TIMER_INTERVAL	1
+// BEGIN : 0005259 chanha.park@lge.com 2010-03-21
+// MOD : 0005259: [SWIFT][BT] Fixed power consumtion problem when connected with Samsung stereo headset. 
+/* 5 second timeout */
+#define TX_TIMER_INTERVAL	5 //CHPARK_TEST
+#define TX_TIMER_SLEEP_INTERVAL	TX_TIMER_INTERVAL
+// END : 0005259 chanha.park@lge.com 2010-03-21
 
 /* state variable names and bit positions */
 #define BT_PROTO	0x01
@@ -99,12 +120,16 @@ static struct bluesleep_info *bsi;
 /* module usage */
 static atomic_t open_count = ATOMIC_INIT(1);
 
+// BEGIN : 0005520 chanha.park@lge.com 2010-03-27
+// DEL : 0005520: [SWIFT][BT] Fixed compile warning. 
 /*
  * Local function prototypes
  */
-
+#ifndef FEATURE_USE_BTLA
 static int bluesleep_hci_event(struct notifier_block *this,
 			    unsigned long event, void *data);
+#endif/*FEATURE_USE_BTLA*/
+// END : 0005520 chanha.park@lge.com 2010-03-27
 
 /*
  * Global variables
@@ -122,10 +147,15 @@ static struct timer_list tx_timer;
 /** Lock for state transitions */
 static spinlock_t rw_lock;
 
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// DEL: 0002333: [SWIFT][BT] Bluetooth Sleep.
+#ifndef FEATURE_USE_BTLA
 /** Notifier block for HCI events */
 struct notifier_block hci_event_nblock = {
 	.notifier_call = bluesleep_hci_event,
 };
+#endif/*FEATURE_USE_BTLA*/
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
 
 struct proc_dir_entry *bluetooth_dir, *sleep_dir;
 
@@ -135,6 +165,8 @@ struct proc_dir_entry *bluetooth_dir, *sleep_dir;
 
 static void hsuart_power(int on)
 {
+	printk(KERN_DEBUG "hsuart_power %d", on);
+
 	if (on) {
 		msm_hs_request_clock_on(bsi->uport);
 		msm_hs_set_mctrl_locked(bsi->uport, TIOCM_RTS);
@@ -151,6 +183,8 @@ static void hsuart_power(int on)
 static inline int bluesleep_can_sleep(void)
 {
 	/* check if MSM_WAKE_BT_GPIO and BT_WAKE_MSM_GPIO are both deasserted */
+	//printk(KERN_DEBUG "bluesleep_can_sleep %d, %d, %p", gpio_get_value(bsi->ext_wake), gpio_get_value(bsi->host_wake), bsi->uport);
+	
 	return gpio_get_value(bsi->ext_wake) &&
 		gpio_get_value(bsi->host_wake) &&
 		(bsi->uport != NULL);
@@ -158,12 +192,24 @@ static inline int bluesleep_can_sleep(void)
 
 void bluesleep_sleep_wakeup(void)
 {
+	//BT_DBG("bluesleep_sleep_wakeup");
+
 	if (test_bit(BT_ASLEEP, &flags)) {
-		BT_DBG("waking up...");
+		//BT_DBG("waking up...");
 		wake_lock(&bsi->wake_lock);
-		/* Start the timer */
-		mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL * HZ));
-		gpio_set_value(bsi->ext_wake, 0);
+
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifndef FEATURE_USE_BTLA
+		/* Start the timer */		
+		mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL * HZ));//CHPARK_TEST
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
+		//disable_irq_wake(bsi->host_wake_irq);
+// BEGIN : 0005259 chanha.park@lge.com 2010-03-21
+// DEL : 0005259: [SWIFT][BT] Fixed power consumtion problem when connected with Samsung stereo headset. 		
+		//gpio_set_value(bsi->ext_wake, 0);
+// END : 0005259 chanha.park@lge.com 2010-03-21		
 		clear_bit(BT_ASLEEP, &flags);
 		/*Activating UART */
 		hsuart_power(1);
@@ -179,28 +225,35 @@ static void bluesleep_sleep_work(struct work_struct *work)
 	if (bluesleep_can_sleep()) {
 		/* already asleep, this is an error case */
 		if (test_bit(BT_ASLEEP, &flags)) {
-			BT_DBG("already asleep");
+			//BT_DBG("already asleep");
 			return;
 		}
 
 		if (msm_hs_tx_empty(bsi->uport)) {
-			BT_DBG("going to sleep...");
+			//BT_DBG("going to sleep...");
 			set_bit(BT_ASLEEP, &flags);
 			/*Deactivating UART */
 			hsuart_power(0);
 			/* UART clk is not turned off immediately. Release
 			 * wakelock after 500 ms.
 			 */
+			enable_irq_wake(bsi->host_wake_irq);
 			wake_lock_timeout(&bsi->wake_lock, HZ / 2);
-		} else {
-
-		  mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL * HZ));
+		}
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifndef FEATURE_USE_BTLA	
+		else {
+		  	mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL * HZ));
 			return;
 		}
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
 	} else {
 		bluesleep_sleep_wakeup();
 	}
 }
+
 
 /**
  * A tasklet function that runs in tasklet context and reads the value
@@ -209,18 +262,32 @@ static void bluesleep_sleep_work(struct work_struct *work)
  */
 static void bluesleep_hostwake_task(unsigned long data)
 {
-	BT_DBG("hostwake line change");
+	//BT_DBG("hostwake line change");
 
 	spin_lock(&rw_lock);
 
 	if (gpio_get_value(bsi->host_wake))
+	{
+		//BT_DBG("HOST_WAKE_1");
 		bluesleep_rx_busy();
+	}
 	else
+	{
+		//BT_DBG("HOST_WAKE_0");
 		bluesleep_rx_idle();
+
+// BEGIN : 0005259 chanha.park@lge.com 2010-03-21
+// MOD : 0005259: [SWIFT][BT] Fixed power consumtion problem when connected with Samsung stereo headset. 		
+		mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL * HZ));//CHPARK_TEST
+// END : 0005259 chanha.park@lge.com 2010-03-21		
+	}
 
 	spin_unlock(&rw_lock);
 }
 
+// BEGIN : 0005520 chanha.park@lge.com 2010-03-27
+// DEL : 0005520: [SWIFT][BT] Fixed compile warning. 
+#ifndef FEATURE_USE_BTLA
 /**
  * Handles proper timer action when outgoing data is delivered to the
  * HCI line discipline. Sets BT_TXDATA.
@@ -237,7 +304,7 @@ static void bluesleep_outgoing_data(void)
 	/* if the tx side is sleeping... */
 	if (gpio_get_value(bsi->ext_wake)) {
 
-		BT_DBG("tx was sleeping");
+		//BT_DBG("tx was sleeping");
 		bluesleep_sleep_wakeup();
 	}
 
@@ -281,6 +348,8 @@ static int bluesleep_hci_event(struct notifier_block *this,
 
 	return NOTIFY_DONE;
 }
+#endif/*FEATURE_USE_BTLA*/
+// END : 0005520 chanha.park@lge.com 2010-03-27
 
 /**
  * Handles transmission timer expiration.
@@ -292,8 +361,19 @@ static void bluesleep_tx_timer_expire(unsigned long data)
 
 	spin_lock_irqsave(&rw_lock, irq_flags);
 
-	BT_DBG("Tx timer expired");
+	//BT_DBG("Tx timer expired");
 
+// BEGIN : 0005259 chanha.park@lge.com 2010-03-21
+// MOD : 0005259: [SWIFT][BT] Fixed power consumtion problem when connected with Samsung stereo headset. 
+	/* already asleep, this is an error case */
+	if (test_bit(BT_ASLEEP, &flags)) {
+		//BT_DBG("already asleep");
+		spin_unlock_irqrestore(&rw_lock, irq_flags);
+		return;
+	}
+
+	bluesleep_tx_idle();
+#ifndef FEATURE_USE_BTLA
 	/* were we silent during the last timeout? */
 	if (!test_bit(BT_TXDATA, &flags)) {
 		BT_DBG("Tx has been idle");
@@ -306,6 +386,8 @@ static void bluesleep_tx_timer_expire(unsigned long data)
 
 	/* clear the incoming data flag */
 	clear_bit(BT_TXDATA, &flags);
+#endif/*FEATURE_USE_BTLA*/
+// END : 0005259 chanha.park@lge.com 2010-03-21
 
 	spin_unlock_irqrestore(&rw_lock, irq_flags);
 }
@@ -320,7 +402,8 @@ static irqreturn_t bluesleep_hostwake_isr(int irq, void *dev_id)
 {
 	gpio_clear_detect_status(bsi->host_wake_irq);
 
-	/* schedule a tasklet to handle the change in the host wake line */
+	//BT_DBG("bluesleep_hostwake_isr");
+
 	tasklet_schedule(&hostwake_task);
 	return IRQ_HANDLED;
 }
@@ -330,10 +413,19 @@ static irqreturn_t bluesleep_hostwake_isr(int irq, void *dev_id)
  * @return On success, 0. On error, -1, and <code>errno</code> is set
  * appropriately.
  */
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifdef FEATURE_USE_BTLA
+int bluesleep_start(void)
+#else/*FEATURE_USE_BTLA*/
 static int bluesleep_start(void)
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
 {
 	int retval;
 	unsigned long irq_flags;
+
+	//BT_DBG("bluesleep_start");
 
 	spin_lock_irqsave(&rw_lock, irq_flags);
 
@@ -349,20 +441,40 @@ static int bluesleep_start(void)
 		return -EBUSY;
 	}
 
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// DEL: 0002333: [SWIFT][BT] Bluetooth Sleep.
+#ifndef FEATURE_USE_BTLA
 	/* start the timer */
-
 	mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL*HZ));
-
 	/* assert BT_WAKE */
 	gpio_set_value(bsi->ext_wake, 0);
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26	
+
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep.
+#ifdef  FEATURE_USE_BTLA
+	hsuart_power(1);
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26	
+
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// MOD: 0002333: [SWIFT][BT] Bluetooth Sleep.
+#if 0//def FEATURE_USE_BTLA	
+	retval = request_irq(bsi->host_wake_irq, bluesleep_hostwake_isr,
+				IRQF_DISABLED | IRQF_TRIGGER_LOW | IRQF_TRIGGER_HIGH,
+				"bluetooth hostwake", NULL);
+#else/*FEATURE_USE_BTLA*/
 	retval = request_irq(bsi->host_wake_irq, bluesleep_hostwake_isr,
 				IRQF_DISABLED | IRQF_TRIGGER_FALLING,
 				"bluetooth hostwake", NULL);
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
 	if (retval  < 0) {
 		BT_ERR("Couldn't acquire BT_HOST_WAKE IRQ");
 		goto fail;
 	}
-
+	
 	retval = enable_irq_wake(bsi->host_wake_irq);
 	if (retval < 0) {
 		BT_ERR("Couldn't enable BT_HOST_WAKE as wakeup interrupt");
@@ -372,20 +484,41 @@ static int bluesleep_start(void)
 
 	set_bit(BT_PROTO, &flags);
 	wake_lock(&bsi->wake_lock);
+
 	return 0;
 fail:
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// DEL: 0002333: [SWIFT][BT] Bluetooth Sleep.	
+#ifndef FEATURE_USE_BTLA
 	del_timer(&tx_timer);
+#endif/*FEATURE_USE_BTLA*/
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
 	atomic_inc(&open_count);
 
 	return retval;
 }
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifdef FEATURE_USE_BTLA
+EXPORT_SYMBOL(bluesleep_start);
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
 
 /**
  * Stops the Sleep-Mode Protocol on the Host.
  */
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifdef FEATURE_USE_BTLA
+void bluesleep_stop(void)
+#else/*FEATURE_USE_BTLA*/
 static void bluesleep_stop(void)
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
 {
 	unsigned long irq_flags;
+
+	//BT_DBG("bluesleep_stop");
 
 	spin_lock_irqsave(&rw_lock, irq_flags);
 
@@ -394,24 +527,52 @@ static void bluesleep_stop(void)
 		return;
 	}
 
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// DEL: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifndef FEATURE_USE_BTLA
 	/* assert BT_WAKE */
 	gpio_set_value(bsi->ext_wake, 0);
 	del_timer(&tx_timer);
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
+
 	clear_bit(BT_PROTO, &flags);
+
+// BEGIN: 0005687 chanha.park@lge.com 2010-03-31
+// DEL: 0005687: [SWIFT][BT] Delete disable_irq_wake in the bluesleep.c
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// DEL: 0002333: [SWIFT][BT] Bluetooth Sleep.
+#ifndef FEATURE_USE_BTLA
+	disable_irq_wake(bsi->host_wake_irq);
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
+// END: 0005687 chanha.park@lge.com 2010-03-31
 
 	if (test_bit(BT_ASLEEP, &flags)) {
 		clear_bit(BT_ASLEEP, &flags);
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// DEL: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifndef FEATURE_USE_BTLA
 		hsuart_power(1);
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
 	}
 
 	atomic_inc(&open_count);
-
+	
 	spin_unlock_irqrestore(&rw_lock, irq_flags);
 	if (disable_irq_wake(bsi->host_wake_irq))
 		BT_ERR("Couldn't disable hostwake IRQ wakeup mode\n");
 	free_irq(bsi->host_wake_irq, NULL);
 	wake_lock_timeout(&bsi->wake_lock, HZ / 2);
 }
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifdef FEATURE_USE_BTLA
+EXPORT_SYMBOL(bluesleep_stop);
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
+
 /**
  * Read the <code>BT_WAKE</code> GPIO pin value via the proc interface.
  * When this function returns, <code>page</code> will contain a 1 if the
@@ -529,6 +690,8 @@ static int bluesleep_read_proc_proto(char *page, char **start, off_t offset,
 {
 	unsigned int proto;
 
+	//BT_DBG("bluesleep_read_proc_proto");
+
 	proto = test_bit(BT_PROTO, &flags) ? 1 : 0;
 	*eof = 1;
 	return sprintf(page, "proto: %u\n", proto);
@@ -546,18 +709,43 @@ static int bluesleep_read_proc_proto(char *page, char **start, off_t offset,
 static int bluesleep_write_proc_proto(struct file *file, const char *buffer,
 					unsigned long count, void *data)
 {
-	char proto;
+	char proto;	
 
 	if (count < 1)
+	{
+		//BT_DBG("bluesleep_write_proc_proto-1");
 		return -EINVAL;
+	}
 
 	if (copy_from_user(&proto, buffer, 1))
-		return -EFAULT;
+	{
+		//BT_DBG("bluesleep_write_proc_proto-2");
+		return -EFAULT;	
+	}
 
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// MOD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifdef FEATURE_USE_BTLA
+	//printk(KERN_DEBUG "bluesleep_write_proc_proto %c", proto);
+
+	if (proto == '0')
+	{
+		//Assert sleep...
+		gpio_set_value(bsi->ext_wake, 0);
+		bluesleep_sleep_wakeup(); //Write '0' by BTLD when BT going to wake...
+	}
+	else
+	{		
+		gpio_set_value(bsi->ext_wake, 1);
+		bluesleep_tx_idle(); //Write '1' by BTLD when BT going to sleep...
+	}
+#else/*FEATURE_USE_BTLA*/
 	if (proto == '0')
 		bluesleep_stop();
 	else
 		bluesleep_start();
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
 
 	/* claim that we wrote everything */
 	return count;
@@ -604,6 +792,13 @@ static int __init bluesleep_probe(struct platform_device *pdev)
 		ret = -ENODEV;
 		goto free_bt_ext_wake;
 	}
+
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifdef FEATURE_USE_BTLA
+	bsi->uport= msm_hs_get_bt_uport(BT_PORT_NUM); 
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
 
 	wake_lock_init(&bsi->wake_lock, WAKE_LOCK_SUSPEND, "bluesleep");
 
@@ -715,8 +910,14 @@ static int __init bluesleep_init(void)
 	tasklet_init(&hostwake_task, bluesleep_hostwake_task, 0);
 
 	/* assert bt wake */
-	gpio_set_value(bsi->ext_wake, 0);
+	//gpio_set_value(bsi->ext_wake, 0);
+
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// DEL: 0002333: [SWIFT][BT] Bluetooth Sleep.
+#ifndef FEATURE_USE_BTLA
 	hci_register_notifier(&hci_event_nblock);
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
 
 	return 0;
 
@@ -746,7 +947,12 @@ static void __exit bluesleep_exit(void)
 			hsuart_power(1);
 	}
 
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// DEL: 0002333: [SWIFT][BT] Bluetooth Sleep.
+#ifndef FEATURE_USE_BTLA
 	hci_unregister_notifier(&hci_event_nblock);
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
 	platform_driver_unregister(&bluesleep_driver);
 
 	remove_proc_entry("asleep", sleep_dir);
