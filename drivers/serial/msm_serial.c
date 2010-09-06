@@ -34,8 +34,18 @@
 #include <linux/nmi.h>
 #include <linux/clk.h>
 #include <linux/platform_device.h>
-
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-03-10 */
+#if defined(CONFIG_MACH_EVE)
+#include <linux/init.h>
+#include <linux/string.h>
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [cleaneye@lge.com] 2009-03-10 */
 #include "msm_serial.h"
+
+/* LGE_CHANGE, [dojip.kim@lge.com] kernel panic when serial console disabled */
+#if defined(CONFIG_SERIAL_MSM_CONSOLE) && defined(CONFIG_MACH_EVE)
+static int msm_serial_console_enabled = 0;
+#endif
 
 #ifdef CONFIG_SERIAL_MSM_CLOCK_CONTROL
 enum msm_clk_states_e {
@@ -883,6 +893,31 @@ static void msm_console_write(struct console *co, const char *s,
 		spin_unlock(&port->lock);
 }
 
+/* LGE_CHANGE_S, [munyoung@lge.com] kernel panic when serial console disabled */
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, 
+ *  fix the mismatched section. 
+ *  boot_command_line is initdata. so rework */
+#if defined(CONFIG_SERIAL_MSM_CONSOLE) && defined(CONFIG_MACH_EVE)
+static int is_serial_console_enable()
+{
+	return msm_serial_console_enabled;
+}
+
+static int __init check_serial_console_enable()
+{
+	char *boot_cmd = boot_command_line;
+	char *arm11_uart_bootcmd = "root=/dev/mtdblock1 rootfstype=yaffs2 lpj=1912832 console=ttyMSM2,115200n8";
+	int ret;
+
+	ret = strncmp(boot_cmd, arm11_uart_bootcmd, strlen(arm11_uart_bootcmd));
+
+	msm_serial_console_enabled = !ret;
+
+	return msm_serial_console_enabled;
+}
+#endif
+/* LGE_CHANGE, [munyoung@lge.com] kernel panic when serial console disabled */
+
 static int __init msm_console_setup(struct console *co, char *options)
 {
 	struct uart_port *port;
@@ -914,6 +949,18 @@ static int __init msm_console_setup(struct console *co, char *options)
 	msm_set_baud_rate(port, baud);
 
 	msm_reset(port);
+
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-03-31, prevent console uart3 clock from being disabled */
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, 
+ *   fix the mismatched section, so use check_serial_console_enable() 
+ */
+#if defined(CONFIG_SERIAL_MSM_CONSOLE) && defined(CONFIG_MACH_EVE)
+	if(!check_serial_console_enable())
+		msm_deinit_clock(port);
+#else /* qualcomm or google */
+	msm_deinit_clock(port);
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [cleaneye@lge.com] 2009-03-31 */
 
 	printk(KERN_INFO "msm_serial: console setup on port #%d\n", port->line);
 
@@ -951,6 +998,13 @@ static int __init msm_serial_probe(struct platform_device *pdev)
 	struct msm_port *msm_port;
 	struct resource *resource;
 	struct uart_port *port;
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-03-10, check uart arm9 mode and prevent clk_uart from disabling */
+#if defined(CONFIG_MACH_EVE)
+	char *boot_cmd = boot_command_line;
+	char *arm9_uart_bootcmd = "lpj=1912832 console=/dev/ttyMSM0";
+	int ret;
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [cleaneye@lge.com] 2009-03-10 */
 
 	if (unlikely(pdev->id < 0 || pdev->id >= UART_NR))
 		return -ENXIO;
@@ -965,6 +1019,15 @@ static int __init msm_serial_probe(struct platform_device *pdev)
 	if (unlikely(IS_ERR(msm_port->clk)))
 		return PTR_ERR(msm_port->clk);
 	port->uartclk = clk_get_rate(msm_port->clk);
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-03-10, check uart arm9 mode and prevent clk_uart from disabling */
+#if defined(CONFIG_MACH_EVE)
+	ret = strncmp(boot_cmd, arm9_uart_bootcmd, strlen(arm9_uart_bootcmd));
+	if (!ret)
+		clk_enable(msm_port->clk);
+	clk_enable(msm_port->clk);
+	printk(KERN_INFO"%s: %d %s\n",__func__, ret, boot_cmd);
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [cleaneye@lge.com] 2009-03-10 */
 
 	resource = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (unlikely(!resource))
@@ -1009,7 +1072,31 @@ static int __devexit msm_serial_remove(struct platform_device *pdev)
 static int msm_serial_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct uart_port *port;
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-16, disable uart3 clock */
+#if defined(CONFIG_SERIAL_MSM_CONSOLE) && defined(CONFIG_MACH_EVE)
+	struct msm_port *msm_port;
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [cleaneye@lge.com] 2009-04-16 */
+	
 	port = get_port_from_line(pdev->id);
+
+
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-16, disable uart3 clock */
+#if defined(CONFIG_SERIAL_MSM_CONSOLE) && defined(CONFIG_MACH_EVE)
+	/* LGE_CHANGE, [munyoung@lge.com] kernel panic when serial console disabled
+	   disable clock for port only if serial console enabled. */
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-05-10, 
+	 * fixed the current leakage in suspend mode
+	 * disable the clock if serial console is not enabled 
+	 */
+	//if(is_serial_console_enable()) {
+	if(!is_serial_console_enable()) {
+		msm_port = UART_TO_MSM(port);
+		clk_disable(msm_port->clk);
+	}
+#endif /* CONFIG_MACH_EVE */	
+/* LGE_CHANGE_E [cleaneye@lge.com] 2009-04-16 */
+
 
 	if (port) {
 		uart_suspend_port(&msm_uart_driver, port);
@@ -1023,8 +1110,29 @@ static int msm_serial_suspend(struct platform_device *pdev, pm_message_t state)
 static int msm_serial_resume(struct platform_device *pdev)
 {
 	struct uart_port *port;
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-16, enable uart3 clock */
+#if defined(CONFIG_SERIAL_MSM_CONSOLE) && defined(CONFIG_MACH_EVE)
+	struct msm_port *msm_port;
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [cleaneye@lge.com] 2009-04-16 */
+
 	port = get_port_from_line(pdev->id);
 
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-16, enable uart3 clock */
+#if defined(CONFIG_SERIAL_MSM_CONSOLE) && defined(CONFIG_MACH_EVE)
+	/* LGE_CHANGE, [munyoung@lge.com] kernel panic when serial console disabled 
+	   enable clock for port only if serial console enabled. */
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-05-10, 
+	 * fixed the current leakage in suspend mode
+	 * disable the clock if serial console is not enabled 
+	 */
+	//if(is_serial_console_enable()) {
+	if(!is_serial_console_enable()) {
+		msm_port = UART_TO_MSM(port);
+		clk_enable(msm_port->clk);
+	}
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [cleaneye@lge.com] 2009-04-16 */
 	if (port) {
 		if (is_console(port))
 			msm_init_clock(port);
