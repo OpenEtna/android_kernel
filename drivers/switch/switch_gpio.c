@@ -24,6 +24,17 @@
 #include <linux/workqueue.h>
 #include <linux/gpio.h>
 
+/* LGE_CHANGE_S [kimeh@lge.com] 2009-04-15, for debugging */
+#if defined (CONFIG_MACH_EVE)
+#define DEBUG_HS	1
+
+#if DEBUG_HS
+#define D(fmt, args...) printk(fmt, ##args)
+#else
+#define D(fmt, args...) do () while(0)
+#endif
+#endif
+/* LGE_CHANGE_E [kimeh@lge.com] 2009-04-15, for debugging */
 struct gpio_switch_data {
 	struct switch_dev sdev;
 	unsigned gpio;
@@ -42,6 +53,11 @@ static void gpio_switch_work(struct work_struct *work)
 		container_of(work, struct gpio_switch_data, work);
 
 	state = gpio_get_value(data->gpio);
+/* LGE_CHANGE_S [kimeh@lge.com] 2009-04-15, for debugging */
+#if defined (CONFIG_MACH_EVE)
+	D("hs:%d\n", state);
+#endif /* CONFIG_MACH_ADAM */
+/* LGE_CHANGE_E [kimeh@lge.com] 2009-04-15, for debugging */
 	switch_set_state(&data->sdev, state);
 }
 
@@ -78,6 +94,11 @@ static int gpio_switch_probe(struct platform_device *pdev)
 	if (!pdata)
 		return -EBUSY;
 
+/* LGE_CHANGE_S [kimeh@lge.com] 2009-04-15, for debugging */
+#if defined (CONFIG_MACH_EVE)
+	D("hs_probe :%s\n", pdata->name);
+#endif /* CONFIG_MACH_ADAM */
+/* LGE_CHANGE_E [kimeh@lge.com] 2009-04-15, for debugging */
 	switch_data = kzalloc(sizeof(struct gpio_switch_data), GFP_KERNEL);
 	if (!switch_data)
 		return -ENOMEM;
@@ -110,10 +131,20 @@ static int gpio_switch_probe(struct platform_device *pdev)
 		goto err_detect_irq_num_failed;
 	}
 
+/* LGE_CHANGE_S [kimeh@lge.com] 2009-04-15, interrupt triggerring setting */
+#if defined (CONFIG_MACH_EVE)
+	ret = request_irq(switch_data->irq, gpio_irq_handler, IRQF_TRIGGER_RISING|IRQF_TRIGGER_FALLING, pdev->name, switch_data);
+#else
 	ret = request_irq(switch_data->irq, gpio_irq_handler,
 			  IRQF_TRIGGER_LOW, pdev->name, switch_data);
+#endif
 	if (ret < 0)
 		goto err_request_irq;
+/* LGE_CHANGE_S [kimeh@lge.com] 2009-04-15, add set_irq_wake */
+#if defined (CONFIG_MACH_EVE)
+	set_irq_wake(switch_data->irq, 1);
+#endif
+/* LGE_CHANGE_E [kimeh@lge.com] 2009-04-15 */
 
 	/* Perform initial detection */
 	gpio_switch_work(&switch_data->work);
