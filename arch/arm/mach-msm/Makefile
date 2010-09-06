@@ -1,18 +1,26 @@
 obj-y += io.o irq.o timer.o dma.o memory.o
 obj-y += devices.o
 obj-y += proc_comm.o
+# LGE_CHANGE [dojip.kim@lge.com] 2010-03-18, add new
+obj-y += proc_comm_batt.o
 obj-y += vreg.o mpp.o
 obj-y += vreg.o
 obj-y += clock.o clock-pcom.o
 obj-y += gpio.o generic_gpio.o
 obj-y += nand_partitions.o
 obj-y += remote_spinlock.o modem_notifier.o
-obj-y += rpc_hsusb.o rpc_pmapp.o rpc_fsusb.o
+# LGE_CHANGE [dojip.km@lge.com] 2010-03-19, rpc_charger.c from rpc_hsusb.c
+obj-y += rpc_hsusb.o rpc_pmapp.o rpc_fsusb.o rpc_charger.o
 obj-y += socinfo.o
 obj-y += cpufreq.o
 obj-y += nohlt.o
 obj-y += pmic.o
+# LGE_CHANGE [dojip.kim@lge.com] 2010-04-05, not used at EVE
+ifndef CONFIG_MACH_EVE
 obj-y += internal_power_rail.o
+endif
+
+CFLAGS_REMOVE_board-halibut.o = -Werror
 
 obj-$(CONFIG_ARCH_MSM_ARM11) += acpuclock.o
 obj-$(CONFIG_ARCH_MSM_SCORPION) += acpuclock-8x50.o
@@ -35,7 +43,6 @@ obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter.o
 obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter_device.o
 obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter_servers.o
 obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter_clients.o
-obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter_xdr.o
 obj-$(CONFIG_MSM_RPC_PING) += ping_mdm_rpc_client.o
 obj-$(CONFIG_MSM_RPC_OEM_RAPI) += oem_rapi_client.o
 obj-$(CONFIG_MSM_RPCSERVERS) += rpc_server_dog_keepalive.o
@@ -53,6 +60,8 @@ else
 endif
 obj-$(CONFIG_MSM_DMA_TEST) += dma_test.o
 obj-$(CONFIG_SURF_FFA_GPIO_KEYPAD) += keypad-surf-ffa.o
+#LGE_CHANGE [dojip.kim@lge.com] 2010-03-25, from keypad-surf-ffa
+obj-$(CONFIG_EVE_GPIO_KEYPAD) += board-eve-keypad.o
 
 obj-$(CONFIG_MACH_HALIBUT) += board-halibut.o board-halibut-panel.o
 obj-$(CONFIG_MACH_HALIBUT) += board-halibut-keypad.o fish_battery.o
@@ -83,3 +92,15 @@ obj-$(CONFIG_TROUT_BATTCHG) += htc_battery.o
 
 obj-$(CONFIG_HTC_PWRSINK) += htc_pwrsink.o
 obj-$(CONFIG_HTC_HEADSET) += htc_headset.o
+# EVE board
+obj-$(CONFIG_MACH_EVE) += board-eve.o
+obj-$(CONFIG_MACH_EVE) += board-eve-gpio-i2c.o
+# LGE_CHANGE_E
+# /* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
+## LGE_CHANGES_S  2009_03_13 princlee
+obj-$(CONFIG_MSM_RPCSERVERS) += rpc_server_misc.o
+## LGE_CHANGES_E  2009_03_13 princlee
+# /* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
+# LGE_CHANGE_S [bluerti@lge.com] 2009-07-06 LGE_Error_Handler 
+obj-$(CONFIG_MACH_EVE) +=lge_errorhandler.o
+# LGE_CHANGE_D [bluerti@lge.com] 2009-07-06¤Ð

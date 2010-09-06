@@ -18,22 +18,28 @@
  * along with this program; if not, you can find it at http://www.fsf.org
  */
 
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-19, move the codes related to charger into rpc_charger.c */
+
 #include <linux/err.h>
 #include <mach/rpc_hsusb.h>
 #include <asm/mach-types.h>
+/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.03.03 */
+#if defined(CONFIG_MACH_EVE)
+#include "proc_comm.h"
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-18, proc_comm_batt.h */
+#include "proc_comm_batt.h"
+#define USE_PROC_COMM_BATT
+//#define DEBUG_CHG
+
+#ifdef DEBUG_CHG
+#define D(fmt,args...) printk(fmt, ##args)
+#else
+#define D(fmt,args...) do { } while(0)
+#endif
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [jinwoonam@lge.com] 2009.03.03 */
 
 static struct msm_rpc_endpoint *usb_ep;
-static struct msm_rpc_endpoint *chg_ep;
-
-#define MSM_RPC_CHG_PROG 0x3000001a
-
-struct msm_chg_rpc_ids {
-	unsigned long	vers_comp;
-	unsigned	chg_usb_charger_connected_proc;
-	unsigned	chg_usb_charger_disconnected_proc;
-	unsigned	chg_usb_i_is_available_proc;
-	unsigned	chg_usb_i_is_not_available_proc;
-};
 
 struct msm_hsusb_rpc_ids {
 	unsigned long	prog;
@@ -50,7 +56,6 @@ struct msm_hsusb_rpc_ids {
 };
 
 static struct msm_hsusb_rpc_ids usb_rpc_ids;
-static struct msm_chg_rpc_ids chg_rpc_ids;
 
 static int msm_hsusb_init_rpc_ids(unsigned long vers)
 {
@@ -87,24 +92,6 @@ static int msm_hsusb_init_rpc_ids(unsigned long vers)
 	}
 }
 
-static int msm_chg_init_rpc(unsigned long vers)
-{
-	if (((vers & RPC_VERSION_MAJOR_MASK) == 0x00010000) ||
-	    ((vers & RPC_VERSION_MAJOR_MASK) == 0x00020000)) {
-		chg_ep = msm_rpc_connect_compatible(MSM_RPC_CHG_PROG, vers,
-						     MSM_RPC_UNINTERRUPTIBLE);
-		if (IS_ERR(chg_ep))
-			return -ENODATA;
-		chg_rpc_ids.vers_comp				= vers;
-		chg_rpc_ids.chg_usb_charger_connected_proc 	= 7;
-		chg_rpc_ids.chg_usb_charger_disconnected_proc 	= 8;
-		chg_rpc_ids.chg_usb_i_is_available_proc 	= 9;
-		chg_rpc_ids.chg_usb_i_is_not_available_proc 	= 10;
-		return 0;
-	} else
-		return -ENODATA;
-}
-
 /* rpc connect for hsusb */
 int msm_hsusb_rpc_connect(void)
 {
@@ -121,10 +108,16 @@ int msm_hsusb_rpc_connect(void)
 		return -ENODATA;
 	}
 
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-07-28, fixed rpc problem */
+	//jyoo
+#if 0	
 	usb_ep = msm_rpc_connect_compatible(usb_rpc_ids.prog,
-					usb_rpc_ids.vers_comp,
-					MSM_RPC_UNINTERRUPTIBLE);
-
+					usb_rpc_ids.vers_comp, 0);
+#endif
+	usb_ep = msm_rpc_connect_compatible(usb_rpc_ids.prog,
+					usb_rpc_ids.vers_comp, 0x0001); //with MSM_RPC_UNINTERRUPTIBLE
+	//jyoo end
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-07-28 */
 	if (IS_ERR(usb_ep)) {
 		printk(KERN_ERR "%s: connect compatible failed vers = %lx\n",
 			 __func__, usb_rpc_ids.vers_comp);
@@ -135,9 +128,16 @@ int msm_hsusb_rpc_connect(void)
 				__func__);
 			return -ENODATA;
 		}
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-07-28, fixed rpc problem */		
+		//jyoo
+#if 0
 		usb_ep = msm_rpc_connect_compatible(usb_rpc_ids.prog,
-					usb_rpc_ids.vers_comp,
-					MSM_RPC_UNINTERRUPTIBLE);
+					usb_rpc_ids.vers_comp, 0);
+#endif
+		usb_ep = msm_rpc_connect_compatible(usb_rpc_ids.prog,
+						usb_rpc_ids.vers_comp, 0x0001); //with MSM_RPC_UNINTERRUPTIBLE
+		//jyoo end
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-07-28 */ 	
 	}
 
 	if (IS_ERR(usb_ep)) {
@@ -151,39 +151,6 @@ int msm_hsusb_rpc_connect(void)
 	return 0;
 }
 EXPORT_SYMBOL(msm_hsusb_rpc_connect);
-
-/* rpc connect for charging */
-int msm_chg_rpc_connect(void)
-{
-	uint32_t chg_vers;
-
-	if (machine_is_msm7201a_surf() || machine_is_msm7x27_surf() ||
-	    machine_is_qsd8x50_surf() || machine_is_msm7x25_surf())
-		return -ENOTSUPP;
-
-	if (chg_ep && !IS_ERR(chg_ep)) {
-		printk(KERN_INFO "%s: chg_ep already connected\n", __func__);
-		return 0;
-	}
-
-	chg_vers = 0x00020001;
-	if (!msm_chg_init_rpc(chg_vers))
-		goto chg_found;
-
-	chg_vers = 0x00010001;
-	if (!msm_chg_init_rpc(chg_vers))
-		goto chg_found;
-
-	printk(KERN_ERR "%s: connect compatible failed \n",
-			__func__);
-	return -EAGAIN;
-
-chg_found:
-	printk(KERN_INFO "%s: connected to rpc vers = %x\n",
-			__func__, chg_vers);
-	return 0;
-}
-EXPORT_SYMBOL(msm_chg_rpc_connect);
 
 /* rpc call for phy_reset */
 int msm_hsusb_phy_reset(void)
@@ -358,98 +325,6 @@ int msm_hsusb_is_serial_num_null(uint32_t val)
 }
 EXPORT_SYMBOL(msm_hsusb_is_serial_num_null);
 
-int msm_chg_usb_charger_connected(uint32_t device)
-{
-	int rc = 0;
-	struct hsusb_start_req {
-		struct rpc_request_hdr hdr;
-		uint32_t otg_dev;
-	} req;
-
-	if (!chg_ep || IS_ERR(chg_ep))
-		return -EAGAIN;
-	req.otg_dev = cpu_to_be32(device);
-	rc = msm_rpc_call(chg_ep, chg_rpc_ids.chg_usb_charger_connected_proc,
-			&req, sizeof(req), 5 * HZ);
-
-	if (rc < 0) {
-		printk(KERN_ERR "%s: charger_connected failed! rc = %d\n",
-			__func__, rc);
-	} else
-		printk(KERN_INFO "msm_chg_usb_charger_connected\n");
-
-	return rc;
-}
-EXPORT_SYMBOL(msm_chg_usb_charger_connected);
-
-int msm_chg_usb_i_is_available(uint32_t sample)
-{
-	int rc = 0;
-	struct hsusb_start_req {
-		struct rpc_request_hdr hdr;
-		uint32_t i_ma;
-	} req;
-
-	if (!chg_ep || IS_ERR(chg_ep))
-		return -EAGAIN;
-	req.i_ma = cpu_to_be32(sample);
-	rc = msm_rpc_call(chg_ep, chg_rpc_ids.chg_usb_i_is_available_proc,
-			&req, sizeof(req), 5 * HZ);
-
-	if (rc < 0) {
-		printk(KERN_ERR "%s: charger_i_available failed! rc = %d\n",
-			__func__, rc);
-	} else
-		printk(KERN_INFO "msm_chg_usb_i_is_available\n");
-
-	return rc;
-}
-EXPORT_SYMBOL(msm_chg_usb_i_is_available);
-
-int msm_chg_usb_i_is_not_available(void)
-{
-	int rc = 0;
-	struct hsusb_start_req {
-		struct rpc_request_hdr hdr;
-	} req;
-
-	if (!chg_ep || IS_ERR(chg_ep))
-		return -EAGAIN;
-	rc = msm_rpc_call(chg_ep, chg_rpc_ids.chg_usb_i_is_not_available_proc,
-			&req, sizeof(req), 5 * HZ);
-
-	if (rc < 0) {
-		printk(KERN_ERR "%s: charger_i_not_available failed! rc ="
-			"%d \n", __func__, rc);
-	} else
-		printk(KERN_INFO "msm_chg_usb_i_is_not_available\n");
-
-	return rc;
-}
-EXPORT_SYMBOL(msm_chg_usb_i_is_not_available);
-
-int msm_chg_usb_charger_disconnected(void)
-{
-	int rc = 0;
-	struct hsusb_start_req {
-		struct rpc_request_hdr hdr;
-	} req;
-
-	if (!chg_ep || IS_ERR(chg_ep))
-		return -EAGAIN;
-	rc = msm_rpc_call(chg_ep, chg_rpc_ids.chg_usb_charger_disconnected_proc,
-			&req, sizeof(req), 5 * HZ);
-
-	if (rc < 0) {
-		printk(KERN_ERR "%s: charger_disconnected failed! rc = %d\n",
-			__func__, rc);
-	} else
-		printk(KERN_INFO "msm_chg_usb_charger_disconnected\n");
-
-	return rc;
-}
-EXPORT_SYMBOL(msm_chg_usb_charger_disconnected);
-
 /* rpc call to close connection */
 int msm_hsusb_rpc_close(void)
 {
@@ -474,31 +349,6 @@ int msm_hsusb_rpc_close(void)
 	return rc;
 }
 EXPORT_SYMBOL(msm_hsusb_rpc_close);
-
-/* rpc call to close charging connection */
-int msm_chg_rpc_close(void)
-{
-	int rc = 0;
-
-	if (IS_ERR(chg_ep)) {
-		printk(KERN_ERR "%s: rpc_close failed before call, rc = %ld\n",
-			__func__, PTR_ERR(chg_ep));
-		return -EAGAIN;
-	}
-
-	rc = msm_rpc_close(chg_ep);
-	chg_ep = NULL;
-
-	if (rc < 0) {
-		printk(KERN_ERR "%s: close rpc failed! rc = %d\n",
-			__func__, rc);
-		return -EAGAIN;
-	} else
-		printk(KERN_INFO "rpc close success\n");
-
-	return rc;
-}
-EXPORT_SYMBOL(msm_chg_rpc_close);
 
 int msm_hsusb_reset_rework_installed(void)
 {
@@ -573,3 +423,88 @@ int msm_hsusb_disable_pmic_ulpidata0(void)
 	return msm_hsusb_pmic_ulpidata0_config(0);
 }
 EXPORT_SYMBOL(msm_hsusb_disable_pmic_ulpidata0);
+
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-21, for Serial number generation */	
+#if 1//def USE_IMEI
+#define ONCRPC_NV_CMD_REMOTE_PROC	9
+#define NV_IMEI_GET_PROG					0x3000000e
+#define NV_IMEI_GET_VER	 				0xd0b61921
+#define NV_UE_IMEI_SIZE						9
+#define MAX_IMEI_SIZE						(NV_UE_IMEI_SIZE -1) * 2
+        
+int msm_nv_imei_get(unsigned char *nv_imei_ptr)
+{
+	static struct msm_rpc_endpoint *nv_imei_get_ep;
+	int rc = 0;
+	uint32_t nv_result;
+	uint32_t dummy1, dummy2;
+	nv_ue_imei_type imea_data;
+//	unsigned char imei_ptr[MAX_IMEI_SIZE+3];
+	int i;
+	
+	struct msm_nv_imem_get_req {
+		struct rpc_request_hdr hdr;
+		nv_func_enum_type cmd;
+		nv_items_enum_type item;
+		uint32_t more_data;
+		nv_items_enum_type disc;
+		nv_ue_imei_type imea_data;;			
+	} req;
+		  
+	struct hsusb_rpc_rep {
+		struct rpc_reply_hdr hdr;
+		nv_stat_enum_type result_item;
+		uint32_t rep_more_data;
+		nv_items_enum_type rep_disc;
+		nv_ue_imei_type imea_data;;		
+	} rep;
+		  
+	nv_imei_get_ep = msm_rpc_connect(NV_IMEI_GET_PROG, NV_IMEI_GET_VER, 0);
+
+	if (IS_ERR(nv_imei_get_ep)) {
+		printk(KERN_ERR "%s: msm_rpc_connect failed! rc = %ld\n", 
+							__func__, PTR_ERR(nv_imei_get_ep));
+		return -EINVAL;
+	}
+	
+	req.cmd = cpu_to_be32(NV_READ_F);
+	req.item = cpu_to_be32(NV_UE_IMEI_I);
+	req.more_data = cpu_to_be32(1);
+	req.disc = cpu_to_be32(NV_UE_IMEI_I);
+	req.imea_data = imea_data;
+	
+	rc = msm_rpc_call_reply(nv_imei_get_ep,
+					ONCRPC_NV_CMD_REMOTE_PROC,
+					&req, sizeof(req),
+					&rep, sizeof(rep),
+					5 * HZ);
+	if (rc < 0)
+		printk(KERN_ERR "%s: msm_rpc_call failed! rc = %d\n", __func__, rc);
+
+	nv_result = be32_to_cpu(rep.result_item);
+	dummy1 = be32_to_cpu(rep.rep_more_data);
+	dummy2 = be32_to_cpu(rep.rep_disc);
+	
+//	printk(KERN_ERR "[JMLEE] nv item is");
+	for(i = 0 ; i<NV_UE_IMEI_SIZE; i++)
+	{
+		if ((rep.imea_data.ue_imei[i] & 0x0F) >= 0xA)
+			*(nv_imei_ptr +i*2) = (rep.imea_data.ue_imei[i] & 0x0F) + 55;
+		else
+			*(nv_imei_ptr +i*2) = (rep.imea_data.ue_imei[i] & 0x0F) + 48;
+		if (((rep.imea_data.ue_imei[i] & 0xF0) >> 4) >=0xA)			
+			*(nv_imei_ptr +i*2 + 1) = ((rep.imea_data.ue_imei[i] & 0xF0) >> 4) + 55;
+		else
+			*(nv_imei_ptr +i*2 + 1) = ((rep.imea_data.ue_imei[i] & 0xF0) >> 4) + 48;
+//		printk(KERN_ERR "%c %c ", *(nv_imei_ptr +i*2), *(nv_imei_ptr +i*2 + 1) );
+	}
+//	printk(KERN_ERR "\n");
+	*(nv_imei_ptr +MAX_IMEI_SIZE + 2) = '\0';
+	msm_rpc_close(nv_imei_get_ep);
+	
+	return rc;
+} 
+#endif
+EXPORT_SYMBOL(msm_nv_imei_get);
+
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-21 */	

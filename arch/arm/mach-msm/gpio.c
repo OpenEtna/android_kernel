@@ -25,6 +25,17 @@
 
 #include "smd_private.h"
 
+/* LGE_CHANGE_S [ybw75@lge.com] 2009-03-19, Add test mode for changing GPIO setting during sleep */
+#include <mach/charger.h>	// for feature definition : FEATURE_TEST_FOR_SLEEP_GPIO_SETTING
+
+int    test_get_gpio_num;
+uint32 test_get_gpio_sleep_config;
+int    test_set_gpio_num;
+uint32 test_set_gpio_sleep_config;
+
+extern int msm_chg_lge_get_test_sleep_gpio_config( int gpio_number );						// chg_rpc_function
+extern int msm_chg_lge_set_test_sleep_gpio_config( int gpio_number, int gpio_config );		// chg_rpc_function
+/* LGE_CHANGE_E [ybw75@lge.com] 2009-03-19 */
 enum {
 	GPIO_DEBUG_SLEEP = 1U << 0,
 };
@@ -45,6 +56,11 @@ static int msm_gpio_read(struct gpio_chip *chip, unsigned n);
 static int msm_gpio_write(struct gpio_chip *chip, unsigned n, unsigned on);
 static int msm_gpio_read_detect_status(struct gpio_chip *chip, unsigned int gpio);
 static int msm_gpio_clear_detect_status(struct gpio_chip *chip, unsigned int gpio);
+
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, definitions  */
+#if defined(CONFIG_MACH_EVE)
+static int gpio_check_range(u64 number);
+#endif
 
 struct msm_gpio_regs
 {
@@ -608,6 +624,16 @@ postcore_initcall(msm_init_gpio);
 
 int gpio_tlmm_config(unsigned config, unsigned disable)
 {
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, check the valild gpio */
+#if defined(CONFIG_MACH_EVE)
+	int gpio;
+
+	gpio = GPIO_PIN(config);
+
+	if (gpio_check_range(gpio) < 0) {
+		return 0;
+	}
+#endif
 	return msm_proc_comm(PCOM_RPC_GPIO_TLMM_CONFIG_EX, &config, &disable);
 }
 EXPORT_SYMBOL(gpio_tlmm_config);
@@ -736,20 +762,236 @@ static int gpio_debug_get(void *data, u64 *val)
 	return 0;
 }
 
+/* LGE_CHANGE_S [ybw75@lge.com] 2009-03-19, Add test mode for changing GPIO setting during sleep */
+#if defined(FEATURE_TEST_FOR_SLEEP_GPIO_SETTING)
+
+static int gpio_debug_get_sleep_config_get(void *data, u64 *val)
+{
+	*val = (u64)(test_get_gpio_sleep_config);
+	return 0;
+}
+
+static int gpio_debug_get_sleep_config_set(void *data, u64 val)
+{
+	test_get_gpio_sleep_config = (uint32)val;
+	return 0;
+}
+
+static int gpio_debug_set_sleep_config_get(void *data, u64 *val)
+{
+	*val = (u64)(test_set_gpio_sleep_config);
+	return 0;
+}
+
+static int gpio_debug_set_sleep_config_set(void *data, u64 val)
+{
+	test_set_gpio_sleep_config = (uint32)val;
+	return 0;
+}
+
+static int gpio_debug_get_config_gpio_num_get(void *data, u64 *val)
+{
+	*val = (u64)(test_get_gpio_num);
+	return 0;
+}
+
+static int gpio_debug_get_config_gpio_num_set(void *data, u64 val)
+{
+
+	test_get_gpio_num = (int)val;
+	test_get_gpio_sleep_config = msm_chg_lge_get_test_sleep_gpio_config(test_get_gpio_num);
+	return 0;
+}
+
+static int gpio_debug_set_config_gpio_num_get(void *data, u64 *val)
+{
+	*val = (u64)(test_set_gpio_num);
+	return 0;
+}
+
+static int gpio_debug_set_config_gpio_num_set(void *data, u64 val)
+{
+
+	test_set_gpio_num = (int)val;
+	msm_chg_lge_set_test_sleep_gpio_config(test_set_gpio_num, test_set_gpio_sleep_config);
+	return 0;
+}
+
+DEFINE_SIMPLE_ATTRIBUTE(gpio_get_sleep_gpio_num_fops, gpio_debug_get_config_gpio_num_get, gpio_debug_get_config_gpio_num_set, "%llu\n");
+DEFINE_SIMPLE_ATTRIBUTE(gpio_set_sleep_gpio_num_fops, gpio_debug_set_config_gpio_num_get, gpio_debug_set_config_gpio_num_set, "%llu\n");
+DEFINE_SIMPLE_ATTRIBUTE(gpio_get_gpio_sleep_config_fops, gpio_debug_get_sleep_config_get, gpio_debug_get_sleep_config_set, "%llu\n");
+DEFINE_SIMPLE_ATTRIBUTE(gpio_set_gpio_sleep_config_fops, gpio_debug_set_sleep_config_get, gpio_debug_set_sleep_config_set, "%llu\n");
+
+#endif //#if defined(FEATURE_TEST_FOR_SLEEP_GPIO_SETTING)
+/* LGE_CHANGE_E [ybw75@lge.com] 2009-03-19 */
+
+/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.03.05 */
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, set the value as u64 */
+#if defined(CONFIG_MACH_EVE)
+#define NUM_OF_GPIOS		123ULL // 0~122
+#define INVALID_GPIO_VALUE      9999ULL
+#define SLEEP_GPIO_GET_OFFSET   0x10ULL
+
+// Add GPIO Setting functions
+
+static int msm_gpio_debug_number = INVALID_GPIO_VALUE;
+
+static int gpio_check_range(u64 number)
+{
+	if (number >= NUM_OF_GPIOS || number < 0) {
+		printk("[ GPIO] : %llu is not a valid GPIO\n", number);
+		return -1;
+	}
+
+	return 0;
+}
+
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, fix the wrong pointer: *val -> val */
+static int gpio_enable_value_set(void *data, u64 val)
+{
+	if (0 == gpio_check_range(val)) {
+		msm_gpio_debug_number = val;
+	} else {
+		msm_gpio_debug_number = INVALID_GPIO_VALUE;
+	}
+	return 0;
+}
+
+static int gpio_enable_value_get(void *data, u64 *val)
+{
+	uint param2;
+	uint config;
+
+	param2 = msm_gpio_debug_number + SLEEP_GPIO_GET_OFFSET;
+
+	if (0 == msm_proc_comm(PCOM_RPC_GPIO_TLMM_CONFIG_EX, &config, &param2)) {
+		// To debug value
+		uint nGpioNumber;
+		uint func_val;
+		uint dir_val;
+		uint drvstr_val;
+		uint pull_val;
+
+		nGpioNumber = (((config) >> 8) & 0xFF);
+		func_val =    ( (config) & 0xF);
+		dir_val =     (((config) >> 16) & 0x1);
+		pull_val =    (((config) >> 17) & 0x3);
+		drvstr_val =  (((config) >> 19) & 0x7);
+
+		printk("%u is 0x%x\n", msm_gpio_debug_number, config);
+		printk("Number:%u, Func:%u, Dir:%u, Pull:%u, DrvStrength:%u\n", \
+			nGpioNumber, func_val, dir_val, pull_val, drvstr_val);
+
+		*val = config;
+	} else {    // Fail
+		printk("[err] Fail to get GPIO_%d value via RPC\n", msm_gpio_debug_number);
+	}
+	return 0;
+}
+
+static int gpio_config_number_set(void *data, u64 val)
+{
+	if (0 == gpio_check_range(val)) {
+		msm_gpio_debug_number = val;
+	} else {
+		msm_gpio_debug_number = INVALID_GPIO_VALUE;
+	}
+	return 0;
+}
+
+static int gpio_config_number_get(void *data, u64 *val)
+{
+	*val = msm_gpio_debug_number;
+	return 0;
+}
+
+static int gpio_config_value_set(void *data, u64 val)
+{
+	if (0 == gpio_check_range(msm_gpio_debug_number)) {
+		//gpio_set_value(msm_gpio_debug_number, (val ? 1 : 0));
+		gpio_direction_output(msm_gpio_debug_number, (val ? 1 : 0));
+	}
+	return 0;
+}
+
+static int gpio_config_value_get(void *data, u64 *val)
+{
+	if (0 == gpio_check_range(msm_gpio_debug_number)) {
+		*val = gpio_get_value(msm_gpio_debug_number);
+		printk("[ GPIO] : %u is %llu\n", msm_gpio_debug_number, *val);
+	} else {
+		*val = INVALID_GPIO_VALUE;
+	}
+	return 0;
+}
+
+static int gpio_config_showall_set(void *data, u64 val)
+{
+	return 0;
+}
+
+static int gpio_config_showall_get(void *data, u64 *val)
+{
+	unsigned i;
+
+	for (i = 0; i < NUM_OF_GPIOS; i++) {
+		printk("%u : %d,\t", i, gpio_get_value(i));
+		if (i % 5 == 4) printk("\n");
+	}
+	*val = 0;
+	return 0;
+}
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [jinwoonam@lge.com] 2009.03.05 */
+
 DEFINE_SIMPLE_ATTRIBUTE(gpio_enable_fops, gpio_debug_get,
 						gpio_enable_set, "%llu\n");
 DEFINE_SIMPLE_ATTRIBUTE(gpio_disable_fops, gpio_debug_get,
 						gpio_disable_set, "%llu\n");
+/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.03.05 */
+#if defined(CONFIG_MACH_EVE)
+DEFINE_SIMPLE_ATTRIBUTE(gpio_value_fops, gpio_enable_value_get, gpio_enable_value_set, "%llu\n");
+
+DEFINE_SIMPLE_ATTRIBUTE(gpio_config_number_fops, gpio_config_number_get, gpio_config_number_set, "%llu\n");
+DEFINE_SIMPLE_ATTRIBUTE(gpio_config_value_fops, gpio_config_value_get, gpio_config_value_set, "%llu\n");
+DEFINE_SIMPLE_ATTRIBUTE(gpio_config_showall_fops, gpio_config_showall_get, gpio_config_showall_set, "%llu\n");
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [jinwoonam@lge.com] 2009.03.05 */
 
 static int __init gpio_debug_init(void)
 {
 	struct dentry *dent;
+
 	dent = debugfs_create_dir("gpio", 0);
 	if (IS_ERR(dent))
 		return 0;
 
 	debugfs_create_file("enable", 0644, dent, 0, &gpio_enable_fops);
 	debugfs_create_file("disable", 0644, dent, 0, &gpio_disable_fops);
+/* LGE_CHANGE_S [ybw75@lge.com] 2009-03-19, Add test mode for changing GPIO setting during sleep */
+#if defined(FEATURE_TEST_FOR_SLEEP_GPIO_SETTING)
+	debugfs_create_file("get_sleep_gpio_num", 0666, dent, 0, &gpio_get_sleep_gpio_num_fops);
+	debugfs_create_file("set_sleep_gpio_num", 0666, dent, 0, &gpio_set_sleep_gpio_num_fops);
+	debugfs_create_file("get_gpio_sleep_config", 0666, dent, 0, &gpio_get_gpio_sleep_config_fops);
+	debugfs_create_file("set_gpio_sleep_config", 0666, dent, 0, &gpio_set_gpio_sleep_config_fops);
+#endif //#if defined(FEATURE_TEST_FOR_SLEEP_GPIO_SETTING)
+/* LGE_CHANGE_E [ybw75@lge.com] 2009-03-19 */
+
+/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.03.05 */
+// Add debug filesystem for setting GPIO
+#if defined(CONFIG_MACH_EVE)
+	debugfs_create_file("value", 0644, dent, 0, &gpio_value_fops);
+
+	dent = debugfs_create_dir("gpio_config", 0);
+	if (IS_ERR(dent))
+		return 0;
+
+	debugfs_create_file("gpio_number", 0644, dent, 0, &gpio_config_number_fops);
+	debugfs_create_file("gpio_value", 0644, dent, 0, &gpio_config_value_fops);
+	debugfs_create_file("show_all", 0444, dent, 0, &gpio_config_showall_fops);
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [jinwoonam@lge.com] 2009.03.05 */
+
 	return 0;
 }
 

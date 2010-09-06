@@ -38,6 +38,11 @@
 #define REQUEST_START		1
 #define REQUEST_RESUME		2
 
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-06-16, for LGE USB driver */	
+#define LGE_USB_DRIVER
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-06-16 */	
+
+
 enum hsusb_phy_type {
 	UNDEFINED,
 	INTEGRATED,

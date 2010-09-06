@@ -38,6 +38,9 @@
 #include "proc_comm.h"
 #include "modem_notifier.h"
 
+/* LGE_CHANGE_S [bluerti@lge.com] 2009-07-06 <For Error Handler > */
+#include "lge_errorhandler.h"
+/* LGE_CHANGE_E [bluerti@lge.com] 2009-07-06 <For Error Handler > */
 #define MODULE_NAME "msm_smd"
 #define SMEM_VERSION 0x000B
 #define SMD_VERSION 0x00020000
@@ -69,6 +72,12 @@ enum {
 	SMD_MODEM_QDSP_I = 2
 };
 
+/* LGE_CHANGE_S [bluerti@lge.com] 2009-07-03 <For Error Handler > */
+#include "lge_errorhandler.h"
+
+char * error_modem_message = NULL;
+
+/* LGE_CHANGE_E [bluerti@lge.com] 2009-07-03 <For Error Handler > */
 static int msm_smd_debug_mask;
 module_param_named(debug_mask, msm_smd_debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 
@@ -164,6 +173,34 @@ void smd_diag(void)
 		x[size - 1] = 0;
 		printk(KERN_ERR "smem: CRASH LOG\n'%s'\n", x);
 	}
+/* LGE_CHANGE_S [bluerti@lge.com] 2009-07-03 */
+#if 0
+	x = smem_find(SMEM_LGE_ERR_DATA, sizeof(lge_err_exception_info));
+	if (x != 0) {
+		lge_err_exception_info * temp = x;
+			printk(KERN_ERR "smem: Exception on Task = %s\n", temp->task_name);
+		
+	}
+#endif
+	x = smem_find(SMEM_LGE_ERR_MESSAGE, LGE_ERR_MESSAGE_BUF_LEN);
+	if (x != 0) {
+		int i;
+		char * message = (char *)x;
+		error_modem_message = (char *)x;
+
+		printk(KERN_ERR "smem: SMEM_LGE_ERR_MESSAGE\n");
+
+		for (i=0; i< LGE_ERROR_MAX_ROW; i++) {
+			printk(KERN_ERR "%s\n",message);
+			message += LGE_ERROR_MAX_COLUMN;
+
+		}
+
+		 
+			
+	}
+
+/* LGE_CHANGE_E [bluerti@lge.com] 2009-07-03 */
 }
 
 extern int (*msm_check_for_modem_crash)(void);
@@ -181,6 +218,10 @@ static int check_for_modem_crash(void)
 	if (smsm[SMSM_MODEM_STATE] & SMSM_RESET) {
 		pr_err("proc_comm: ARM9 has crashed\n");
 		smd_diag();
+		/* LGE_CHANGE_S [bluerti@lge.com] 2009-07-06 <For Error Handler > */
+		//LGE_ErrorHandler_Main(MODEM_CRASH, error_modem_message);
+		return 1;
+		/* LGE_CHANGE_E [bluerti@lge.com] 2009-07-06 <For Error Handler > */
 	} else {
 		return 0;
 	}
@@ -498,9 +539,14 @@ static void smd_state_change(struct smd_channel *ch,
 {
 	ch->last_state = next;
 
-	SMD_INFO("SMD: ch %d %s -> %s\n", ch->n,
-		 chstate(last), chstate(next));
-
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-20, disable debug message for SMD 0 */	
+//	printk(KERN_INFO "SMD: ch %d %s -> %s\n", ch->n,
+//		 chstate(last), chstate(next));
+	if(ch->n != 0){
+		printk(KERN_INFO "SMD: ch %d %s -> %s\n", ch->n,
+	       chstate(last), chstate(next));
+	}
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-20 */		
 	switch (next) {
 	case SMD_SS_OPENING:
 		if (ch->send->state == SMD_SS_CLOSING ||
@@ -977,9 +1023,12 @@ EXPORT_SYMBOL(smd_open);
 int smd_close(smd_channel_t *ch)
 {
 	unsigned long flags;
-
-	SMD_INFO("smd_close(%p)\n", ch);
-
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-20, disable debug message for SMD 0 */	
+//	printk(KERN_INFO "smd_close(%p)\n", ch);
+	if(ch->n != 0){
+		printk(KERN_INFO "smd_close(%p)\n", ch);
+	}
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-20 */		
 	if (ch == 0)
 		return -1;
 
@@ -1155,6 +1204,11 @@ void smsm_reset_modem(unsigned mode)
 		mode = SMSM_RESET | SMSM_SYSTEM_DOWNLOAD;
 	} else if (mode == SMSM_MODEM_WAIT) {
 		mode = SMSM_RESET | SMSM_MODEM_WAIT;
+	/* LGE_CHANGE_S [bluerti@lge.com] 2009-07-29 */
+	} else if (mode == SMSM_SYSTEM_REBOOT ) {
+		mode = SMSM_RESET | SMSM_SYSTEM_REBOOT ;
+	
+	/* LGE_CHANGE_E [bluerti@lge.com] 2009-07-29 */
 	} else { /* reset_mode is SMSM_RESET or default */
 		mode = SMSM_RESET;
 	}
@@ -1176,8 +1230,16 @@ void smsm_reset_modem_cont(void)
 }
 EXPORT_SYMBOL(smsm_reset_modem_cont);
 
+/* LGE_CHANGE_S [bluerti@lge.com] 2009-09-24*/
+extern int get_status_hidden_reset(void);
+/* LGE_CHANGE_E [bluerti@lge.com] 2009-09-24*/
+
 static irqreturn_t smsm_irq_handler(int irq, void *data)
 {
+	/* LGE_CHANGE_S [bluerti@lge.com] 2009-09-24*/
+	extern char * error_modem_message ;
+	int ret;
+	/* LGE_CHANGE_E [bluerti@lge.com] 2009-09-24*/
 	unsigned long flags;
 	uint32_t *smsm;
 	static uint32_t prev_smem_q6_apps_smsm;
@@ -1221,6 +1283,18 @@ static irqreturn_t smsm_irq_handler(int irq, void *data)
 
 		} else if (modm & SMSM_RESET) {
 			apps |= SMSM_RESET;
+ 			/* LGE_CHANGE_S [bluerti@lge.com] 2009-09-24 */
+			smd_diag();
+			if(get_status_hidden_reset()==0 ) {
+				ret = LGE_ErrorHandler_Main(MODEM_CRASH, error_modem_message);
+				smsm_reset_modem(ret);
+			} else {
+				smsm_reset_modem(SMSM_SYSTEM_REBOOT);
+			}
+
+			while(1) 
+				;
+			/* LGE_CHANGE_E [bluerti@lge.com] 2009-09-24 */
 		} else {
 			apps |= SMSM_INIT;
 			if (modm & SMSM_SMDINIT)

@@ -39,4 +39,5 @@ struct msm_i2ckbd_platform_data {
 	void (*hw_reset) (int);
 };
 
+struct input_dev *qwerty_get_input_dev(void);
 #endif

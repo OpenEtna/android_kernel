@@ -25,6 +25,12 @@
 
 #include "proc_comm.h"
 
+/* LGE_CHANGE_S [bluerti@lge.com] 2009-07-06 <For Error Handler > */
+#include "smd_private.h"
+#include "lge_errorhandler.h"
+/* LGE_CHANGE_E [bluerti@lge.com] 2009-07-06 <For Error Handler > */
+
+
 #if defined(CONFIG_ARCH_MSM7X30)
 #define MSM_TRIG_A2M_INT(n) (writel(1 << n, MSM_GCC_BASE + 0x8))
 #else
@@ -98,6 +104,32 @@ again:
 }
 EXPORT_SYMBOL(msm_proc_comm_reset_modem_now);
 
+/* LGE_UPDATE_S [jinwoonam@lge.com] 2009-08-29 */
+#if defined(CONFIG_MACH_EVE)
+int msm_proc_comm_get_ftm(int *ftm)
+{
+	int fntype = CUSTOMER_CMD2_BATT_IS_FTM;
+
+	if (msm_proc_comm(PCOM_CUSTOMER_CMD2, ftm, &fntype))
+		return -1;
+
+	return 0;
+}
+EXPORT_SYMBOL(msm_proc_comm_get_ftm);
+
+int msm_proc_comm_get_hw_rev(int *hw_rev)
+{
+	int fntype = CUSTOMER_CMD2_BATT_GET_HW_REV;
+
+	if (msm_proc_comm(PCOM_CUSTOMER_CMD2, hw_rev, &fntype))
+		return -1;
+
+	return 0;
+}
+EXPORT_SYMBOL(msm_proc_comm_get_hw_rev);
+#endif
+/* LGE_UPDATE_E [jinwoonam@lge.com] 2009-08-29 */
+
 int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2)
 {
 	unsigned base = (unsigned)MSM_SHARED_RAM_BASE;
@@ -108,7 +140,7 @@ int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2)
 
 again:
 	if (proc_comm_wait_for(base + MDM_STATUS, PCOM_READY))
-		goto again;
+		goto crash; //goto again; /* LGE_CHANGE [bluerti@lge.com] 2009-07-06 <For Error Handler > */
 
 	writel(cmd, base + APP_COMMAND);
 	writel(data1 ? *data1 : 0, base + APP_DATA1);
@@ -117,7 +149,7 @@ again:
 	notify_other_proc_comm();
 
 	if (proc_comm_wait_for(base + APP_COMMAND, PCOM_CMD_DONE))
-		goto again;
+		goto crash ;//goto again;/* LGE_CHANGE_S [bluerti@lge.com] 2009-07-06 <For Error Handler > */
 
 	if (readl(base + APP_STATUS) == PCOM_CMD_SUCCESS) {
 		if (data1)
@@ -133,5 +165,23 @@ again:
 
 	spin_unlock_irqrestore(&proc_comm_lock, flags);
 	return ret;
+/* LGE_CHANGE_S [bluerti@lge.com] 2009-07-06 <For Error Handler > */
+crash:
+	{
+		extern char * error_modem_message ;
+		extern int get_status_hidden_reset();
+		int ret;
+		spin_unlock_irqrestore(&proc_comm_lock, flags);
+		if(get_status_hidden_reset()==0 ) {
+			ret = LGE_ErrorHandler_Main(MODEM_CRASH, error_modem_message);
+			smsm_reset_modem(ret);
+		} else {
+			smsm_reset_modem(SMSM_SYSTEM_REBOOT);
+		}
+		while(1) 
+			;
+	}
+/* LGE_CHANGE_E [bluerti@lge.com] 2009-07-06 <For Error Handler > */
+
 }
 EXPORT_SYMBOL(msm_proc_comm);

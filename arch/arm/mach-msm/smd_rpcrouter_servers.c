@@ -1,7 +1,7 @@
 /* arch/arm/mach-msm/rpc_servers.c
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2009-2010, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  * Author: Iliyan Malchev <ibm@android.com>
  *
  * This software is licensed under the terms of the GNU General Public
@@ -43,7 +43,6 @@ static LIST_HEAD(rpc_server_list);
 static DEFINE_MUTEX(rpc_server_list_lock);
 static int rpc_servers_active;
 static struct wake_lock rpc_servers_wake_lock;
-static struct msm_rpc_xdr server_xdr;
 static uint32_t current_xid;
 
 static void rpc_server_register(struct msm_rpc_server *server)
@@ -87,25 +86,26 @@ static void rpc_server_register_all(void)
 
 int msm_rpc_create_server(struct msm_rpc_server *server)
 {
-	void *buf;
-
 	/* make sure we're in a sane state first */
 	server->flags = 0;
 	INIT_LIST_HEAD(&server->list);
 	mutex_init(&server->cb_req_lock);
+	mutex_init(&server->reply_lock);
 
-	server->version = 1;
-
-	xdr_init(&server->cb_xdr);
-	buf = kmalloc(MSM_RPC_MSGSIZE_MAX, GFP_KERNEL);
-	if (!buf)
+	server->reply = kmalloc(MSM_RPC_MSGSIZE_MAX, GFP_KERNEL);
+	if (!server->reply)
 		return -ENOMEM;
 
-	xdr_init_output(&server->cb_xdr, buf, MSM_RPC_MSGSIZE_MAX);
+	server->cb_req = kmalloc(MSM_RPC_MSGSIZE_MAX, GFP_KERNEL);
+	if (!server->cb_req) {
+		kfree(server->reply);
+		return -ENOMEM;
+	}
 
-	server->cb_ept = server->cb_xdr.ept = msm_rpc_open();
+	server->cb_ept = msm_rpc_open();
 	if (IS_ERR(server->cb_ept)) {
-		xdr_clean_output(&server->cb_xdr);
+		kfree(server->reply);
+		kfree(server->cb_req);
 		return PTR_ERR(server->cb_ept);
 	}
 
@@ -123,18 +123,8 @@ int msm_rpc_create_server(struct msm_rpc_server *server)
 
 	return 0;
 }
+
 EXPORT_SYMBOL(msm_rpc_create_server);
-
-int msm_rpc_create_server2(struct msm_rpc_server *server)
-{
-	int rc;
-
-	rc = msm_rpc_create_server(server);
-	server->version = 2;
-
-	return rc;
-}
-EXPORT_SYMBOL(msm_rpc_create_server2);
 
 static int rpc_send_accepted_void_reply(struct msm_rpc_endpoint *client,
 					uint32_t xid, uint32_t accept_status)
@@ -144,7 +134,7 @@ static int rpc_send_accepted_void_reply(struct msm_rpc_endpoint *client,
 	struct rpc_reply_hdr *reply = (struct rpc_reply_hdr *)reply_buf;
 
 	reply->xid = cpu_to_be32(xid);
-	reply->type = cpu_to_be32(1); /* reply */
+	reply->type = cpu_to_be32(1);	/* reply */
 	reply->reply_stat = cpu_to_be32(RPCMSG_REPLYSTAT_ACCEPTED);
 
 	reply->data.acc_hdr.accept_stat = cpu_to_be32(accept_status);
@@ -152,17 +142,149 @@ static int rpc_send_accepted_void_reply(struct msm_rpc_endpoint *client,
 	reply->data.acc_hdr.verf_length = 0;
 
 	rc = msm_rpc_write(client, reply_buf, sizeof(reply_buf));
-	if (rc ==  -ENETRESET) {
+	if (rc == -ENETRESET) {
 		/* Modem restarted, drop reply, clear state */
 		msm_rpc_clear_netreset(client);
 	}
 	if (rc < 0)
 		printk(KERN_ERR
-		       "%s: could not write response: %d\n",
-		       __FUNCTION__, rc);
+		       "%s: could not write response: %d\n", __FUNCTION__, rc);
 
 	return rc;
 }
+
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
+#ifdef USE_REPLY_RETSTRING
+static int AT_rpc_send_accepted_void_reply(struct msm_rpc_endpoint *client,
+					   uint32_t xid, uint32_t accept_status,
+					   struct msm_rpc_server *server)
+{
+	int rc = 0;
+
+	uint8_t reply_buf_AT[sizeof(struct rpc_reply_AT_hdr)];
+	struct rpc_reply_AT_hdr *reply_AT =
+	    (struct rpc_reply_AT_hdr *)reply_buf_AT;
+	uint8_t reply_buf[sizeof(struct rpc_reply_hdr)];
+	struct rpc_reply_hdr *reply = (struct rpc_reply_hdr *)reply_buf;
+	int i = 0;
+	//uint32_t retstring;
+
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-22, FIXME: confused */
+#if 0
+	if (accept_status >= RPC_ACCEPTSTAT_SUCCESS
+	    && accept_status <= RPC_ACCEPTSTAT_PROG_LOCKED
+	    || accept_status == RPC_RETURN_RESULT_MIDDLE_OK) {
+#endif
+	if ((accept_status >= RPC_ACCEPTSTAT_SUCCESS)
+	    && (accept_status <= RPC_ACCEPTSTAT_PROG_LOCKED
+	    || accept_status == RPC_RETURN_RESULT_MIDDLE_OK)) {
+		printk(KERN_INFO "NORMAL RPC accept_status = %d\n",
+		       accept_status);
+		reply->xid = cpu_to_be32(xid);
+		reply->type = cpu_to_be32(1);	/* reply */
+		reply->reply_stat = cpu_to_be32(RPCMSG_REPLYSTAT_ACCEPTED);
+
+		reply->data.acc_hdr.accept_stat = cpu_to_be32(accept_status);
+		reply->data.acc_hdr.verf_flavor = 0;
+		reply->data.acc_hdr.verf_length = 0;
+		rc = msm_rpc_write(client, reply_buf, sizeof(reply_buf));
+		if (rc == -ENETRESET) {
+			/* Modem restarted, drop reply, clear state */
+			msm_rpc_clear_netreset(client);
+		}
+		if (rc < 0)
+			printk(KERN_ERR
+			       "%s: could not write response: %d\n",
+			       __FUNCTION__, rc);
+	} else {
+		printk(KERN_INFO "DSAT RPC accept_status = %d\n",
+		       accept_status);
+
+		// strcpy(reply->data.acc_hdr.retvalues.ret_string, server->retvalue.ret_string);
+		{
+			reply_AT->reply.xid = cpu_to_be32(xid);
+			reply_AT->reply.type = cpu_to_be32(1);	/* reply */
+			reply_AT->reply.reply_stat =
+			    cpu_to_be32(RPCMSG_REPLYSTAT_ACCEPTED);
+
+			reply_AT->reply.data.acc_hdr.accept_stat =
+			    cpu_to_be32(accept_status);
+			reply_AT->reply.data.acc_hdr.verf_flavor = 0;
+			reply_AT->reply.data.acc_hdr.verf_length = 0;
+			i = 0;
+			while (i < MAX_STRING_RET) {
+				reply_AT->retvalues.ret_string[i] = 0;
+				i++;
+			}
+
+			i = 0;
+			for (i = 0;
+			     i < MAX_STRING_RET
+			     && server->retvalue.ret_string[i]; i++) {
+				// retstring = ( server->retvalue.ret_string[i]);
+				if (sizeof(AT_STR_t) == sizeof(uint16_t))
+					reply_AT->retvalues.ret_string[i] =
+					    cpu_to_be16(server->retvalue.
+							ret_string[i]);
+				else if (sizeof(AT_STR_t) == sizeof(uint8_t))
+					reply_AT->retvalues.ret_string[i] =
+					    cpu_to_be8_AT(server->retvalue.
+							  ret_string[i]);
+				else
+					reply_AT->retvalues.ret_string[i] =
+					    cpu_to_be32(server->retvalue.
+							ret_string[i]);
+				// too much print may occurs ARM9 crash !!!
+				//if(i%4 == 0)
+				printk(KERN_INFO
+				       "ret_string[%d] =%d, string=%d\n", i,
+				       reply_AT->retvalues.ret_string[i],
+				       server->retvalue.ret_string[i]);
+
+			}
+			reply_AT->retvalues.ret_string[MAX_STRING_RET - 1] = 0;
+
+			if (sizeof(uint16_t) ==
+			    sizeof(server->retvalue.ret_value1))
+				reply_AT->retvalues.ret_value1 =
+				    cpu_to_be16(server->retvalue.ret_value1);
+			else if (sizeof(uint8_t) ==
+				 sizeof(server->retvalue.ret_value1))
+				reply_AT->retvalues.ret_value1 =
+				    cpu_to_be8_AT(server->retvalue.ret_value1);
+			else
+				reply_AT->retvalues.ret_value1 =
+				    cpu_to_be32(server->retvalue.ret_value1);
+
+			if (sizeof(uint16_t) ==
+			    sizeof(server->retvalue.ret_value2))
+				reply_AT->retvalues.ret_value2 =
+				    cpu_to_be16(server->retvalue.ret_value2);
+			else if (sizeof(uint8_t) ==
+				 sizeof(server->retvalue.ret_value2))
+				reply_AT->retvalues.ret_value2 =
+				    cpu_to_be8_AT(server->retvalue.ret_value2);
+			else
+				reply_AT->retvalues.ret_value2 =
+				    cpu_to_be32(server->retvalue.ret_value2);
+
+			rc = msm_rpc_write(client, reply_buf_AT,
+					   sizeof(reply_buf_AT));
+		}
+
+		if (rc == -ENETRESET) {
+			/* Modem restarted, drop reply, clear state */
+			msm_rpc_clear_netreset(client);
+		}
+		if (rc < 0)
+			printk(KERN_ERR
+			       "%s: could not write response: %d\n",
+			       __FUNCTION__, rc);
+	}
+	return rc;
+}
+#endif
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
 
 /*
  * Interface to be used to start accepted reply message for a
@@ -184,22 +306,21 @@ void *msm_rpc_server_start_accepted_reply(struct msm_rpc_server *server,
 {
 	struct rpc_reply_hdr *reply;
 
-	mutex_lock(&server_xdr.out_lock);
+	mutex_lock(&server->reply_lock);
 
-	reply = (struct rpc_reply_hdr *)server_xdr.out_buf;
+	reply = (struct rpc_reply_hdr *)server->reply;
 
 	reply->xid = cpu_to_be32(xid);
-	reply->type = cpu_to_be32(1); /* reply */
+	reply->type = cpu_to_be32(1);	/* reply */
 	reply->reply_stat = cpu_to_be32(RPCMSG_REPLYSTAT_ACCEPTED);
 
 	reply->data.acc_hdr.accept_stat = cpu_to_be32(accept_status);
 	reply->data.acc_hdr.verf_flavor = 0;
 	reply->data.acc_hdr.verf_length = 0;
 
-	server_xdr.out_index += sizeof(*reply);
-
 	return reply + 1;
 }
+
 EXPORT_SYMBOL(msm_rpc_server_start_accepted_reply);
 
 /*
@@ -219,15 +340,15 @@ int msm_rpc_server_send_accepted_reply(struct msm_rpc_server *server,
 {
 	int rc = 0;
 
-	server_xdr.out_index += size;
-	rc = msm_rpc_write(endpoint, server_xdr.out_buf,
-			   server_xdr.out_index);
+	size += sizeof(struct rpc_reply_hdr);
+	rc = msm_rpc_write(endpoint, server->reply, size);
 	if (rc > 0)
 		rc = 0;
 
-	mutex_unlock(&server_xdr.out_lock);
+	mutex_unlock(&server->reply_lock);
 	return rc;
 }
+
 EXPORT_SYMBOL(msm_rpc_server_send_accepted_reply);
 
 /*
@@ -263,43 +384,40 @@ EXPORT_SYMBOL(msm_rpc_server_send_accepted_reply);
 int msm_rpc_server_cb_req(struct msm_rpc_server *server,
 			  struct msm_rpc_client_info *clnt_info,
 			  uint32_t cb_proc,
-			  int (*arg_func)(struct msm_rpc_server *server,
-					  void *buf, void *data),
+			  int (*arg_func) (struct msm_rpc_server * server,
+					   void *buf, void *data),
 			  void *arg_data,
-			  int (*ret_func)(struct msm_rpc_server *server,
-					  void *buf, void *data),
+			  int (*ret_func) (struct msm_rpc_server * server,
+					   void *buf, void *data),
 			  void *ret_data, long timeout)
 {
+	int size = 0;
 	struct rpc_reply_hdr *rpc_rsp;
 	void *buffer;
 	int rc = 0;
-	uint32_t req_xid;
 
 	if (!clnt_info)
 		return -EINVAL;
 
 	mutex_lock(&server->cb_req_lock);
 
-	msm_rpc_setup_req((struct rpc_request_hdr *)server->cb_xdr.out_buf,
+	msm_rpc_setup_req((struct rpc_request_hdr *)server->cb_req,
 			  (server->prog | 0x01000000),
 			  be32_to_cpu(clnt_info->vers), cb_proc);
-	server->cb_xdr.out_index = sizeof(struct rpc_request_hdr);
-	req_xid = *(uint32_t *)server->cb_xdr.out_buf;
+	size = sizeof(struct rpc_request_hdr);
 
 	if (arg_func) {
 		rc = arg_func(server, (void *)((struct rpc_request_hdr *)
-					       server->cb_xdr.out_buf + 1),
-			      arg_data);
+					       server->cb_req + 1), arg_data);
 		if (rc < 0)
 			goto release_locks;
 		else
-			server->cb_xdr.out_index += rc;
+			size += rc;
 	}
 
 	server->cb_ept->dst_pid = clnt_info->pid;
 	server->cb_ept->dst_cid = clnt_info->cid;
-	rc = msm_rpc_write(server->cb_ept, server->cb_xdr.out_buf,
-			   server->cb_xdr.out_index);
+	rc = msm_rpc_write(server->cb_ept, server->cb_req, size);
 	if (rc < 0) {
 		pr_err("%s: couldn't send RPC CB request:%d\n", __func__, rc);
 		goto release_locks;
@@ -309,27 +427,16 @@ int msm_rpc_server_cb_req(struct msm_rpc_server *server,
 	if (timeout < 0)
 		timeout = msecs_to_jiffies(10000);
 
-	do {
-		rc = msm_rpc_read(server->cb_ept, &buffer, -1, timeout);
-		xdr_init_input(&server->cb_xdr, buffer, rc);
-		if ((rc < ((int)(sizeof(uint32_t) * 2))) ||
-		    (be32_to_cpu(*((uint32_t *)buffer + 1)) != 1)) {
-			printk(KERN_ERR "%s: Invalid reply: %d\n",
-			       __func__, rc);
-			goto free_and_release;
-		}
+	rc = msm_rpc_read(server->cb_ept, &buffer, -1, timeout);
+	if ((rc < ((int)(sizeof(uint32_t) * 2))) ||
+	    (be32_to_cpu(*((uint32_t *) buffer + 1)) != 1)) {
+		printk(KERN_ERR "%s: could not read: %d\n", __func__, rc);
+		kfree(buffer);
+		goto free_and_release;
+	} else
+		rc = 0;
 
-		rpc_rsp = (struct rpc_reply_hdr *)server->cb_xdr.in_buf;
-		if (req_xid != rpc_rsp->xid) {
-			pr_info("%s: xid mismatch, req %d reply %d\n",
-				__func__, be32_to_cpu(req_xid),
-				be32_to_cpu(rpc_rsp->xid));
-			xdr_clean_input(&server->cb_xdr);
-			rc = timeout;
-			/* timeout is not adjusted, but it is not critical */
-		} else
-			rc = 0;
-	} while (rc);
+	rpc_rsp = (struct rpc_reply_hdr *)buffer;
 
 	if (be32_to_cpu(rpc_rsp->reply_stat) != RPCMSG_REPLYSTAT_ACCEPTED) {
 		pr_err("%s: RPC cb req was denied! %d\n", __func__,
@@ -350,138 +457,13 @@ int msm_rpc_server_cb_req(struct msm_rpc_server *server,
 		rc = ret_func(server, (void *)(rpc_rsp + 1), ret_data);
 
 free_and_release:
-	xdr_clean_input(&server->cb_xdr);
-	server->cb_xdr.out_index = 0;
+	kfree(buffer);
 release_locks:
 	mutex_unlock(&server->cb_req_lock);
 	return rc;
 }
+
 EXPORT_SYMBOL(msm_rpc_server_cb_req);
-
-/*
- * Interface to be used to send a server callback request.
- * If the request takes any arguments or expects any return, the user
- * should handle it in 'arg_func' and 'ret_func' respectively.
- * Marshaling and Unmarshaling should be handled by the user in argument
- * and return functions.
- *
- * server: pointer to server data sturcture
- *
- * clnt_info: pointer to client information data structure.
- *            callback will be sent to this client.
- *
- * cb_proc: callback procedure being requested
- *
- * arg_func: argument function pointer.  'xdr' is the xdr being used.
- *   'data' is arg_data.
- *
- * ret_func: return function pointer.  'xdr' is the xdr being used.
- *   'data' is ret_data.
- *
- * arg_data: passed as an input parameter to argument function.
- *
- * ret_data: passed as an input parameter to return function.
- *
- * timeout: timeout for reply wait in jiffies.  If negative timeout is
- *   specified a default timeout of 10s is used.
- *
- * Return Value:
- *        0 on success, otherwise an error code is returned.
- */
-int msm_rpc_server_cb_req2(struct msm_rpc_server *server,
-			   struct msm_rpc_client_info *clnt_info,
-			   uint32_t cb_proc,
-			   int (*arg_func)(struct msm_rpc_server *server,
-					   struct msm_rpc_xdr *xdr, void *data),
-			   void *arg_data,
-			   int (*ret_func)(struct msm_rpc_server *server,
-					   struct msm_rpc_xdr *xdr, void *data),
-			   void *ret_data, long timeout)
-{
-	int size = 0;
-	struct rpc_reply_hdr rpc_rsp;
-	void *buffer;
-	int rc = 0;
-	uint32_t req_xid;
-
-	if (!clnt_info)
-		return -EINVAL;
-
-	mutex_lock(&server->cb_req_lock);
-
-	xdr_start_request(&server->cb_xdr, (server->prog | 0x01000000),
-			  be32_to_cpu(clnt_info->vers), cb_proc);
-	req_xid = be32_to_cpu(*(uint32_t *)server->cb_xdr.out_buf);
-	if (arg_func) {
-		rc = arg_func(server, &server->cb_xdr, arg_data);
-		if (rc < 0)
-			goto release_locks;
-		else
-			size += rc;
-	}
-
-	server->cb_ept->dst_pid = clnt_info->pid;
-	server->cb_ept->dst_cid = clnt_info->cid;
-	rc = xdr_send_msg(&server->cb_xdr);
-	if (rc < 0) {
-		pr_err("%s: couldn't send RPC CB request:%d\n", __func__, rc);
-		goto release_locks;
-	} else
-		rc = 0;
-
-	if (timeout < 0)
-		timeout = msecs_to_jiffies(10000);
-
-	do {
-		rc = msm_rpc_read(server->cb_ept, &buffer, -1, timeout);
-		if (rc < 0)
-			goto free_and_release;
-
-		xdr_init_input(&server->cb_xdr, buffer, rc);
-		rc = xdr_recv_reply(&server->cb_xdr, &rpc_rsp);
-		if (rc || (rpc_rsp.type != 1)) {
-			printk(KERN_ERR "%s: Invalid reply :%d\n",
-			       __func__, rc);
-			rc = -EINVAL;
-			goto free_and_release;
-		}
-
-		if (req_xid != rpc_rsp.xid) {
-			pr_info("%s: xid mismatch, req %d reply %d\n",
-				__func__, req_xid, rpc_rsp.xid);
-			xdr_clean_input(&server->cb_xdr);
-			rc = timeout;
-			/* timeout is not adjusted, but it is not critical */
-		} else
-			rc = 0;
-
-	} while (rc);
-
-	if (rpc_rsp.reply_stat != RPCMSG_REPLYSTAT_ACCEPTED) {
-		pr_err("%s: RPC cb req was denied! %d\n", __func__,
-		       rpc_rsp.reply_stat);
-		rc = -EPERM;
-		goto free_and_release;
-	}
-
-	if (rpc_rsp.data.acc_hdr.accept_stat != RPC_ACCEPTSTAT_SUCCESS) {
-		pr_err("%s: RPC cb req was not successful (%d)\n", __func__,
-		       rpc_rsp.data.acc_hdr.accept_stat);
-		rc = -EINVAL;
-		goto free_and_release;
-	}
-
-	if (ret_func)
-		rc = ret_func(server, &server->cb_xdr, ret_data);
-
-free_and_release:
-	xdr_clean_input(&server->cb_xdr);
-	server->cb_xdr.out_index = 0;
-release_locks:
-	mutex_unlock(&server->cb_req_lock);
-	return rc;
-}
-EXPORT_SYMBOL(msm_rpc_server_cb_req2);
 
 void msm_rpc_server_get_requesting_client(struct msm_rpc_client_info *clnt_info)
 {
@@ -493,27 +475,16 @@ void msm_rpc_server_get_requesting_client(struct msm_rpc_client_info *clnt_info)
 
 static int rpc_servers_thread(void *data)
 {
-	void *buffer, *buf;
-	struct rpc_request_hdr req;
-	struct rpc_request_hdr *req1;
+	void *buffer;
+	struct rpc_request_hdr *req;
 	struct msm_rpc_server *server;
 	int rc;
-
-	xdr_init(&server_xdr);
-	server_xdr.ept = endpoint;
-
-	buf = kmalloc(MSM_RPC_MSGSIZE_MAX, GFP_KERNEL);
-	if (!buf)
-		return -ENOMEM;
-
-	xdr_init_output(&server_xdr, buf, MSM_RPC_MSGSIZE_MAX);
 
 	for (;;) {
 		wake_unlock(&rpc_servers_wake_lock);
 		rc = wait_event_interruptible(endpoint->wait_q,
 					      !list_empty(&endpoint->read_q));
 		wake_lock(&rpc_servers_wake_lock);
-
 		rc = msm_rpc_read(endpoint, &buffer, -1, -1);
 		if (rc < 0) {
 			printk(KERN_ERR "%s: could not read: %d\n",
@@ -521,52 +492,64 @@ static int rpc_servers_thread(void *data)
 			break;
 		}
 
-		req1 = (struct rpc_request_hdr *)buffer;
-		current_xid = req1->xid;
+		req = (struct rpc_request_hdr *)buffer;
 
-		xdr_init_input(&server_xdr, buffer, rc);
-		xdr_recv_req(&server_xdr, &req);
+		current_xid = req->xid;
 
-		server = rpc_server_find(req.prog, req.vers);
+		req->type = be32_to_cpu(req->type);
+		req->xid = be32_to_cpu(req->xid);
+		req->rpc_vers = be32_to_cpu(req->rpc_vers);
+		req->prog = be32_to_cpu(req->prog);
+		req->vers = be32_to_cpu(req->vers);
+		req->procedure = be32_to_cpu(req->procedure);
 
-		if (req.rpc_vers != 2)
-			goto free_buffer;
-		if (req.type != 0)
-			goto free_buffer;
+		server = rpc_server_find(req->prog, req->vers);
+
+		if (req->rpc_vers != 2)
+			continue;
+		if (req->type != 0)
+			continue;
 		if (!server) {
-			rpc_send_accepted_void_reply(
-				endpoint, req.xid,
-				RPC_ACCEPTSTAT_PROG_UNAVAIL);
-			goto free_buffer;
+			rpc_send_accepted_void_reply(endpoint, req->xid,
+						     RPC_ACCEPTSTAT_PROG_UNAVAIL);
+			continue;
 		}
 
-		if (server->version == 2)
-			rc = server->rpc_call2(server, &req, &server_xdr);
-		else {
-			req1->type = be32_to_cpu(req1->type);
-			req1->xid = be32_to_cpu(req1->xid);
-			req1->rpc_vers = be32_to_cpu(req1->rpc_vers);
-			req1->prog = be32_to_cpu(req1->prog);
-			req1->vers = be32_to_cpu(req1->vers);
-			req1->procedure = be32_to_cpu(req1->procedure);
-
-			rc = server->rpc_call(server, req1, rc);
-		}
+		rc = server->rpc_call(server, req, rc);
 
 		if (rc == 0) {
-			msm_rpc_server_start_accepted_reply(
-				server, req.xid,
-				RPC_ACCEPTSTAT_SUCCESS);
+			msm_rpc_server_start_accepted_reply(server, req->xid,
+							    RPC_ACCEPTSTAT_SUCCESS);
 			msm_rpc_server_send_accepted_reply(server, 0);
 		} else if (rc < 0) {
-			msm_rpc_server_start_accepted_reply(
-				server, req.xid,
-				RPC_ACCEPTSTAT_PROC_UNAVAIL);
+			msm_rpc_server_start_accepted_reply(server, req->xid,
+							    RPC_ACCEPTSTAT_PROC_UNAVAIL);
 			msm_rpc_server_send_accepted_reply(server, 0);
 		}
- free_buffer:
-		xdr_clean_input(&server_xdr);
-		server_xdr.out_index = 0;
+		/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
+		switch (rc) {
+#ifdef USE_REPLY_RETSTRING
+			// give Error result to ARM9 AT Command
+		case RPC_RETURN_RESULT_OK:
+		case RPC_RETURN_RESULT_ERROR:
+			{
+				/*
+				   for(loop = 0; loop < MAX_STRING_RET && server->retvalue.ret_string[loop]; loop++)
+				   {
+				   // too much print may occurs ARM9 crash !!!
+				   printk(KERN_INFO"1returnString[%d] =%d\n", loop, server->retvalue.ret_string[loop]);
+				   }
+				 */
+			}
+		case RPC_RETURN_RESULT_MIDDLE_OK:
+			AT_rpc_send_accepted_void_reply(endpoint, req->xid,
+							(rc), server);
+
+			break;
+#endif
+		}
+		/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
+		kfree(buffer);
 	}
 	do_exit(0);
 }
@@ -593,10 +576,10 @@ static int rpcservers_probe(struct platform_device *pdev)
 }
 
 static struct platform_driver rpcservers_driver = {
-	.probe	= rpcservers_probe,
-	.driver	= {
-		.name	= "oncrpc_router",
-		.owner	= THIS_MODULE,
+	.probe = rpcservers_probe,
+	.driver = {
+		.name = "oncrpc_router",
+		.owner = THIS_MODULE,
 	},
 };
 

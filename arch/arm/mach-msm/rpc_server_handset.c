@@ -22,9 +22,15 @@
 #include <linux/switch.h>
 
 #include <asm/mach-types.h>
+#include <mach/msm_handset.h>
 
 #include <mach/msm_rpcrouter.h>
 #include <mach/board.h>
+#include <mach/msm_i2ckbd.h>
+#if defined (CONFIG_MACH_EVE)
+#include <linux/at_kpd_eve.h> //LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD
+#include <mach/gpio.h>
+#endif 
 #include <mach/rpc_server_handset.h>
 
 #include "keypad-surf-ffa.h"
@@ -48,6 +54,10 @@
 #define RPC_KEYPAD_PASS_KEY_CODE_PROC 2
 #define RPC_KEYPAD_SET_PWR_KEY_STATE_PROC 3
 
+#if defined (CONFIG_MACH_EVE)
+#define HS_ON_HOOK_K		0x01	/* headphone hook key */
+#define GPIO_EAR_SENSE_BIAS		0x1D
+#endif
 #define HS_PWR_K		0x6F	/* Power key */
 #define HS_END_K		0x51	/* End key or Power key */
 #define HS_STEREO_HEADSET_K	0x82
@@ -156,6 +166,9 @@ static const uint32_t hs_key_map[] = {
 	KEY(HS_END_K, KEY_END),
 	KEY(HS_STEREO_HEADSET_K, SW_HEADPHONE_INSERT),
 	KEY(HS_HEADSET_SWITCH_K, KEY_MEDIA),
+#if defined (CONFIG_MACH_EVE)
+	KEY(HS_ON_HOOK_K, KEY_HP),
+#endif
 	0
 };
 
@@ -168,6 +181,10 @@ struct msm_handset {
 	struct input_dev *ipdev;
 	struct switch_dev sdev;
 };
+
+/* LGE_CHANGE [?] ?, from cupcake */
+static struct input_dev *kpdev;
+static struct input_dev *hsdev;
 
 static struct msm_rpc_client *rpc_client;
 static struct msm_handset *hs;
@@ -191,7 +208,10 @@ report_headset_switch(struct input_dev *dev, int key, int value)
 	struct msm_handset *hs = input_get_drvdata(dev);
 
 	input_report_switch(dev, key, value);
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, FIXME: conflict with eve_hs_device */
+#if 0
 	switch_set_state(&hs->sdev, value);
+#endif
 }
 
 /*
@@ -222,12 +242,40 @@ static void report_hs_key(uint32_t key_code, uint32_t key_parm)
 	switch (key) {
 	case KEY_POWER:
 	case KEY_END:
+//LGE_CHANGE_S [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
+#ifdef CONFIG_ANDROID_VIBRATOR
+		vibrator_disable(); //By pressing END key, disable vibrator (Refer to AT Command document 3.9 AT%MOT)
+#endif
+		write_gkpd_value (69); //Send END key ASCII code (69) to AT%GKPD function
+//LGE_CHANGE_E [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
+		input_report_key(kpdev, key, (key_code != HS_REL_K));
+		input_sync(kpdev);
+		break;
+
+#if defined (CONFIG_MACH_EVE)
+	case KEY_HP:
+		if(gpio_get_value(GPIO_EAR_SENSE_BIAS) == 1)
+		{
+			if (!kpdev) {
+				printk(KERN_ERR "%s: No input device for reporting "
+						"pwr/end key press\n", __func__);
+				return;
+			}
+			write_gkpd_value(72);
+			input_report_key(kpdev, key, (key_code != HS_REL_K));
+			input_sync(kpdev);
+		}
+		break;
+
+#endif
 	case KEY_MEDIA:
 		input_report_key(hs->ipdev, key, (key_code != HS_REL_K));
 		break;
+#if !defined (CONFIG_MACH_EVE)
 	case SW_HEADPHONE_INSERT:
 		report_headset_switch(hs->ipdev, key, (key_code != HS_REL_K));
 		break;
+#endif		
 	case -1:
 		printk(KERN_ERR "%s: No mapping for remote handset event %d\n",
 				 __func__, temp_key_code);
@@ -243,6 +291,10 @@ static int handle_hs_rpc_call(struct msm_rpc_server *server,
 		uint32_t key_code;
 		uint32_t key_parm;
 	};
+//LGE_CHANGE_S [taekeun1.kim@lge.com] 2010-03-14 for EVE
+	kpdev = qwerty_get_input_dev();
+	hsdev = msm_get_handset_input_dev();
+//LGE_CHANGE_E [taekeun1.kim@lge.com]
 
 	switch (req->procedure) {
 	case RPC_KEYPAD_NULL_PROC:
@@ -421,6 +473,11 @@ static int __init hs_rpc_cb_init(void)
 {
 	int rc = 0;
 
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, reduction of bootime */
+#if defined(CONFIG_MACH_EVE)
+	return -ENODEV;
+#endif
+
 	/* version 2 is used in 7x30 */
 	rpc_client = msm_rpc_register_client("hs",
 			HS_RPC_PROG, HS_RPC_VERS_2, 0, hs_cb_func);
@@ -452,7 +509,7 @@ static int __init hs_rpc_cb_init(void)
 static int __devinit hs_rpc_init(void)
 {
 	int rc;
-
+	
 	rc = hs_rpc_cb_init();
 	if (rc)
 		pr_err("%s: failed to initialize rpc client\n", __func__);
@@ -470,6 +527,8 @@ static void __devexit hs_rpc_deinit(void)
 		msm_rpc_unregister_client(rpc_client);
 }
 
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, FIXME: conflict with eve_hs_device */
+#if 0
 static ssize_t msm_headset_print_name(struct switch_dev *sdev, char *buf)
 {
 	switch (switch_get_state(&hs->sdev)) {
@@ -480,6 +539,7 @@ static ssize_t msm_headset_print_name(struct switch_dev *sdev, char *buf)
 	}
 	return -EINVAL;
 }
+#endif
 
 static int __devinit hs_probe(struct platform_device *pdev)
 {
@@ -490,12 +550,15 @@ static int __devinit hs_probe(struct platform_device *pdev)
 	if (!hs)
 		return -ENOMEM;
 
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, FIXME: conflict with eve_hs_device */
+#if 0
 	hs->sdev.name	= "h2w";
 	hs->sdev.print_name = msm_headset_print_name;
 
 	rc = switch_dev_register(&hs->sdev);
 	if (rc)
 		goto err_switch_dev_register;
+#endif
 
 	ipdev = input_allocate_device();
 	if (!ipdev) {
@@ -541,8 +604,11 @@ err_hs_rpc_init:
 err_reg_input_dev:
 	input_free_device(ipdev);
 err_alloc_input_dev:
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, FIXME: conflict with eve_hs_device */
+#if 0
 	switch_dev_unregister(&hs->sdev);
 err_switch_dev_register:
+#endif
 	kfree(hs);
 	return rc;
 }
@@ -552,7 +618,10 @@ static int __devexit hs_remove(struct platform_device *pdev)
 	struct msm_handset *hs = platform_get_drvdata(pdev);
 
 	input_unregister_device(hs->ipdev);
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, FIXME: conflict with eve_hs_device */
+#if 0
 	switch_dev_unregister(&hs->sdev);
+#endif
 	kfree(hs);
 	hs_rpc_deinit();
 	return 0;

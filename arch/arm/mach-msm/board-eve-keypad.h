@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2010, LGE Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -12,11 +12,13 @@
  *
  */
 
-#ifndef _MSM_KEYPAD_DEVICES_H
-#define _MSM_KEYPAD_DEVICES_H
+#ifndef _EVE_KEYPAD_DEVICES_H
+#define _EVE_KEYPAD_DEVICES_H
 
-extern struct platform_device keypad_device_7k_ffa;
-extern struct platform_device keypad_device_8k_ffa;
-extern struct platform_device keypad_device_surf;
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-01, keypad device for eve */
+#if defined(CONFIG_MACH_EVE)
+extern struct platform_device keypad_device_eve;
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [cleaneye@lge.com] 2009-04-01, keypad device for eve */
 
 #endif

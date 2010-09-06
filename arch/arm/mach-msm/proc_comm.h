@@ -127,6 +127,10 @@ enum {
 	PCOM_CHG_USB_IS_AVAILABLE,
 	PCOM_CLK_REGIME_SEC_MSM_SEL_FREQ,
 	PCOM_CLK_REGIME_SEC_SET_PCLK_AXI_POLICY,
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-05, not defined at EVE */
+#if defined(CONFIG_MACH_EVE)
+	PCOM_NUM_CMDS,
+#else
 	PCOM_CLKCTL_RPC_RESET_ASSERT,
 	PCOM_CLKCTL_RPC_RESET_DEASSERT,
 	PCOM_CLKCTL_RPC_RAIL_ON,
@@ -135,6 +139,7 @@ enum {
 	PCOM_CLKCTL_RPC_RAIL_DISABLE,
 	PCOM_CLKCTL_RPC_RAIL_CONTROL,
 	PCOM_CLKCTL_RPC_MIN_MSMC1,
+#endif
 };
 
 enum {
@@ -164,6 +169,24 @@ enum {
 	PCOM_CMD_FAIL_PROC_COMM_BUSY,
 	PCOM_CMD_FAIL_PROC_COMM_NOT_INIT,
 };
+
+/* LGE_UPDATE_S [jinwoonam@lge.com] 2009.06.15 */
+// Function type for PCOM_CUSTOMER_CMD2
+#if defined(CONFIG_MACH_EVE)
+	#define CUSTOMER_CMD2_BATT_GET_VOLTAGE      0x0001
+	#define CUSTOMER_CMD2_BATT_GET_LEVEL        0x0002
+	#define CUSTOMER_CMD2_BATT_GET_TEMPERTURE   0x0003
+	#define CUSTOMER_CMD2_BATT_IS_VALID         0x0004
+	#define CUSTOMER_CMD2_BATT_IS_CHG_CONNECTED 0x0005
+	#define CUSTOMER_CMD2_BATT_IS_CHARGING      0x0006
+	#define CUSTOMER_CMD2_BATT_GET_CABLE_STATUS 0x0007
+	#define CUSTOMER_CMD2_BATT_POWER_DOWN       0x0008
+	#define CUSTOMER_CMD2_BATT_IS_FTM           0x0009
+	#define CUSTOMER_CMD2_BATT_GET_HW_REV       0x0010
+
+int msm_proc_comm_get_ftm(int *ftm);
+#endif
+/* LGE_UPDATE_E [jinwoonam@lge.com] 2008.06.15 */
 
 void msm_proc_comm_reset_modem_now(void);
 int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2);

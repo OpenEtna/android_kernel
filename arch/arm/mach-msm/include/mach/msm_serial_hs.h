@@ -17,6 +17,13 @@
 
 #include<linux/serial_core.h>
 
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifndef FEATURE_USE_BTLA
+#define FEATURE_USE_BTLA
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
+
 /* Optional platform device data for msm_serial_hs driver.
  * Used to configure low power wakeup */
 struct msm_serial_hs_platform_data {
@@ -31,4 +38,12 @@ void msm_hs_request_clock_off(struct uart_port *uport);
 void msm_hs_request_clock_on(struct uart_port *uport);
 void msm_hs_set_mctrl_locked(struct uart_port *uport,
 				    unsigned int mctrl);
+
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifdef FEATURE_USE_BTLA
+struct uart_port * msm_hs_get_bt_uport(unsigned int line);
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
+
 #endif

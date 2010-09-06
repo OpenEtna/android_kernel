@@ -198,6 +198,34 @@ config CACHE_FLUSH_RANGE_LIMIT
 	  entire cache instead. Flushing a large range can be slower than
 	  flushing, then refilling, the entire cache.
 
+# LGE_CHANGE [dojip.kim@lge.com] 2010-04-21, added the MACH_LGE
+config MACH_LGE
+	bool
+
+config MACH_EVE
+	depends on ARCH_MSM
+	depends on MSM_STACKED_MEMORY
+	default y
+	bool "EVE Board (LGE GW620)"
+	select MACH_LGE
+	help
+	  Support for the LGE GW620 board.
+
+# LGE_CHANGE [dojip.kim@lge.com] from SURF_FFA_GPIO_KEYPAD
+config EVE_GPIO_KEYPAD
+	bool "EVE GPIO keypad"
+	depends on INPUT_GPIO = "y"
+	default y
+	help
+	  Select if the GPIO keypad is attached.
+
+# LGE_CHANGE [dojip.kim@lge.com] 2010-04-04, google's patch
+config LG_FW_GOOGLE_PATCH
+	bool "GOOGLE PATCH"
+	default y
+	help
+	  apply the google's patch
+
 choice
 	prompt "Default Timer"
 	default MSM7X00A_USE_GP_TIMER

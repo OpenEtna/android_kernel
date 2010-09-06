@@ -22,6 +22,10 @@
 #include <linux/list.h>
 #include <linux/platform_device.h>
 
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
+ #define USE_REPLY_RETSTRING
+ /* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
+ 
 /* RPC API version structure
  * Version bit 31 : 1->hashkey versioning,
  *                  0->major-minor (backward compatible) versioning
@@ -47,6 +51,28 @@ struct rpcsvr_platform_device
 	uint32_t prog;
 	uint32_t vers;
 };
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
+#ifdef USE_REPLY_RETSTRING
+// same with AMSS define Oncrpc_xdr_types.h
+typedef uint8_t   AT_STR_t;
+#define ABSOLUTE_STRING_LENGTH  500 //40 [seypark@lge.com]
+#define MAX_STRING_RET (ABSOLUTE_STRING_LENGTH/sizeof(AT_STR_t))
+
+ typedef uint8_t AT_SEND_BUFFER_t;
+#define MAX_SEND_LOOP_NUM  8 // 4 => 8 kageki@lge.com
+#define ABSOLUTE_SEND_SIZE  256
+#define MAX_SEND_SIZE_BUFFER ABSOLUTE_SEND_SIZE/sizeof(AT_SEND_BUFFER_t)
+#define LIMIT_MAX_SEND_SIZE_BUFFER MAX_SEND_SIZE_BUFFER*MAX_SEND_LOOP_NUM
+
+struct retvaluestruct
+{
+	uint32_t  ret_value1;
+	uint32_t  ret_value2;
+	AT_STR_t   ret_string[MAX_STRING_RET];
+};
+char cpu_to_be8_AT(char value);
+#endif
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
 
 #define RPC_DATA_IN	0
 /*
@@ -90,6 +116,13 @@ typedef struct
 #define RPC_ACCEPTSTAT_GARBAGE_ARGS 4
 #define RPC_ACCEPTSTAT_SYSTEM_ERR 5
 #define RPC_ACCEPTSTAT_PROG_LOCKED 6
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
+#ifdef USE_REPLY_RETSTRING
+#define RPC_RETURN_RESULT_ERROR    7
+#define RPC_RETURN_RESULT_OK     8
+#define RPC_RETURN_RESULT_MIDDLE_OK     9
+#endif
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
 	/*
 	 * Following data is dependant on accept_stat
 	 * If ACCEPTSTAT == PROG_MISMATCH then there is a
@@ -97,6 +130,36 @@ typedef struct
 	 * Otherwise the data is procedure specific
 	 */
 } rpc_accepted_reply_hdr;
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
+#ifdef USE_REPLY_RETSTRING
+typedef struct
+{
+	uint32_t verf_flavor;
+	uint32_t verf_length;
+	uint32_t accept_stat;
+#define RPC_ACCEPTSTAT_SUCCESS 0
+#define RPC_ACCEPTSTAT_PROG_UNAVAIL 1
+#define RPC_ACCEPTSTAT_PROG_MISMATCH 2
+#define RPC_ACCEPTSTAT_PROC_UNAVAIL 3
+#define RPC_ACCEPTSTAT_GARBAGE_ARGS 4
+#define RPC_ACCEPTSTAT_SYSTEM_ERR 5
+#define RPC_ACCEPTSTAT_PROG_LOCKED 6
+#define RPC_RETURN_RESULT_ERROR    7
+#define RPC_RETURN_RESULT_OK     8
+#define RPC_RETURN_RESULT_MIDDLE_OK 9
+
+struct retvaluestruct retvalues;
+	/*
+	 * Following data is dependant on accept_stat
+	 * If ACCEPTSTAT == PROG_MISMATCH then there is a
+	 * 'rpc_reply_progmismatch_data' structure following the header.
+	 * Otherwise the data is procedure specific
+	 */
+
+
+} rpc_accepted_AT_reply_hdr;
+#endif
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
 
 struct rpc_reply_hdr
 {
@@ -110,6 +173,19 @@ struct rpc_reply_hdr
 		rpc_denied_reply_hdr dny_hdr;
 	} data;
 };
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
+#ifdef USE_REPLY_RETSTRING
+struct rpc_reply_AT_hdr
+{
+struct rpc_reply_hdr reply;
+	
+
+struct retvaluestruct retvalues;
+
+
+};
+#endif	
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
 
 /* flags for msm_rpc_connect() */
 #define MSM_RPC_UNINTERRUPTIBLE 0x0001
@@ -155,36 +231,6 @@ int msm_rpc_call(struct msm_rpc_endpoint *ept, uint32_t proc,
 		 void *request, int request_size,
 		 long timeout);
 
-struct msm_rpc_xdr {
-	void *in_buf;
-	uint32_t in_size;
-	uint32_t in_index;
-	struct mutex in_lock;
-
-	void *out_buf;
-	uint32_t out_size;
-	uint32_t out_index;
-	struct mutex out_lock;
-
-	struct msm_rpc_endpoint *ept;
-};
-
-int xdr_send_int8(struct msm_rpc_xdr *xdr, const int8_t *value);
-int xdr_send_uint8(struct msm_rpc_xdr *xdr, const uint8_t *value);
-int xdr_send_int16(struct msm_rpc_xdr *xdr, const int16_t *value);
-int xdr_send_uint16(struct msm_rpc_xdr *xdr, const uint16_t *value);
-int xdr_send_int32(struct msm_rpc_xdr *xdr, const int32_t *value);
-int xdr_send_uint32(struct msm_rpc_xdr *xdr, const uint32_t *value);
-int xdr_send_bytes(struct msm_rpc_xdr *xdr, const void **data, uint32_t *size);
-
-int xdr_recv_int8(struct msm_rpc_xdr *xdr, int8_t *value);
-int xdr_recv_uint8(struct msm_rpc_xdr *xdr, uint8_t *value);
-int xdr_recv_int16(struct msm_rpc_xdr *xdr, int16_t *value);
-int xdr_recv_uint16(struct msm_rpc_xdr *xdr, uint16_t *value);
-int xdr_recv_int32(struct msm_rpc_xdr *xdr, int32_t *value);
-int xdr_recv_uint32(struct msm_rpc_xdr *xdr, uint32_t *value);
-int xdr_recv_bytes(struct msm_rpc_xdr *xdr, void **data, uint32_t *size);
-
 struct msm_rpc_server
 {
 	struct list_head list;
@@ -194,23 +240,22 @@ struct msm_rpc_server
 	uint32_t vers;
 
 	struct mutex cb_req_lock;
+	struct mutex reply_lock;
+	char *cb_req;
+	char *reply;
 
 	struct msm_rpc_endpoint *cb_ept;
 
-	struct msm_rpc_xdr cb_xdr;
-
-	uint32_t version;
-
 	int (*rpc_call)(struct msm_rpc_server *server,
 			struct rpc_request_hdr *req, unsigned len);
-
-	int (*rpc_call2)(struct msm_rpc_server *server,
-			 struct rpc_request_hdr *req,
-			 struct msm_rpc_xdr *xdr);
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
+	#ifdef USE_REPLY_RETSTRING
+	struct retvaluestruct  retvalue;
+	#endif
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
 };
 
 int msm_rpc_create_server(struct msm_rpc_server *server);
-int msm_rpc_create_server2(struct msm_rpc_server *server);
 
 #define MSM_RPC_MSGSIZE_MAX 8192
 
@@ -226,15 +271,9 @@ struct msm_rpc_client {
 	uint32_t prog, ver;
 
 	void *buf;
-
-	struct msm_rpc_xdr xdr;
-	struct msm_rpc_xdr cb_xdr;
-
-	uint32_t version;
+	int read_avail;
 
 	int (*cb_func)(struct msm_rpc_client *, void *, int);
-	int (*cb_func2)(struct msm_rpc_client *, struct rpc_request_hdr *req,
-			struct msm_rpc_xdr *);
 	void *cb_buf;
 	int cb_size;
 
@@ -253,6 +292,9 @@ struct msm_rpc_client {
 	struct completion cb_complete;
 
 	struct mutex req_lock;
+	struct mutex reply_lock;
+	char *req;
+	char *reply;
 };
 
 struct msm_rpc_client_info {
@@ -268,13 +310,6 @@ struct msm_rpc_client *msm_rpc_register_client(
 	uint32_t create_cb_thread,
 	int (*cb_func)(struct msm_rpc_client *, void *, int));
 
-struct msm_rpc_client *msm_rpc_register_client2(
-	const char *name,
-	uint32_t prog, uint32_t ver,
-	uint32_t create_cb_thread,
-	int (*cb_func)(struct msm_rpc_client *, struct rpc_request_hdr *req,
-		       struct msm_rpc_xdr *xdr));
-
 int msm_rpc_unregister_client(struct msm_rpc_client *client);
 
 int msm_rpc_client_req(struct msm_rpc_client *client, uint32_t proc,
@@ -283,15 +318,6 @@ int msm_rpc_client_req(struct msm_rpc_client *client, uint32_t proc,
 		       int (*result_func)(struct msm_rpc_client *,
 					  void *, void *), void *result_data,
 		       long timeout);
-
-int msm_rpc_client_req2(struct msm_rpc_client *client, uint32_t proc,
-			int (*arg_func)(struct msm_rpc_client *,
-					struct msm_rpc_xdr *, void *),
-			void *arg_data,
-			int (*result_func)(struct msm_rpc_client *,
-					   struct msm_rpc_xdr *, void *),
-			void *result_data,
-			long timeout);
 
 void *msm_rpc_start_accepted_reply(struct msm_rpc_client *client,
 				   uint32_t xid, uint32_t accept_status);
@@ -320,36 +346,13 @@ int msm_rpc_server_cb_req(struct msm_rpc_server *server,
 					  void *buf, void *data),
 			  void *ret_data, long timeout);
 
-int msm_rpc_server_cb_req2(struct msm_rpc_server *server,
-			   struct msm_rpc_client_info *clnt_info,
-			   uint32_t cb_proc,
-			   int (*arg_func)(struct msm_rpc_server *server,
-					   struct msm_rpc_xdr *xdr, void *data),
-			   void *arg_data,
-			   int (*ret_func)(struct msm_rpc_server *server,
-					   struct msm_rpc_xdr *xdr, void *data),
-			   void *ret_data, long timeout);
-
 void msm_rpc_server_get_requesting_client(
 	struct msm_rpc_client_info *clnt_info);
 
-int xdr_send_pointer(struct msm_rpc_xdr *xdr, void **obj,
-		     uint32_t obj_size, void *xdr_op);
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
+int is_slide_open(void); //diyu@lge.com
+void set_slide_open(int value);//diyu@lge.com
+/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
 
-int xdr_recv_pointer(struct msm_rpc_xdr *xdr, void **obj,
-		     uint32_t obj_size, void *xdr_op);
-
-int xdr_send_array(struct msm_rpc_xdr *xdr, void **addr, uint32_t *size,
-		   uint32_t maxsize, uint32_t elm_size, void *xdr_op);
-
-int xdr_recv_array(struct msm_rpc_xdr *xdr, void **addr, uint32_t *size,
-		   uint32_t maxsize, uint32_t elm_size, void *xdr_op);
-
-int xdr_recv_req(struct msm_rpc_xdr *xdr, struct rpc_request_hdr *req);
-int xdr_recv_reply(struct msm_rpc_xdr *xdr, struct rpc_reply_hdr *reply);
-int xdr_start_request(struct msm_rpc_xdr *xdr, uint32_t prog,
-		      uint32_t ver, uint32_t proc);
-int xdr_start_accepted_reply(struct msm_rpc_xdr *xdr, uint32_t accept_status);
-int xdr_send_msg(struct msm_rpc_xdr *xdr);
 
 #endif
