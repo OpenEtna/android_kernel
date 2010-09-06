@@ -253,4 +253,13 @@ config BMA150
 	  To compile this driver as a module, choose M here: the
 	  module will be called bma150.
 
+config KEYLED
+	tristate "Keyboard LED(Backlight)"
+	default y
+	help
+	  Say Y here if you want support for the Keyboard LED(Backlight)
+	  device.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called Keyboard LED(Backlight).
 endif
