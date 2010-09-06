@@ -105,6 +105,15 @@
 #include <asm/system.h>
 #include <linux/uaccess.h>
 
+/*LGE_CHANGE_S [bluerti@lge.com] 2009-07-10, Make a New API for Error Handler > */
+#define FB_MAX 32
+extern struct fb_info *registered_fb[FB_MAX];
+#define	LGE_ERROR_MAX_ROW				30
+#define	LGE_ERROR_MAX_COLUMN			40
+extern void fbcon_putcs_byLGE(struct vc_data *vc, const unsigned short *s,
+			int count, int ypos, int xpos);
+extern void fbcon_update_byLGE(struct vc_data *vc);
+/*LGE_CHANGE_E [bluerti@lge.com] 2009-07-10, Make a New API for Error Handler > */
 #define MAX_NR_CON_DRIVER 16
 
 #define CON_DRIVER_FLAG_MODULE 1
@@ -172,7 +181,7 @@ int do_poke_blanked_console;
 int console_blanked;
 
 static int vesa_blank_mode; /* 0:none 1:suspendV 2:suspendH 3:powerdown */
-static int blankinterval = 10*60*HZ;
+static int blankinterval = 1000*60*HZ;
 static int vesa_off_interval;
 
 static DECLARE_WORK(console_work, console_callback);
@@ -321,6 +330,62 @@ static void scrdown(struct vc_data *vc, unsigned int t, unsigned int b, int nr)
 	scr_memmovew(s + step, s, (b - t - nr) * vc->vc_size_row);
 	scr_memsetw(s, vc->vc_video_erase_char, 2 * step);
 }
+/*LGE_CHANGE_S [bluerti@lge.com] 2009-07-10, Make a New API for Error Handler > */
+void display_errorinfo_byLGE(int crash_side, unsigned short * buf, int count)
+{
+	extern void expand_char_to_shrt(char * message,unsigned short *buffer);
+	extern int msm_fb_refesh_enabled;
+	struct vc_data *vc;
+	int i; 
+	unsigned short * temp2 = buf;
+#if 0
+	struct fb_info *info = registered_fb[vc->vc_num];
+	unsigned char  * temp;
+	unsigned short * temp1 =  kmalloc(100*sizeof(short), GFP_KERNEL);
+#endif	
+	vc = vc_cons[0].d;
+
+#if 1
+	//print error_info
+	if(!crash_side) {
+		fbcon_putcs_byLGE (vc,(const unsigned short *)"[ B l u e   E r r o r   H a n d l e r ]   A r m 9   i s   C r a s h e d ! !   ",LGE_ERROR_MAX_COLUMN,0,0);
+	} else { 
+		fbcon_putcs_byLGE (vc,(const unsigned short *)"[ B l u e   E r r o r   H a n d l e r ]   A r m 1 1   i s   C r a s h e d ! ! ",LGE_ERROR_MAX_COLUMN,0,0);
+	}
+	fbcon_putcs_byLGE(vc,(const unsigned short *)"[ P r e s s   V o l u m e   u p   k e y ]   T o   g e t   R a m d u m p ! !        ", LGE_ERROR_MAX_COLUMN,1,0);
+	fbcon_putcs_byLGE(vc,(const unsigned short *)"[ P r e s s   V o l u m e   d o w n   k e y ]   R e b o o t & s a v e l o g ! !   ",LGE_ERROR_MAX_COLUMN,2,0);
+#endif
+#if 1
+	temp2+=LGE_ERROR_MAX_COLUMN;
+
+	
+	for (i=0; i< LGE_ERROR_MAX_ROW-1; i++) {
+			fbcon_putcs_byLGE(vc, temp2, LGE_ERROR_MAX_COLUMN , i+3,0);
+			temp2 += LGE_ERROR_MAX_COLUMN;
+		}
+	fbcon_update_byLGE(vc);
+	msm_fb_refesh_enabled = 0;	// Block another Refresh
+#endif
+}
+/*LGE_CHANGE_E [bluerti@lge.com] 2009-07-10, Make a New API for Error Handler > */
+
+/*LGE_CHANGE_S [hylim@lge.com] 2009-08-03, for Security Integrity check > */
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, fix the mixed declarations and code */
+void display_security_integrity_check_byLGE(void)
+{
+	extern int msm_fb_refesh_enabled;
+	struct vc_data *vc;
+	struct fb_info *info;
+	vc = vc_cons[0].d;
+
+	info = registered_fb[vc->vc_num];
+
+	fbcon_putcs_byLGE (vc,(const unsigned short *)"[ U n a v a i l a b l e   O T P   B l o c k ] ",LGE_ERROR_MAX_COLUMN,0,0);
+	
+	msm_fb_refesh_enabled = 0;	// Block another Refresh
+
+}
+/*LGE_CHANGE_E [hylim@lge.com] 2009-08-03, for Security Integrity check >  */
 
 static void do_update_region(struct vc_data *vc, unsigned long start, int count)
 {
