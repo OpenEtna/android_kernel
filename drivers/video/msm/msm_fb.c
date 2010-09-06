@@ -1443,8 +1443,10 @@ static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
 #endif
 	int ret = 0;
 
-	if (!mfd->op_enable)
+	if (!mfd->op_enable) {
+        printk(KERR_ERR, "%s: !mfd->op_enable\n",__func__);
 		return -EPERM;
+    }
 
 	switch (cmd) {
 	case MSMFB_BLIT:
