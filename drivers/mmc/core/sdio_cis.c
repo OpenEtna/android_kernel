@@ -223,6 +223,16 @@ static int sdio_read_cis(struct mmc_card *card, struct sdio_func *func)
 		if (tpl_code == 0xff)
 			break;
 
+/* BEGIN : 0001888 cosmichigh26@lge.com 2009-11-10 */
+/* ADD 0001888: [WLAN] Add and modify some source codes in Kernel level about WLAN */
+/* LGE_CHNAGE_S [yoohoo@lge.com] 2009-09-04, don't need to read tpl_link in case of tpl_code == 0x00 or 0xff */
+#ifdef CONFIG_LGE_BCM432X_PATCH
+		if(tpl_code == 0x00) 
+			tpl_link = 0;
+		else
+#endif /* CONFIG_LGE_BCM432X_PATCH */
+/* LGE_CHNAGE_E [yoohoo@lge.com] 2009-09-04, don't need to read tpl_link in case of tpl_code == 0x00 or 0xff */
+/* END : 0001888 cosmichigh26@lge.com 2009-11-10 */
 		ret = mmc_io_rw_direct(card, 0, 0, ptr++, 0, &tpl_link);
 		if (ret)
 			break;
