@@ -23,6 +23,7 @@ obj-$(CONFIG_SENSORS_MT9T013)	+= mt9t013.o
 
 # for EVE
 obj-$(CONFIG_SENSORS_AK8973)   += akm8973.o
+obj-$(CONFIG_BOSCH_SMB380)	+= smb380.o bma150.o
 
 ifeq ($(CONFIG_I2C_DEBUG_CHIP),y)
 EXTRA_CFLAGS += -DDEBUG
