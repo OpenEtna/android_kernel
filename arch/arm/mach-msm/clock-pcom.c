@@ -40,6 +40,9 @@ void pc_clk_disable(unsigned id)
 
 int pc_clk_reset(unsigned id, enum clk_reset_action action)
 {
+#if defined(CONFIG_MACH_EVE)
+    return -EPERM;
+#else
 	int rc;
 
 	if (action == CLK_RESET_ASSERT)
@@ -51,6 +54,7 @@ int pc_clk_reset(unsigned id, enum clk_reset_action action)
 		return rc;
 	else
 		return (int)id < 0 ? -EINVAL : 0;
+#endif
 }
 
 int pc_clk_set_rate(unsigned id, unsigned rate)
