@@ -10,3 +10,7 @@ obj-y += audio_evrc.o audio_qcelp.o audio_amrnb.o audio_aac.o audio_amrnb_in.o
 obj-y += audio_wma.o audio_voicememo.o audio_pcm.o 
 obj-y += snd.o snd_adie.o
 endif
+
+#LGE_CHANGE_S
+obj-$(CONFIG_MACH_EVE) += board-eve-amp.o
+#LGE_CHANGE_E
