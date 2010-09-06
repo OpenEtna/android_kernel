@@ -41,6 +41,12 @@
 
 #include "queue.h"
 
+/* LGE_CHANGE_S [sungwoo.cho@lge.com] 2010-03-16 
+ * applying the Patch that can prevent kernel Panic
+ * when SD-card is inserted / removed repeatedly */
+#define LGE_MMC_CLEANUP_PATCH
+/* LGE_CHANGE_E [sungwoo.cho@lge.com] 2010-03-16 */
+
 MODULE_ALIAS("mmc:block");
 
 /*
@@ -86,6 +92,13 @@ static void mmc_blk_put(struct mmc_blk_data *md)
 	md->usage--;
 	if (md->usage == 0) {
 		int devidx = MINOR(disk_devt(md->disk)) >> MMC_SHIFT;
+/* LGE_CHANGE_S [sungwoo.cho@lge.com] 2010-03-16
+ * applying the Patch that can prevent kernel Panic
+ * when SD-card is inserted / removed repeatedly */
+#if defined(LGE_MMC_CLEANUP_PATCH)
+		blk_cleanup_queue(md->queue.queue);
+#endif
+/* LGE_CHANGE_E [sungwoo.cho@lge.com] 2010-03-16 */
 		__clear_bit(devidx, dev_use);
 
 		put_disk(md->disk);
@@ -435,6 +448,15 @@ static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 #endif
 		}
 
+		/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-22, 
+		 * After an nomedium error, we don't redo I/O 
+		 */
+#if defined(CONFIG_MACH_LGE)
+		if (brq.cmd.error == -ENOMEDIUM) {
+			goto cmd_err;
+		}
+#endif
+
 		if (brq.cmd.error || brq.stop.error || brq.data.error) {
 			if (rq_data_dir(req) == READ) {
 				/*
@@ -489,8 +511,13 @@ static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 	mmc_release_host(card->host);
 
 	spin_lock_irq(&md->lock);
-	while (ret)
+	while (ret) {
+		/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-22, supressed the error message */
+#if defined(CONFIG_MACH_LGE)
+		req->cmd_flags |= REQ_QUIET;
+#endif
 		ret = __blk_end_request(req, -EIO, blk_rq_cur_bytes(req));
+	}
 	spin_unlock_irq(&md->lock);
 
 	return 0;
@@ -624,6 +651,13 @@ static int mmc_blk_probe(struct mmc_card *card)
 	return 0;
 
  out:
+/* LGE_CHANGE_S [sungwoo.cho@lge.com] 2010-03-16 
+ * applying the Patch that can prevent kernel Panic
+ * when SD-card is inserted / removed repeatedly */
+#if defined(LGE_MMC_CLEANUP_PATCH)
+	mmc_cleanup_queue(&md->queue);
+#endif
+/* LGE_CHANGE_E [sungwoo.cho@lge.com] 2010-03-16 */
 	mmc_blk_put(md);
 
 	return err;

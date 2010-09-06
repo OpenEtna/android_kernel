@@ -23,6 +23,12 @@
 
 #define MMC_QUEUE_SUSPENDED	(1 << 0)
 
+/* LGE_CHANGE_S [sungwoo.cho@lge.com] 2010-03-16 
+ * applying the Patch that can prevent kernel Panic
+ * when SD-card is inserted / removed repeatedly */
+#define LGE_MMC_CLEANUP_PATCH
+/* LGE_CHANGE_E [sungwoo.cho@lge.com] 2010-03-16 */
+
 /*
  * Prepare a MMC request. This just filters out odd stuff.
  */
@@ -91,9 +97,16 @@ static void mmc_request(struct request_queue *q)
 	int ret;
 
 	if (!mq) {
-		printk(KERN_ERR "MMC: killing requests for dead queue\n");
+		/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-22, KERN_ERR -> KERN_DEBUG */
+		//printk(KERN_ERR "MMC: killing requests for dead queue\n");
+		printk(KERN_DEBUG "MMC: killing requests for dead queue\n");
 		while ((req = elv_next_request(q)) != NULL) {
 			do {
+/* LGE_CHANGE_S [sungwoo.cho@lge.com] 2010-03-16 
+ * applying the Patch that can prevent kernel Panic
+ * when SD-card is inserted / removed repeatedly */
+				req->cmd_flags |= REQ_QUIET;
+/* LGE_CHANGE_E [sungwoo.cho@lge.com] 2010-03-16 */
 				ret = __blk_end_request(req, -EIO,
 							blk_rq_cur_bytes(req));
 			} while (ret);
@@ -228,16 +241,30 @@ void mmc_cleanup_queue(struct mmc_queue *mq)
 	struct request_queue *q = mq->queue;
 	unsigned long flags;
 
+/*LGE_CHANGE_S [sungwoo.cho@lge.com] 2010-03-16 */
+#if !defined(LGE_MMC_CLEANUP_PATCH)
 	/* Mark that we should start throwing out stragglers */
 	spin_lock_irqsave(q->queue_lock, flags);
 	q->queuedata = NULL;
 	spin_unlock_irqrestore(q->queue_lock, flags);
+#endif
+/*LGE_CHANGE_E [sungwoo.cho@lge.com] 2010-03-16 */
 
 	/* Make sure the queue isn't suspended, as that will deadlock */
 	mmc_queue_resume(mq);
 
 	/* Then terminate our worker thread */
 	kthread_stop(mq->thread);
+
+/*LGE_CHANGE_S [sungwoo.cho@lge.com] 2010-03-16 */
+#if defined(LGE_MMC_CLEANUP_PATCH)
+    /* Empty the queue */
+	spin_lock_irqsave(q->queue_lock, flags);
+	q->queuedata = NULL;
+	blk_start_queue(q);
+	spin_unlock_irqrestore(q->queue_lock, flags);
+#endif
+/*LGE_CHANGE_E [sungwoo.cho@lge.com] 2010-03-16 */
 
  	if (mq->bounce_sg)
  		kfree(mq->bounce_sg);
@@ -250,8 +277,11 @@ void mmc_cleanup_queue(struct mmc_queue *mq)
 		kfree(mq->bounce_buf);
 	mq->bounce_buf = NULL;
 
+/*LGE_CHANGE_S [sungwoo.cho@lge.com] 2010-03-16 */
+#if !defined(LGE_MMC_CLEANUP_PATCH)
 	blk_cleanup_queue(mq->queue);
-
+#endif
+/*LGE_CHANGE_E [sungwoo.cho@lge.com] 2010-03-16 */
 	mq->card = NULL;
 }
 EXPORT_SYMBOL(mmc_cleanup_queue);
