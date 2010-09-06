@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2007 Google Inc,
  *  Copyright (C) 2003 Deep Blue Solutions, Ltd, All Rights Reserved.
- *  Copyright (c) 2009-2010, Code Aurora Forum. All rights reserved.
+ *  Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -41,9 +41,17 @@
 
 #include <asm/mach/mmc.h>
 #include <mach/msm_iomap.h>
-#include <mach/clk.h>
 #include <mach/dma.h>
 #include <mach/htc_pwrsink.h>
+
+/* BEGIN : 0001888 cosmichigh26@lge.com 2009-11-10 */
+/* ADD 0001888: [WLAN] Add and modify some source codes in Kernel level about WLAN */
+/* LGE_CHANGE_S, [yoohoo@lge.com], 2009-11-04, use sdio_to_irq() */
+#ifdef CONFIG_LGE_BCM432X_PATCH
+#include <asm/gpio.h>
+/* LGE_CHANGE_E, [yoohoo@lge.com], 2009-11-04, use sdio_to_irq() */
+#endif /* CONFIG_LGE_BCM432X_PATCH */
+/* END : 0001888 cosmichigh26@lge.com 2009-11-10 */
 
 
 #include "msm_sdcc.h"
@@ -105,44 +113,62 @@ msmsdcc_print_status(struct msmsdcc_host *host, char *hdr, uint32_t status)
 }
 #endif
 
+/* BEGIN: 0003527 mingi.sung@lge.com 2010-01-25 */
+/* MOD 0003527: [WLAN] Add host-wakeup and firmware update(.67 version) */
+/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+#if defined(CONFIG_BRCM_LGE_WL_HOSTWAKEUP)
+struct early_suspend dhdpm;
+EXPORT_SYMBOL(dhdpm);
+
+void register_mmc_card_pm(struct early_suspend *cardpm)
+{
+	if((cardpm != NULL) && (cardpm->suspend !=NULL) && (cardpm->resume != NULL))
+	{
+		dhdpm.suspend = cardpm->suspend;
+		dhdpm.resume = cardpm->resume;
+		printk("%s: [WiFi] Callbacks registered successfully. \n",__FUNCTION__);
+	}
+	else
+		printk("%s: Error: Null pointer!! \n", __FUNCTION__);
+}
+
+EXPORT_SYMBOL(register_mmc_card_pm);
+
+void unregister_mmc_card_pm(void)
+{
+	printk("%s: [WIFI] Unregistering suspend/resume callbacks.  \n", __FUNCTION__);
+	dhdpm.suspend = NULL;
+	dhdpm.resume  = NULL;	
+}
+EXPORT_SYMBOL(unregister_mmc_card_pm);
+#endif /* CONFIG_BRCM_LGE_WL_HOSTWAKEUP */
+/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+/* END: 0003527 mingi.sung@lge.com 2010-01-25 */
+
+/* LGE_CHANGE_S [sungwoo.cho@lge.com] 2010-03-24, Role back the patch*/
+#if 0
+/* LGE_CHANGE_S [sungwoo.cho@lge.com] 2009-12-31, Add function for increasing the stablity*/
+static inline unsigned int
+msmsdcc_readl(struct msmsdcc_host *host, unsigned int reg)
+{
+	return readl(host->base + reg);
+}
+
+static inline void
+msmsdcc_writel(struct msmsdcc_host *host, u32 data, unsigned int reg)
+{
+	writel(data, host->base + reg);
+	/* 3 clk delay required! */
+	udelay(1 + ((3 * USEC_PER_SEC) /
+	       (host->clk_rate ? host->clk_rate : msmsdcc_fmin)));
+}
+/* LGE_CHANGE_E [sungwoo.cho@lge.com] 2009-12-31, Add function for increasing the stablity*/
+#endif
+/* LGE_CHANGE_E [sungwoo.cho@lge.com] 2010-03-24, Role back the patch*/
+
 static void
 msmsdcc_start_command(struct msmsdcc_host *host, struct mmc_command *cmd,
 		      u32 c);
-
-
-static void
-msmsdcc_reset_and_restore(struct msmsdcc_host *host)
-{
-	u32	mci_clk = 0;
-	u32	mci_mask0 = 0;
-
-	/* Save the controller state */
-	mci_clk = readl(host->base + MMCICLOCK);
-	mci_mask0 = readl(host->base + MMCIMASK0);
-
-	/* Reset the controller */
-	if (clk_reset(host->clk, CLK_RESET_ASSERT)) {
-		printk(KERN_ERR "%s: Clock assert failed at %u Hz\n",
-				mmc_hostname(host->mmc), host->clk_rate);
-		return;
-	}
-
-	if (clk_reset(host->clk, CLK_RESET_DEASSERT)) {
-		printk(KERN_ERR "%s: Clock deassert failed at %u Hz\n",
-				mmc_hostname(host->mmc), host->clk_rate);
-		return;
-	}
-	printk(KERN_INFO "%s: Controller has been reset\n",
-			mmc_hostname(host->mmc));
-
-	/* Restore the contoller state */
-	writel(host->pwr, host->base + MMCIPOWER);
-	writel(mci_clk, host->base + MMCICLOCK);
-	writel(mci_mask0, host->base + MMCIMASK0);
-	if (clk_set_rate(host->clk, host->clk_rate))
-		printk(KERN_ERR "%s: Failed to set clk rate %u Hz \n",
-				mmc_hostname(host->mmc), host->clk_rate);
-}
 
 static void
 msmsdcc_request_end(struct msmsdcc_host *host, struct mmc_request *mrq)
@@ -207,15 +233,13 @@ msmsdcc_dma_complete_tlet(unsigned long data)
 		if (host->dma.result & DMOV_RSLT_FLUSH)
 			printk(KERN_ERR "%s: DMA channel flushed (0x%.8x)\n",
 			       mmc_hostname(host->mmc), host->dma.result);
-		if (host->dma.err) {
+		if (host->dma.err)
 			printk(KERN_ERR
 			       "Flush data: %.8x %.8x %.8x %.8x %.8x %.8x\n",
 			       host->dma.err->flush[0], host->dma.err->flush[1],
 			       host->dma.err->flush[2], host->dma.err->flush[3],
 			       host->dma.err->flush[4],
 			       host->dma.err->flush[5]);
-			msmsdcc_reset_and_restore(host);
-		}
 		if (!mrq->data->error)
 			mrq->data->error = -EIO;
 	}
@@ -477,8 +501,38 @@ msmsdcc_start_command(struct msmsdcc_host *host, struct mmc_command *cmd, u32 c)
 
 	host->stats.cmds++;
 
+/* BEGIN : 0001888 cosmichigh26@lge.com 2009-11-10 */
+/* ADD 0001888: [WLAN] Add and modify some source codes in Kernel level about WLAN */
+/* LGE_CHANGE_S, [yoohoo@lge.com], 2009-09-17, <Add retry when MMCICOMMAND is 0> */
+#ifdef CONFIG_LGE_BCM432X_PATCH
+	if ( c == 0 )
+		printk("[yoohoo] msmsdcc_start_command : c is 0\n");
+#endif /* CONFIG_LGE_BCM432X_PATCH */
+/* LGE_CHANGE_E, [yoohoo@lge.com], 2009-09-17, <Add retry when MMCICOMMAND is 0> */
+/* END : 0001888 cosmichigh26@lge.com 2009-11-10 */
 	writel(cmd->arg, base + MMCIARGUMENT);
 	writel(c, base + MMCICOMMAND);
+/* BEGIN : 0001888 cosmichigh26@lge.com 2009-11-10 */
+/* ADD 0001888: [WLAN] Add and modify some source codes in Kernel level about WLAN */
+/* LGE_CHANGE_S, [yoohoo@lge.com], 2009-09-17, <Add retry when MMCICOMMAND is 0> */
+/* BEGIN: 0004901 mingi.sung@lge.com 2010-03-11 */
+/* MOD 0004901: [WLAN] Rollback : Use writel and readl functions again */
+#ifdef CONFIG_LGE_BCM432X_PATCH
+	if ( readl(base + MMCICOMMAND) == 0 ) {
+		printk("[yoohoo] msmsdcc_start_command : MMCICOMMAND is 0\n");
+		printk("[yoohoo] msmsdcc_start_command : STATUS %x\n", readl(host->base + MMCISTATUS));
+
+		mdelay(1);
+		
+		if (readl(base + MMCIARGUMENT) != cmd->arg)
+			writel(cmd->arg, base + MMCIARGUMENT);
+		
+		writel(c, base + MMCICOMMAND);		
+	}
+#endif /* CONFIG_LGE_BCM432X_PATCH */
+/* END: 0004901 mingi.sung@lge.com 2010-03-11 */
+/* LGE_CHANGE_E, [yoohoo@lge.com], 2009-09-17, <Add retry when MMCICOMMAND is 0> */
+/* END : 0001888 cosmichigh26@lge.com 2009-11-10 */
 }
 
 static void
@@ -610,6 +664,15 @@ msmsdcc_pio_irq(int irq, void *dev_id)
 		if (status & MCI_TXACTIVE)
 			len = msmsdcc_pio_write(host, buffer, remain, status);
 
+/* BEGIN: 0005200 mingi.sung@lge.com 2010-03-19 */
+/* ADD 0005200: [WLAN] Fixing a kernel panic issue during Wi-Fi/Bluetooth coexistence test */
+#if defined(CONFIG_LGE_BCM432X_PATCH)
+		if (host->mmc->card != NULL && host->mmc->card->type == MMC_TYPE_SDIO){
+			udelay(1 + ((3 * USEC_PER_SEC) /
+						(host->clk_rate ? host->clk_rate : msmsdcc_fmin)));
+		}
+#endif
+/* END: 0005200 mingi.sung@lge.com 2010-03-19 */
 		/* Unmap the buffer */
 		kunmap_atomic(buffer, KM_BIO_SRC_IRQ);
 		local_irq_restore(flags);
@@ -721,9 +784,7 @@ msmsdcc_irq(int irq, void *dev_id)
 					msm_dmov_stop_cmd(host->dma.channel,
 							  &host->dma.hdr, 0);
 				else {
-					msmsdcc_reset_and_restore(host);
-					if (host->curr.data)
-						msmsdcc_stop_data(host);
+					msmsdcc_stop_data(host);
 					if (!data->stop)
 						msmsdcc_request_end(host,
 								    data->mrq);
@@ -848,9 +909,22 @@ msmsdcc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		host->stats.cmdpoll_hits++;
 	} else {
 		host->stats.cmdpoll_misses++;
+/* BEGIN : 0001888 cosmichigh26@lge.com 2009-11-10 */
+/* ADD 0001888: [WLAN] Add and modify some source codes in Kernel level about WLAN */
+/* LGE_CHANGE_S, [yoohoo@lge.com], 2009-9-13, <To prevent command timeout> */
+#ifdef CONFIG_LGE_BCM432X_PATCH
+		mod_timer(&host->command_timer, jiffies + 2* HZ);
+#else /* CONFIG_LGE_BCM432X_PATCH */		
 		mod_timer(&host->command_timer, jiffies + HZ);
+#endif /* CONFIG_LGE_BCM432X_PATCH */
+/* LGE_CHANGE_E, [yoohoo@lge.com], 2009-9-13, <To prevent command timeout> */
+/* END : 0001888 cosmichigh26@lge.com 2009-11-10 */
 	}
+  /* LGE_CHANGE_S [lsy@lge.com] 2009-07-23, protect kernel panic when insert and remove card */
+//#if !defined(CONFIG_MACH_MSM7X27_SWIFT)
 	spin_unlock_irqrestore(&host->lock, flags);
+//#endif
+  /* LGE_CHANGE_E [lsy@lge.com] 2009-07-23, protect kernel panic when insert and remove card */
 }
 
 static void
@@ -931,21 +1005,6 @@ msmsdcc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	}
 }
 
-static int msmsdcc_get_ro(struct mmc_host *mmc)
-{
-	int wpswitch_status = -ENOSYS;
-	struct msmsdcc_host *host = mmc_priv(mmc);
-
-	if (host->plat->wpswitch) {
-		wpswitch_status = host->plat->wpswitch(mmc_dev(mmc));
-		if (wpswitch_status < 0)
-			wpswitch_status = -ENOSYS;
-	}
-	pr_debug("%s: Card read-only status %d\n", __func__, wpswitch_status);
-	return wpswitch_status;
-}
-
-#ifdef CONFIG_MMC_MSM_SDIO_SUPPORT
 static void msmsdcc_enable_sdio_irq(struct mmc_host *mmc, int enable)
 {
 	struct msmsdcc_host *host = mmc_priv(mmc);
@@ -965,15 +1024,11 @@ static void msmsdcc_enable_sdio_irq(struct mmc_host *mmc, int enable)
 	}
 	spin_unlock_irqrestore(&host->lock, flags);
 }
-#endif /* CONFIG_MMC_MSM_SDIO_SUPPORT */
 
 static const struct mmc_host_ops msmsdcc_ops = {
 	.request	= msmsdcc_request,
 	.set_ios	= msmsdcc_set_ios,
-	.get_ro		= msmsdcc_get_ro,
-#ifdef CONFIG_MMC_MSM_SDIO_SUPPORT
 	.enable_sdio_irq = msmsdcc_enable_sdio_irq,
-#endif
 };
 
 static void
@@ -991,7 +1046,15 @@ msmsdcc_check_status(unsigned long data)
 			printk(KERN_INFO
 			       "%s: Slot status change detected (%d -> %d)\n",
 			       mmc_hostname(host->mmc), host->oldstat, status);
+			/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-21, add the debounce time */
+#if defined(CONFIG_MACH_LGE)
+			if (host->eject)
+				mmc_detect_change(host->mmc, 0);
+			else
+				mmc_detect_change(host->mmc, (3*HZ)/2);
+#else /* orignal */
 			mmc_detect_change(host->mmc, 0);
+#endif
 		}
 		host->oldstat = status;
 	}
@@ -1154,24 +1217,53 @@ static void msmsdcc_early_suspend(struct early_suspend *h)
 	struct msmsdcc_host *host =
 		container_of(h, struct msmsdcc_host, early_suspend);
 	unsigned long flags;
-
+#ifdef CONFIG_LGE_BCM432X_PATCH
+	if ( host->stat_irq != gpio_to_irq(CONFIG_BCM4325_GPIO_WL_RESET))
+	{
+#endif /* CONFIG_LGE_BCM432X_PATCH */
 	spin_lock_irqsave(&host->lock, flags);
 	host->polling_enabled = host->mmc->caps & MMC_CAP_NEEDS_POLL;
 	host->mmc->caps &= ~MMC_CAP_NEEDS_POLL;
 	spin_unlock_irqrestore(&host->lock, flags);
+#ifdef CONFIG_LGE_BCM432X_PATCH
+	}
+#endif /* CONFIG_LGE_BCM432X_PATCH */
 };
+
 static void msmsdcc_late_resume(struct early_suspend *h)
 {
 	struct msmsdcc_host *host =
 		container_of(h, struct msmsdcc_host, early_suspend);
+
 	unsigned long flags;
 
-	if (host->polling_enabled) {
-		spin_lock_irqsave(&host->lock, flags);
-		host->mmc->caps |= MMC_CAP_NEEDS_POLL;
-		mmc_detect_change(host->mmc, 0);
-		spin_unlock_irqrestore(&host->lock, flags);
+#ifdef CONFIG_LGE_BCM432X_PATCH
+	if ( host->stat_irq != gpio_to_irq(CONFIG_BCM4325_GPIO_WL_RESET)) /* don't do this to WLAN */
+	{
+		/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-04-04, check the card */
+		unsigned int status;	
+		if (!host->plat->status) {
+			mmc_detect_change(host->mmc, 0);
+		} else {
+			status = host->plat->status(mmc_dev(host->mmc));
+			host->eject = !status;
+			if (status ^ host->oldstat) {
+				printk(KERN_INFO
+				       "%s: Slot status change detected (%d -> %d)\n",
+				       mmc_hostname(host->mmc), host->oldstat, status);
+	                        mmc_detect_change(host->mmc, 0);
+			}
+			host->oldstat = status;
+		}
+		/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-04-04 */
+		if (host->polling_enabled) {
+			spin_lock_irqsave(&host->lock, flags);
+			host->mmc->caps |= MMC_CAP_NEEDS_POLL;
+			mmc_detect_change(host->mmc, 0);
+			spin_unlock_irqrestore(&host->lock, flags);
+		}
 	}
+#endif /* CONFIG_LGE_BCM432X_PATCH */
 };
 #endif
 
@@ -1335,6 +1427,14 @@ msmsdcc_probe(struct platform_device *pdev)
 	/*
 	 * Setup card detect change
 	 */
+	/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-04-01, 
+	 * doesn't need to detect the media before registering the mmc
+	 */
+	if (plat->status) {
+		host->oldstat = host->plat->status(mmc_dev(host->mmc));
+		host->eject = !host->oldstat;
+	}
+	/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-04-01 */
 
 	if (stat_irqres && !(stat_irqres->flags & IORESOURCE_DISABLED)) {
 		unsigned long irqflags = IRQF_SHARED |
@@ -1497,10 +1597,12 @@ static int msmsdcc_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int
 msmsdcc_suspend(struct platform_device *dev, pm_message_t state)
-{
+{	
 	struct mmc_host *mmc = mmc_get_drvdata(dev);
 	int rc = 0;
 
+	printk(KERN_ERR "msmsdcc_suspend : start \n");
+	
 	if (mmc) {
 		struct msmsdcc_host *host = mmc_priv(mmc);
 
@@ -1509,6 +1611,27 @@ msmsdcc_suspend(struct platform_device *dev, pm_message_t state)
 
 		if (mmc->card && mmc->card->type != MMC_TYPE_SDIO)
 			rc = mmc_suspend_host(mmc, state);
+/* BEGIN: 0003527 mingi.sung@lge.com 2010-01-25 */
+/* MOD 0003527: [WLAN] Add host-wakeup and firmware update(.67 version) */
+/* LGE_CHANGE_S, [yoohoo@lge.com], 2009-12-30, <never sleep policy - host wakeup> */
+/* Do host wakeup enable in WifiService.java */
+#if 1
+/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+#if defined(CONFIG_BRCM_LGE_WL_HOSTWAKEUP)
+		//else if (mmc->card && mmc->card->type == MMC_TYPE_SDIO) {
+		else if (host->stat_irq == gpio_to_irq(CONFIG_BCM4325_GPIO_WL_RESET)) {
+			if(dhdpm.suspend != NULL) {
+				//rc = dhdpm.suspend(NULL);
+				dhdpm.suspend(NULL);
+			}
+			else
+				printk("[WiFi] %s: dhdpm.suspend=NULL \n",__FUNCTION__);
+		}
+#endif /* CONFIG_BRCM_LGE_WL_HOSTWAKEUP */
+/* LGE_CHANGE_E [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+#endif
+/* LGE_CHANGE_S, [yoohoo@lge.com], 2009-12-30, <never sleep policy - host wakeup> */
+/* END: 0003527 mingi.sung@lge.com 2010-01-25 */
 		if (!rc) {
 			writel(0, host->base + MMCIMASK0);
 
@@ -1528,6 +1651,8 @@ msmsdcc_resume(struct platform_device *dev)
 	struct mmc_host *mmc = mmc_get_drvdata(dev);
 	unsigned long flags;
 
+	printk(KERN_ERR "msmsdcc_resume : start \n");
+	
 	if (mmc) {
 		struct msmsdcc_host *host = mmc_priv(mmc);
 
@@ -1553,6 +1678,29 @@ msmsdcc_resume(struct platform_device *dev)
 #endif
 		else if (host->stat_irq)
 			enable_irq(host->stat_irq);
+/* BEGIN: 0003527 mingi.sung@lge.com 2010-01-25 */
+/* MOD 0003527: [WLAN] Add host-wakeup and firmware update(.67 version) */
+/* LGE_CHANGE_S, [yoohoo@lge.com], 2009-12-30, <never sleep policy - host wakeup> */
+/* Do host wakeup disable in msmsdcc_late_resume */
+#if 1		
+/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+#if defined(CONFIG_BRCM_LGE_WL_HOSTWAKEUP)
+		//if ( mmc->card && mmc->card->type == MMC_TYPE_SDIO) {
+		if (host->stat_irq == gpio_to_irq(CONFIG_BCM4325_GPIO_WL_RESET)) {
+			printk("%s: Enabling SDIO Interrupt \n", __FUNCTION__);
+			//msmsdcc_enable_sdio_irq(mmc, 1); We will confirm whether this function is need ?
+
+			if(dhdpm.resume != NULL) {
+				dhdpm.resume(NULL);
+			}
+			else
+				printk("[WiFi] %s: dhdpm.suspend=NULL \n",__FUNCTION__);
+		}
+#endif /* CONFIG_BRCM_LGE_WL_HOSTWAKEUP */
+/* LGE_CHANGE_E [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+#endif 
+/* LGE_CHANGE_S, [yoohoo@lge.com], 2009-12-30, <never sleep policy - host wakeup> */
+/* END: 0003527 mingi.sung@lge.com 2010-01-25 */
 	}
 	return 0;
 }

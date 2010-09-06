@@ -489,8 +489,14 @@ int sdio_reset_comm(struct mmc_card *card)
 	int err;
 
 	printk("%s():\n", __func__);
+/* BEGIN : 0001888 cosmichigh26@lge.com 2009-11-10 */
+/* ADD 0001888: [WLAN] Add and modify some source codes in Kernel level about WLAN */
+/* LGE_CHANGE_S [yoohoo@lge.com] 2009-09-01, for bcm 4325 start/stop */
+#ifdef CONFIG_LGE_BCM432X_PATCH
 	mmc_claim_host(host);
-
+#endif /* CONFIG_LGE_BCM432X_PATCH */
+/* LGE_CHANGE_E [yoohoo@lge.com] 2009-09-01, for bcm4325 start/stop */
+/* END : 0001888 cosmichigh26@lge.com 2009-11-10 */
 	mmc_go_idle(host);
 
 	mmc_set_clock(host, host->f_min);
@@ -531,12 +537,27 @@ int sdio_reset_comm(struct mmc_card *card)
 	err = sdio_enable_wide(card);
 	if (err)
 		goto err;
+
+/* BEGIN : 0001888 cosmichigh26@lge.com 2009-11-10 */
+/* ADD 0001888: [WLAN] Add and modify some source codes in Kernel level about WLAN */
+/* LGE_CHANGE_S [yoohoo@lge.com] 2009-09-01, for bcm4325 start/stop */
+#ifdef CONFIG_LGE_BCM432X_PATCH
 	mmc_release_host(host);
+#endif /* CONFIG_LGE_BCM432X_PATCH */
+/* LGE_CHANGE_E [yoohoo@lge.com] 2009-09-01, for bcm4325 start/stop */
+/* END : 0001888 cosmichigh26@lge.com 2009-11-10 */
 	return 0;
 err:
 	printk("%s: Error resetting SDIO communications (%d)\n",
 	       mmc_hostname(host), err);
+/* BEGIN : 0001888 cosmichigh26@lge.com 2009-11-10 */
+/* ADD 0001888: [WLAN] Add and modify some source codes in Kernel level about WLAN */
+/* LGE_CHANGE_S [yoohoo@lge.com] 2009-09-01, for bcm4325 start/stop */
+#ifdef CONFIG_LGE_BCM432X_PATCH
 	mmc_release_host(host);
+#endif /* CONFIG_LGE_BCM432X_PATCH */ 
+/* LGE_CHANGE_E [yoohoo@lge.com] 2009-09-01, for bcm4325 start/stop */
+/* END : 0001888 cosmichigh26@lge.com 2009-11-10 */
 	return err;
 }
 EXPORT_SYMBOL(sdio_reset_comm);
