@@ -83,6 +83,26 @@ static int try_to_freeze_tasks(bool sig_only)
 		 * and caller must call thaw_processes() if something fails),
 		 * but it cleans up leftover PF_FREEZE requests.
 		 */
+		/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-04, google's patch */
+#if defined(CONFIG_LG_FW_GOOGLE_PATCH)
+		printk("\n");
+		printk(KERN_ERR "Freezing of tasks %s after %d.%02d seconds "
+				"(%d tasks refusing to freeze):\n",
+				wakeup ? "aborted" : "failed",
+				elapsed_csecs / 100, elapsed_csecs % 100, todo);
+		if(!wakeup)
+			show_state();
+		read_lock(&tasklist_lock);
+		do_each_thread(g, p) {
+			task_lock(p);
+			if (freezing(p) && !freezer_should_skip(p) &&
+							elapsed_csecs > 100)
+				printk(KERN_ERR " %s\n", p->comm);
+			cancel_freezing(p);
+			task_unlock(p);
+		} while_each_thread(g, p);
+		read_unlock(&tasklist_lock);
+#else
 		if(wakeup) {
 			printk("\n");
 			printk(KERN_ERR "Freezing of %s aborted\n",
@@ -104,6 +124,7 @@ static int try_to_freeze_tasks(bool sig_only)
 			task_unlock(p);
 		} while_each_thread(g, p);
 		read_unlock(&tasklist_lock);
+#endif
 	} else {
 		printk("(elapsed %d.%02d seconds) ", elapsed_csecs / 100,
 			elapsed_csecs % 100);
