@@ -34,6 +34,15 @@
 
 static const char *handler[]= { "prefetch abort", "data abort", "address exception", "interrupt" };
 
+//LGE_CHANGE_S [bluerti@lge.com] 2009-08-20 
+#include "../mach-msm/lge_errorhandler.h"
+char crash_buf[LGE_ERROR_MAX_ROW][LGE_ERROR_MAX_COLUMN];
+extern void smsm_reset_modem(unsigned mode);
+static int lge_error_analyzing = 0;
+static int lge_error_fb_cnt = 0;
+extern void ram_console_panic(void);
+// LGE_CHANGE_E [bluerti@lge.com] 2009-08-20
+
 #ifdef CONFIG_DEBUG_USER
 unsigned int user_debug;
 
@@ -50,10 +59,18 @@ static void dump_mem(const char *str, unsigned long bottom, unsigned long top);
 void dump_backtrace_entry(unsigned long where, unsigned long from, unsigned long frame)
 {
 #ifdef CONFIG_KALLSYMS
+ // LGE_CHANGE_S [bluerti@lge.com]
+	if (lge_error_analyzing == 1){
+	  char * temp;
+	  sprintf(crash_buf[lge_error_fb_cnt], "[<%08lx>] " ); temp = crash_buf[lge_error_fb_cnt]; temp+=13; sprint_symbol(temp, where);		
+	  lge_error_fb_cnt++;
+	} else {	// Normal case 
 	printk("[<%08lx>] ", where);
 	print_symbol("(%s) ", where);
 	printk("from [<%08lx>] ", from);
 	print_symbol("(%s)\n", from);
+	}
+ // LGE_CHANGE_E [bluerti@lge.com]
 #else
 	printk("Function entered at [<%08lx>] from [<%08lx>]\n", where, from);
 #endif
@@ -210,6 +227,7 @@ static void __die(const char *str, int err, struct thread_info *thread, struct p
 {
 	struct task_struct *tsk = thread->task;
 	static int die_counter;
+	extern int get_status_hidden_reset();	//LGE_CHANGE [bluerti@lge.com] 2009-08-20 
 
 	printk("Internal error: %s: %x [#%d]" S_PREEMPT S_SMP "\n",
 	       str, err, ++die_counter);
@@ -224,6 +242,46 @@ static void __die(const char *str, int err, struct thread_info *thread, struct p
 		dump_backtrace(regs, tsk);
 		dump_instr(regs);
 	}
+	
+    /* LGE_CHANGE, [munyoung@lge.com] write magic code on crash */
+	ram_console_panic();
+
+	//LGE_CHANGE_S [bluerti@lge.com] 2009-08-20 
+	if(get_status_hidden_reset() ) {
+		extern int Is_kernel_crashed;
+		Is_kernel_crashed = 1;
+		return;
+	} else {
+		char * temp;
+		int ret;
+		lge_error_analyzing = 1;
+		sprintf(crash_buf[1],"---------------------------------------");
+		sprintf(crash_buf[2], "Linux Kernel Panic ");
+		sprintf(crash_buf[3], "Process %s (pid: %d)",tsk->comm, task_pid_nr(tsk));
+		sprintf(crash_buf[4], "--------------------------------------");
+		sprintf(crash_buf[5], "PC: " ); temp = crash_buf[5]; temp+=4; sprint_symbol(temp, instruction_pointer(regs));
+		sprintf(crash_buf[6], "LR: " ); temp = crash_buf[6]; temp+=4; sprint_symbol(temp, regs->ARM_lr);
+		sprintf(crash_buf[7], "pc : [<%08lx>]    lr : [<%08lx>]", regs->ARM_pc, regs->ARM_lr); 
+		sprintf(crash_buf[8], "psr: %08lx  sp : %08lx", regs->ARM_cpsr, regs->ARM_sp);
+		sprintf(crash_buf[9], "ip : %08lx  fp : %08lx", regs->ARM_ip, regs->ARM_fp);
+	    sprintf(crash_buf[10],"r10: %08lx  r9 : %08lx", regs->ARM_r10, regs->ARM_r9); 
+		sprintf(crash_buf[11],"r8 : %08lx  r7 : %08lx", regs->ARM_r8, regs->ARM_r7);
+		sprintf(crash_buf[12],"r6 : %08lx  r5 : %08lx", regs->ARM_r6,regs->ARM_r5);  
+		sprintf(crash_buf[13],"r4 : %08lx  r3 : %08lx",regs->ARM_r4, regs->ARM_r3);
+		sprintf(crash_buf[14],"r2 : %08lx  r1 : %08lx",regs->ARM_r2,regs->ARM_r1);
+		sprintf(crash_buf[15],"r0 : %08lx", regs->ARM_r0);
+		sprintf(crash_buf[16], "-------<Call Stack>------------------");
+		lge_error_fb_cnt = 17;
+		dump_backtrace(regs, tsk);
+			
+		ret = LGE_ErrorHandler_Main(APPL_CRASH, crash_buf);
+		lge_error_analyzing = 0;
+		
+		smsm_reset_modem(ret);
+		while(1) 
+			;
+	}
+	// LGE_CHANGE_E [bluerti@lge.com] 2009-08-20
 }
 
 DEFINE_SPINLOCK(die_lock);
