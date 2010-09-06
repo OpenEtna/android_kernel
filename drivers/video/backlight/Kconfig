@@ -98,6 +98,13 @@ config BACKLIGHT_CLASS_DEVICE
 	  To have support for your specific LCD panel you will have to
 	  select the proper drivers which depend on this option.
 
+config BACKLIGHT_EVE
+	tristate "LGE EVE Backlight Driver "
+	depends on BACKLIGHT_CLASS_DEVICE && MACH_EVE
+	default y
+	help
+		LGE EVE backlight driver.
+
 config BACKLIGHT_ATMEL_LCDC
 	bool "Atmel LCDC Contrast-as-Backlight control"
 	depends on BACKLIGHT_CLASS_DEVICE && FB_ATMEL
