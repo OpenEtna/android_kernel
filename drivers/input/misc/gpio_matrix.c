@@ -19,7 +19,26 @@
 #include <linux/hrtimer.h>
 #include <linux/interrupt.h>
 #include <linux/wakelock.h>
+#include <linux/at_kpd_eve.h> //LGE_CHANGE_S [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
 
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-21, for tlmm handling */
+#if defined(CONFIG_MACH_EVE)
+#include <mach/gpio.h>
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-21, for tlmm handling */
+
+/* LGE_CHANGE_S [zugwan@lge.com]] 2009-07-03, for delay() */
+#if defined(CONFIG_MACH_EVE)
+#include <linux/delay.h>
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [zugwan@lge.com]] 2009-07-03, for delay() */
+
+#define GPIOKEY_DEBUG 0
+#if GPIOKEY_DEBUG
+#define GPKDBG(fmt, args...) printk(fmt, ##args)
+#else
+#define GPKDBG(fmt, args...) do {} while (0)
+#endif /* GPIOKEY_DEBUG */
 struct gpio_kp {
 	struct gpio_event_input_devs *input_devs;
 	struct gpio_event_matrix_info *keypad_info;
@@ -33,6 +52,12 @@ struct gpio_kp {
 	unsigned long keys_pressed[0];
 };
 
+/* LGE_CHANGE_S [zugwan@lge.com]] 2009-07-03, for AT%CAM, AT%AVR */
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-13, set the initial value */
+#if defined(CONFIG_MACH_EVE)
+struct input_dev *at_input_dev = NULL;
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [zugwan@lge.com]] 2009-07-03, for AT%CAM, AT%AVR */
 static void clear_phantom_key(struct gpio_kp *kp, int out, int in)
 {
 	struct gpio_event_matrix_info *mi = kp->keypad_info;
@@ -123,6 +148,10 @@ static void report_key(struct gpio_kp *kp, int key_index, int out, int in)
 					"changed to %d\n", keycode,
 					out, in, mi->output_gpios[out],
 					mi->input_gpios[in], pressed);
+			if(keycode == 115 && pressed == 1)
+				write_gkpd_value(85);
+			else if(keycode == 114 && pressed == 1)
+				write_gkpd_value(68);
 			input_report_key(kp->input_devs->dev[dev], keycode, pressed);
 		}
 	}
@@ -202,6 +231,12 @@ static enum hrtimer_restart gpio_keypad_timer_func(struct hrtimer *timer)
 		else
 			gpio_direction_output(mi->output_gpios[out], polarity);
 	}
+/* LGE_CHANGE_S [jh.koo@lge.com], block system dead when two keys are pressed simultaneously */
+	if(!gpio_get_value(mi->input_gpios[0])) {
+			hrtimer_start(timer, mi->poll_time, HRTIMER_MODE_REL);
+			return HRTIMER_NORESTART;
+	}
+/* LGE_CHANGE_E */	
 	for (in = 0; in < mi->ninputs; in++)
 		enable_irq(gpio_to_irq(mi->input_gpios[in]));
 	wake_unlock(&kp->wake_lock);
@@ -256,6 +291,12 @@ static int gpio_keypad_request_irqs(struct gpio_kp *kp)
 	}
 
 	for (i = 0; i < mi->ninputs; i++) {
+/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-21, input pin should be pull-uped */
+#if defined(CONFIG_MACH_EVE)
+		gpio_tlmm_config(GPIO_CFG(mi->input_gpios[i], 0, GPIO_INPUT, GPIO_PULL_UP,
+						                GPIO_2MA), GPIO_ENABLE);
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [cleaneye@lge.com] 2009-04-21 */
 		err = irq = gpio_to_irq(mi->input_gpios[i]);
 		if (err < 0)
 			goto err_gpio_get_irq_num_failed;
@@ -333,6 +374,33 @@ int gpio_event_matrix_func(struct gpio_event_input_devs *input_devs,
 				input_set_capability(input_devs->dev[dev],
 							EV_KEY, keycode);
 		}
+
+		/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-13, modified for the new driver */
+                /* LGE_CHANGE_S [zugwan@lge.com]] 2009-07-03, for AT%CAM, AT%AVR */
+#if defined(CONFIG_MACH_EVE)
+                //at_input_dev = input_dev;
+		if (!at_input_dev) {
+			at_input_dev = input_devs->dev[0];
+			set_bit(KEY_PREVIOUSSONG & KEY_MAX, at_input_dev->keybit);
+			set_bit(KEY_RECORD & KEY_MAX, at_input_dev->keybit);
+			set_bit(KEY_STOPCD & KEY_MAX, at_input_dev->keybit);
+			set_bit(KEY_PHONE & KEY_MAX, at_input_dev->keybit);
+			set_bit(KEY_CLOSECD & KEY_MAX, at_input_dev->keybit);
+			set_bit(KEY_EJECTCD & KEY_MAX, at_input_dev->keybit);
+			set_bit(KEY_EJECTCLOSECD & KEY_MAX, at_input_dev->keybit);
+			set_bit(KEY_REWIND & KEY_MAX, at_input_dev->keybit);
+			set_bit(KEY_NEXTSONG & KEY_MAX, at_input_dev->keybit);
+			set_bit(KEY_PLAYPAUSE & KEY_MAX, at_input_dev->keybit);
+
+			set_bit(KEY_ISO & KEY_MAX, at_input_dev->keybit);
+			set_bit(KEY_CONFIG & KEY_MAX, at_input_dev->keybit);
+			set_bit(KEY_HOMEPAGE & KEY_MAX, at_input_dev->keybit);
+			set_bit(KEY_REFRESH & KEY_MAX, at_input_dev->keybit);
+			set_bit(KEY_EXIT & KEY_MAX, at_input_dev->keybit);
+			set_bit(KEY_MOVE & KEY_MAX, at_input_dev->keybit);
+		}
+#endif /* CONFIG_MACH_EVE */
+                /* LGE_CHANGE_E [zugwan@lge.com]] 2009-07-03, for AT%CAM, AT%AVR */
 
 		for (i = 0; i < mi->noutputs; i++) {
 			if (gpio_cansleep(mi->output_gpios[i])) {
@@ -421,3 +489,157 @@ err_kp_alloc_failed:
 err_invalid_platform_data:
 	return err;
 }
+/* LGE_CHANGE_S [zugwan@lge.com]] 2009-07-03, for AT%CAM, AT%AVR */
+#if defined(CONFIG_MACH_EVE)
+#define CAM_AVR_INITIAL     0
+#define CAM_AVR_ON          1
+#define CAM_AVR_SHOT        2
+#define CAM_AVR_SAVE        3
+#define CAM_AVR_CALL        4
+#define CAM_AVR_ERASE       5
+#define AVR_FLASH_ON        6
+#define AVR_FLASH_OFF       7
+#define CAM_STROBE_ON       8
+#define CAM_STROBE_OFF      9
+#define CAM_ZOOM_ON         11
+#define CAM_ZOOM_OFF        12
+#define KEY_INPUT_DELAY     10
+int eve_flash_set_led_state(int led_state);
+void lge_atcmd_report_key(unsigned int mode, unsigned int arg)
+{
+        printk("lge_atcmd_report_key: Mode %u, argument: %u\n", mode, arg);
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-13, handle the exception */
+	if (!at_input_dev) {
+		printk(KERN_ERR "%s: Not ready the at_input_key\n", __func__);
+		return;
+	}
+
+        if (mode == 2) { // ATCMD_LCD
+                switch(arg) {
+                    case 0: // Init
+                        input_report_key(at_input_dev, KEY_ISO, 1);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_ISO, 0);
+                        break;
+                    case 2: // Tilt
+                        input_report_key(at_input_dev, KEY_CONFIG, 1);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_CONFIG, 0);
+                        break;
+                    case 3: // Color
+                        input_report_key(at_input_dev, KEY_HOMEPAGE, 1);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_HOMEPAGE, 0);
+                        break;
+                    case 11: // Red
+                        input_report_key(at_input_dev, KEY_REFRESH, 1);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_REFRESH, 0);
+                        break;
+                    case 12: // Green
+                        input_report_key(at_input_dev, KEY_EXIT, 1);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_EXIT, 0);
+                        break;
+                    case 13: // Blue
+                        input_report_key(at_input_dev, KEY_MOVE, 1);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_MOVE, 0);
+                        break;
+                    default:
+                        printk("lge_atcmd_report_key: invalid parameters\n");
+                }
+                return;
+        }
+
+        switch (arg) {
+                case CAM_AVR_INITIAL:
+                        input_report_key(at_input_dev, KEY_PREVIOUSSONG, 1);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_PREVIOUSSONG, 0);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_PREVIOUSSONG, 1);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_PREVIOUSSONG, 0);
+                        break;
+                case CAM_AVR_ON:
+                        if (mode) {
+                                /* Camcorder */
+                                input_report_key(at_input_dev, KEY_RECORD, 1);
+                                mdelay(KEY_INPUT_DELAY);
+                                input_report_key(at_input_dev, KEY_RECORD, 0);
+                        } else {
+                                /* Camera */
+                                input_report_key(at_input_dev, KEY_STOPCD, 1);
+                                mdelay(KEY_INPUT_DELAY);
+                                input_report_key(at_input_dev, KEY_STOPCD, 0);
+                        }
+                        break;
+                case CAM_AVR_SHOT:
+                        if (mode) {
+                                /* Camcorder */
+                                input_report_key(at_input_dev, KEY_PHONE, 1);
+                                mdelay(KEY_INPUT_DELAY);
+                                input_report_key(at_input_dev, KEY_PHONE, 0);
+                        } else {
+                                /* Camera */
+                                input_report_key(at_input_dev, KEY_PHONE, 1);
+                                mdelay(KEY_INPUT_DELAY);
+                                input_report_key(at_input_dev, KEY_PHONE, 0);
+                        }
+                        break;
+                case CAM_AVR_SAVE:
+                        if (mode) {
+                                /* Camcorder */
+                                input_report_key(at_input_dev, KEY_PHONE, 1);
+                                mdelay(KEY_INPUT_DELAY);
+                                input_report_key(at_input_dev, KEY_PHONE, 0);
+                        }
+                        break;
+                case CAM_AVR_CALL:
+                        input_report_key(at_input_dev, KEY_CLOSECD, 1);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_CLOSECD, 0);
+                        break;
+                case CAM_AVR_ERASE:
+                        input_report_key(at_input_dev, KEY_EJECTCD, 1);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_EJECTCD, 0);
+                        break;
+                case AVR_FLASH_ON:
+                    #ifdef CONFIG_MSM_CAMERA
+                        eve_flash_set_led_state(2);
+                    #endif
+                        break;
+                case AVR_FLASH_OFF:
+                    #ifdef CONFIG_MSM_CAMERA
+                        eve_flash_set_led_state(3);
+                    #endif
+                        break;
+                case CAM_STROBE_ON:
+                        input_report_key(at_input_dev, KEY_EJECTCLOSECD, 1);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_EJECTCLOSECD, 0);
+                        break;
+                case CAM_STROBE_OFF:
+                        input_report_key(at_input_dev, KEY_REWIND, 1);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_REWIND, 0);
+                        break;
+                case CAM_ZOOM_ON:
+                        input_report_key(at_input_dev, KEY_NEXTSONG, 1);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_NEXTSONG, 0);
+                        break;
+                case CAM_ZOOM_OFF:
+                        input_report_key(at_input_dev, KEY_PLAYPAUSE, 1);
+                        mdelay(KEY_INPUT_DELAY);
+                        input_report_key(at_input_dev, KEY_PLAYPAUSE, 0);
+                        break;
+                default:
+                        printk("lge_atcmd_report_key: invalid parameters\n");
+        }
+}
+EXPORT_SYMBOL(lge_atcmd_report_key);
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE_E [zugwan@lge.com]] 2009-07-03, for AT%CAM, AT%AVR */
