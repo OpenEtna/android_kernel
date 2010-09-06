@@ -56,6 +56,8 @@
 
 #include <linux/usb/cdc.h>
 #include "usb_function.h"
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-19, from cupcake */
+#include <mach/msm_hsusb.h>
 
 #include <linux/workqueue.h>
 /* Defines */
@@ -170,6 +172,7 @@ struct gs_port {
 	unsigned int msr;
 	unsigned int prev_msr;
 	unsigned int mcr;
+	wait_queue_head_t msr_change_wait;
 	struct work_struct push_work;
 };
 
@@ -205,7 +208,16 @@ struct gs_dev {
 	u16 interface_num;
 
 	/*interface, endpoint descriptors*/
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */
+#ifdef LGE_USB_DRIVER	
+	//jyoo
+	struct usb_interface_descriptor gs_com_ifc_desc;
+	struct usb_interface_descriptor gs_data_ifc_desc;
+	//jyoo end
+#else	
 	struct usb_interface_descriptor gs_ifc_desc;
+#endif
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */
 	struct usb_endpoint_descriptor gs_hs_bulkin_desc, gs_fs_bulkin_desc;
 	struct usb_endpoint_descriptor gs_hs_bulkout_desc, gs_fs_bulkout_desc;
 	struct usb_endpoint_descriptor gs_hs_notifyin_desc, gs_fs_notifyin_desc;
@@ -276,6 +288,8 @@ static unsigned int gs_buf_put(struct gs_buf *gb, const char *buf,
 			       unsigned int count);
 static unsigned int gs_buf_get(struct gs_buf *gb, char *buf,
 			       unsigned int count);
+/* creates, returns async_icount struct with current port msr,mcr values */
+static struct async_icount gs_current_icount(struct gs_port *port);
 
 /* Globals */
 static struct gs_dev **gs_devices;
@@ -352,13 +366,35 @@ static const struct usb_cdc_header_desc gs_header_desc = {
 	.bDescriptorSubType = USB_CDC_HEADER_TYPE,
 	.bcdCDC = __constant_cpu_to_le16(0x0110),
 };
-
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-22, bFirstInterface is 0 */
+#ifdef LGE_USB_DRIVER
+//jyoo
+struct usb_interface_assoc_descriptor acm_interface_assoc_desc = {
+	.bLength           = 8, //USB_DT_INTERFACE_ASSOCIATION_SIZE,
+	.bDescriptorType   = 0xb, //USB_DT_INTERFACE_ASSOCIATION,
+	.bFirstInterface   = 0,
+	.bInterfaceCount   = 2,
+	.bFunctionClass    = 2, //USB_CLASS_COMM,
+	.bFunctionSubClass = 2, //USB_CDC_SUBCLASS_ACM,
+	.bFunctionProtocol = 1, //USB_CDC_ACM_PROTO_AT_V25TER,
+};
+//jyoo end
+#endif
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-19, no const */
+#ifdef LGE_USB_DRIVER
+static struct usb_cdc_call_mgmt_descriptor gs_call_mgmt_descriptor = {
+#else
 static const struct usb_cdc_call_mgmt_descriptor gs_call_mgmt_descriptor = {
+#endif
 	.bLength = sizeof(gs_call_mgmt_descriptor),
 	.bDescriptorType = USB_DT_CS_INTERFACE,
 	.bDescriptorSubType = USB_CDC_CALL_MANAGEMENT_TYPE,
 	.bmCapabilities = 0,
+#ifndef LGE_USB_DRIVER	
 	.bDataInterface = 0,
+#endif	
 };
 
 static struct usb_cdc_acm_descriptor gs_acm_descriptor = {
@@ -368,14 +404,51 @@ static struct usb_cdc_acm_descriptor gs_acm_descriptor = {
 	.bmCapabilities = 3,  /* bits should be 00000011 (refer to 5.2.3.3) */
 };
 
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-19, no const */
+#ifdef LGE_USB_DRIVER
+static struct usb_cdc_union_desc gs_union_desc = {
+#else
 static const struct usb_cdc_union_desc gs_union_desc = {
+#endif
 	.bLength = sizeof(gs_union_desc),
 	.bDescriptorType = USB_DT_CS_INTERFACE,
 	.bDescriptorSubType = USB_CDC_UNION_TYPE,
 	.bMasterInterface0 = 0,
+#ifndef LGE_USB_DRIVER	
 	.bSlaveInterface0 = 0,
+#endif	
 };
 
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */
+#ifdef LGE_USB_DRIVER
+//jyoo
+static void gs_init_com_ifc_desc(struct usb_interface_descriptor *ifc_desc)
+{
+	ifc_desc->bLength =		USB_DT_INTERFACE_SIZE;
+	ifc_desc->bDescriptorType =	USB_DT_INTERFACE;
+	ifc_desc->bInterfaceNumber = 0;
+	ifc_desc->bAlternateSetting = 0;
+	ifc_desc->bNumEndpoints =	1;
+	ifc_desc->bInterfaceClass =	2;   //USB_CLASS_COMM
+	ifc_desc->bInterfaceSubClass =	2;   //USB_CDC_SUBCLASS_ACM
+	ifc_desc->bInterfaceProtocol =	1;   //USB_CDC_ACM_PROTO_AT_V25TER
+	ifc_desc->iInterface =		0;
+}
+
+static void gs_init_data_ifc_desc(struct usb_interface_descriptor *ifc_desc)
+{
+	ifc_desc->bLength =		USB_DT_INTERFACE_SIZE;
+	ifc_desc->bDescriptorType =	USB_DT_INTERFACE;
+	ifc_desc->bInterfaceNumber = 1;
+	ifc_desc->bAlternateSetting = 0;
+	ifc_desc->bNumEndpoints =	2;
+	ifc_desc->bInterfaceClass =	0xA;     //USB_CLASS_CDC_DATA
+	ifc_desc->bInterfaceSubClass =	0;
+	ifc_desc->bInterfaceProtocol =	0;
+	ifc_desc->iInterface =		0;
+}
+//jyoo end
+#else
 static void gs_init_ifc_desc(struct usb_interface_descriptor *ifc_desc)
 {
 	ifc_desc->bLength =		USB_DT_INTERFACE_SIZE;
@@ -386,6 +459,8 @@ static void gs_init_ifc_desc(struct usb_interface_descriptor *ifc_desc)
 	ifc_desc->bInterfaceProtocol =	USB_CLASS_VENDOR_SPEC;
 	ifc_desc->iInterface =		0;
 }
+#endif
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02 */
 
 #define HIGHSPEED	1
 #define	FULLSPEED	2
@@ -407,13 +482,62 @@ static void gs_init_ep_desc(struct usb_endpoint_descriptor *ep_desc,
 	} else {
 
 		ep_desc->bmAttributes = USB_ENDPOINT_XFER_INT;
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */
+#ifdef LGE_USB_DRIVER
+        //jyoo
+		//ep_desc->wMaxPacketSize = 64;
+		ep_desc->wMaxPacketSize = 10;
+		if (speed == HIGHSPEED)
+			ep_desc->bInterval = 5+4;
+		else
+			ep_desc->bInterval = 1<<5;
+		//jyoo end
+#else		
 		ep_desc->wMaxPacketSize = 64;
 		ep_desc->bInterval = 4;
+#endif		
+	/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */
 	}
 }
 
-static void gs_init_header_desc(struct gs_dev *dev)
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-22, new LGE Android driver */
+//static void gs_init_header_desc(struct gs_dev *dev)
+static void gs_init_header_desc(struct gs_dev *dev, int instance)
 {
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */
+#ifdef LGE_USB_DRIVER
+	/* Highspeed descriptor */
+	int index_desc = 0 ;
+	//jyoo
+
+	index_desc = 0;
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-22, new LGE Android driver */
+	if (0 == instance) {
+		dev->gs_highspeed_header[index_desc++] =
+			(struct usb_descriptor_header *)&dev->gs_com_ifc_desc;
+		dev->gs_highspeed_header[index_desc++] =
+			(struct usb_descriptor_header *)&gs_header_desc;
+		dev->gs_highspeed_header[index_desc++] = 
+			(struct usb_descriptor_header *)&gs_call_mgmt_descriptor;
+		dev->gs_highspeed_header[index_desc++] = 
+			(struct usb_descriptor_header *)&gs_acm_descriptor;
+		dev->gs_highspeed_header[index_desc++] = 
+			(struct usb_descriptor_header *)&gs_union_desc;
+		dev->gs_highspeed_header[index_desc++] =
+			(struct usb_descriptor_header *)&dev->gs_hs_notifyin_desc;
+	}
+	dev->gs_highspeed_header[index_desc++] = 
+		(struct usb_descriptor_header *)&dev->gs_data_ifc_desc;
+	dev->gs_highspeed_header[index_desc++] =	
+		(struct usb_descriptor_header *)&dev->gs_hs_bulkin_desc;
+	dev->gs_highspeed_header[index_desc++] =
+		(struct usb_descriptor_header *)&dev->gs_hs_bulkout_desc;
+	if (1 == instance) {
+		dev->gs_highspeed_header[index_desc++] =
+			(struct usb_descriptor_header *)&dev->gs_hs_notifyin_desc;
+	}
+	dev->gs_highspeed_header[index_desc] = NULL;
+#else
 	dev->gs_highspeed_header[0] =
 		(struct usb_descriptor_header *)&dev->gs_ifc_desc;
 	dev->gs_highspeed_header[1] =
@@ -423,7 +547,37 @@ static void gs_init_header_desc(struct gs_dev *dev)
 	dev->gs_highspeed_header[3] =
 		(struct usb_descriptor_header *)&dev->gs_hs_notifyin_desc;
 	dev->gs_highspeed_header[4] = NULL;
+#endif
 
+#ifdef LGE_USB_DRIVER
+	index_desc = 0;
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-22, new LGE Android driver */
+	if (0 == instance) {
+		dev->gs_fullspeed_header[index_desc++] =
+			(struct usb_descriptor_header *)&dev->gs_com_ifc_desc;
+		dev->gs_fullspeed_header[index_desc++] =
+			(struct usb_descriptor_header *)&gs_header_desc;
+		dev->gs_fullspeed_header[index_desc++] = 
+			(struct usb_descriptor_header *)&gs_call_mgmt_descriptor;
+		dev->gs_fullspeed_header[index_desc++] = 
+			(struct usb_descriptor_header *)&gs_acm_descriptor;
+		dev->gs_fullspeed_header[index_desc++] = 
+			(struct usb_descriptor_header *)&gs_union_desc;
+		dev->gs_fullspeed_header[index_desc++] =
+			(struct usb_descriptor_header *)&dev->gs_fs_notifyin_desc;
+	}
+	dev->gs_fullspeed_header[index_desc++] = 
+		(struct usb_descriptor_header *)&dev->gs_data_ifc_desc;
+	dev->gs_fullspeed_header[index_desc++] =	
+		(struct usb_descriptor_header *)&dev->gs_fs_bulkin_desc;
+	dev->gs_fullspeed_header[index_desc++] =
+		(struct usb_descriptor_header *)&dev->gs_fs_bulkout_desc;
+	if (1 == instance) {
+		dev->gs_fullspeed_header[index_desc++] =
+			(struct usb_descriptor_header *)&dev->gs_fs_notifyin_desc;
+	}
+	dev->gs_fullspeed_header[index_desc] = NULL;
+#else
 	dev->gs_fullspeed_header[0] =
 		(struct usb_descriptor_header *)&dev->gs_ifc_desc;
 	dev->gs_fullspeed_header[1] =
@@ -433,6 +587,8 @@ static void gs_init_header_desc(struct gs_dev *dev)
 	dev->gs_fullspeed_header[3] =
 		(struct usb_descriptor_header *)&dev->gs_fs_notifyin_desc;
 	dev->gs_fullspeed_header[4] = NULL;
+#endif
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */
 }
 
 /*****************************************************************************/
@@ -505,6 +661,21 @@ static int __init gs_module_init(void)
 		spin_lock_init(&gs_devices[i]->dev_lock);
 		INIT_LIST_HEAD(&gs_devices[i]->dev_req_list);
 		gs_devices[i]->func = func;
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */		
+#ifdef LGE_USB_DRIVER
+		gs_devices[i]->gs_fullspeed_header =
+		kmalloc(sizeof(struct usb_descriptor_header *) * 11, GFP_KERNEL);
+		gs_devices[i]->gs_highspeed_header =
+		kmalloc(sizeof(struct usb_descriptor_header *) * 11, GFP_KERNEL);
+
+		gs_init_com_ifc_desc(&gs_devices[i]->gs_com_ifc_desc);
+		gs_init_data_ifc_desc(&gs_devices[i]->gs_data_ifc_desc);
+
+		/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-22, new LG Android Driver */
+		if (1 == i) {
+			gs_devices[i]->gs_data_ifc_desc.bNumEndpoints = 3;
+		}
+#else
 		/*1 - Interface, 3 Endpoints-> Total 4 + 1 for NULL*/
 		gs_devices[i]->gs_fullspeed_header =
 		kmalloc(sizeof(struct usb_descriptor_header *) * 5, GFP_KERNEL);
@@ -512,6 +683,9 @@ static int __init gs_module_init(void)
 		kmalloc(sizeof(struct usb_descriptor_header *) * 5, GFP_KERNEL);
 
 		gs_init_ifc_desc(&gs_devices[i]->gs_ifc_desc);
+#endif
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */
+
 		gs_init_ep_desc(&gs_devices[i]->gs_hs_bulkin_desc, BULK,
 				HIGHSPEED);
 		gs_init_ep_desc(&gs_devices[i]->gs_hs_bulkout_desc, BULK,
@@ -525,7 +699,9 @@ static int __init gs_module_init(void)
 				FULLSPEED);
 		gs_init_ep_desc(&gs_devices[i]->gs_fs_notifyin_desc, INTERRUPT,
 				FULLSPEED);
-		gs_init_header_desc(gs_devices[i]);
+		/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-22, new LG Android Driver */
+		//gs_init_header_desc(gs_devices[i]);
+		gs_init_header_desc(gs_devices[i], i);
 
 		/*Initializing Directions*/
 		gs_devices[i]->gs_hs_bulkin_desc.bEndpointAddress = USB_DIR_IN;
@@ -629,8 +805,14 @@ static int gs_open(struct tty_struct *tty, struct file *file)
 	port = dev->dev_port[0];
 
 	if (port == NULL) {
-		printk(KERN_ERR "gs_open: (%d,%p,%p) NULL port pointer\n",
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-20, disable debug message for SMD 0 */			
+//		printk(KERN_ERR "gs_open: (%d,%p,%p) NULL port pointer\n",
+//			 port_num, tty, file);
+		if (port_num != 0){
+			printk(KERN_ERR "gs_open: (%d,%p,%p) NULL port pointer\n",
 		       port_num, tty, file);
+		}
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-20 */			
 		ret = -ENODEV;
 		goto exit_unlock_dev;
 	}
@@ -705,9 +887,11 @@ static int gs_open(struct tty_struct *tty, struct file *file)
 	port->port_in_use = 0;
 
 	gs_debug("gs_open: (%d,%p,%p) completed\n", port_num, tty, file);
+	port->msr |= MSR_CTS;
 	/* Queue RX requests */
 	port->n_read = 0;
 	gs_start_rx(dev);
+	wake_up_interruptible(&port->msr_change_wait);
 
 	ret = 0;
 
@@ -743,7 +927,9 @@ static void gs_close(struct tty_struct *tty, struct file *file)
 	struct semaphore *sem;
 
 	if (port == NULL) {
-		printk(KERN_ERR "gs_close: NULL port pointer\n");
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-20, disable debug message for SMD 0 */			
+//		printk(KERN_ERR "gs_close: NULL port pointer\n");
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-20 */ 
 		return;
 	}
 
@@ -753,6 +939,9 @@ static void gs_close(struct tty_struct *tty, struct file *file)
 	down(sem);
 
 	spin_lock_irq(&port->port_lock);
+
+	port->msr &= ~MSR_CTS;
+	wake_up_interruptible(&port->msr_change_wait);
 
 	if (port->port_open_count == 0) {
 		printk(KERN_ERR
@@ -1029,6 +1218,50 @@ static int gs_break(struct tty_struct *tty, int break_state)
 static int gs_ioctl(struct tty_struct *tty, struct file *file,
 		    unsigned int cmd, unsigned long arg)
 {
+	struct gs_port *port = tty->driver_data;
+	DECLARE_WAITQUEUE(wait, current);
+	struct async_icount cnow;
+	struct async_icount cprev;
+
+	if (port == NULL) {
+		printk(KERN_ERR "gs_ioctl: NULL port pointer\n");
+		return -EIO;
+	}
+
+	gs_debug("gs_ioctl: (%d,%p,%p) cmd=0x%4.4x, arg=%lu\n",
+		 port->port_num, tty, file, cmd, arg);
+
+	/* handle ioctls */
+	switch (cmd) {
+	case TIOCMIWAIT:
+		cprev = gs_current_icount(port);
+		while (1) {
+			add_wait_queue(&port->msr_change_wait, &wait);
+			set_current_state(TASK_INTERRUPTIBLE);
+			schedule();
+			remove_wait_queue(&port->msr_change_wait, &wait);
+			if (signal_pending(current))
+				return -ERESTARTSYS;
+			cnow = gs_current_icount(port);
+			if (cnow.rng == cprev.rng &&
+				cnow.dsr == cprev.dsr &&
+				cnow.dcd == cprev.dcd &&
+				cnow.cts == cprev.cts)
+				return -EIO;
+			if (((arg & TIOCM_RI) &&
+					(cnow.rng != cprev.rng)) ||
+				((arg & TIOCM_DSR) &&
+					(cnow.dsr != cprev.dsr)) ||
+				((arg & TIOCM_CD)  &&
+					(cnow.dcd != cprev.dcd)) ||
+				((arg & TIOCM_CTS) &&
+					(cnow.cts != cprev.cts)))
+				return 0;
+			cprev = cnow;
+		}
+		break;
+	}
+
 	/* could not handle ioctl */
 	return -ENOIOCTLCMD;
 }
@@ -1434,11 +1667,31 @@ static void gs_bind(void *_ctxt)
 		gs_unbind(_ctxt);
 		return;
 	}
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */	
+#ifdef LGE_USB_DRIVER
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-22, new LG Android Driver */
+	if (!strcmp(func->name, a[0])) {
+		//jyoo
+		ret = usb_msm_get_next_ifc_number(func);
+		dev->gs_com_ifc_desc.bInterfaceNumber = ret;
+		dev->gs_com_ifc_desc.iInterface = 0;
+		gs_union_desc.bMasterInterface0 = ret;
+		// acm_interface_assoc_desc.bFirstInterface = ret;
+	}
 
+	ret = usb_msm_get_next_ifc_number(func);
+	dev->gs_data_ifc_desc.bInterfaceNumber = ret;
+	dev->gs_data_ifc_desc.iInterface = 0;
+	gs_union_desc.bSlaveInterface0 = ret;
+	gs_call_mgmt_descriptor.bDataInterface = ret; 
+
+	//jyoo end
+#else
 	ret = usb_msm_get_next_ifc_number(func);
 	dev->gs_ifc_desc.bInterfaceNumber = ret;
 	dev->gs_ifc_desc.iInterface = 0;
-
+#endif
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */
 	/*Configuring IN Endpoint*/
 	ep = dev->dev_in_ep = usb_alloc_endpoint(USB_DIR_IN);
 	if (!ep) {
@@ -1579,7 +1832,8 @@ static int gs_setup(struct usb_ctrlrequest *ctrl,
 		return 0;
 	}
 	switch (ctrl->bRequest) {
-
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-19, from cupcake */
+#if 0
 	case USB_CDC_REQ_SET_LINE_CODING:
 		if (port) {
 			struct usb_request *req = dev->func->ep0_out_req;
@@ -1594,6 +1848,7 @@ static int gs_setup(struct usb_ctrlrequest *ctrl,
 		} else
 			ret = -ENODEV;
 		break;
+#endif
 
 	case USB_CDC_REQ_GET_LINE_CODING:
 		port = dev->dev_port[0];/* ACM only has one port */
@@ -1608,15 +1863,23 @@ static int gs_setup(struct usb_ctrlrequest *ctrl,
 		port = dev->dev_port[0];/* ACM only has one port */
 		if (wValue & USB_CDC_SET_CONTROL_LINE_STATE_DTR) {
 			port->mcr |= MCR_DTR;
+			port->msr |= MSR_DSR;
+			wake_up_interruptible(&port->msr_change_wait);
 		} else	{
 			port->mcr &= ~MCR_DTR;
+			port->msr &= ~MSR_DSR;
+			wake_up_interruptible(&port->msr_change_wait);
 		}
 		if (wValue & USB_CDC_SET_CONTROL_LINE_STATE_RTS)
 			port->mcr |= MCR_RTS;
 		else
 			port->mcr &= ~MCR_RTS;
 
-		dev->interface_num = wIndex;
+		if (port->prev_msr != port->msr) {
+			dev->interface_num = wIndex;
+			port->prev_msr = port->msr;
+		}
+
 		ret = 0;
 		break;
 
@@ -1644,8 +1907,8 @@ static void gs_disconnect(void *_ctxt)
 			tty_hangup(port->port_tty);
 		}
 	}
-	port->mcr = 0;
-	port->msr = 0;
+	port->mcr &= ~(MCR_DTR | MCR_RTS);
+	port->msr &= ~(MSR_DSR | MSR_CD | MSR_RI);
 	spin_unlock_irqrestore(&port->port_lock, flags);
 
 }
@@ -1693,6 +1956,9 @@ static void gs_configure(int config, void *_ctxt)
 		return;
 	}
 	dev->dev_config = config;
+
+	port->msr |= MSR_DSR;
+	wake_up_interruptible(&port->msr_change_wait);
 
 	if (dev->dev_in_ep == NULL || dev->dev_out_ep == NULL ||
 	    (dev->dev_notify_ep == NULL)) {
@@ -1931,6 +2197,7 @@ static int gs_alloc_ports(struct gs_dev *dev, gfp_t kmalloc_flags)
 		port->msr = 0;
 		port->prev_msr = 0;
 		port->mcr = 0;
+		init_waitqueue_head(&port->msr_change_wait);
 		port->port_dev = dev;
 		port->port_num = i;
 		port->port_line_coding.dwDTERate =
@@ -2215,27 +2482,27 @@ static int gs_tiocmset(struct tty_struct *tty, struct file *file,
 	if (dev->configured != SERIAL_CONFIGURED)
 		return -EIO;
 
-	set &= TIOCM_DSR | TIOCM_RI | TIOCM_CD | TIOCM_CTS;
-
-	if (set & TIOCM_DSR)
-		msr |= MSR_DSR;
+	if (set & TIOCM_DTR)
+		mcr |= MCR_DTR;
+	if (set & TIOCM_RTS)
+		mcr |= MCR_RTS;
+	if (set & TIOCM_LOOP)
+		mcr |= MCR_LOOP;
 	if (set & TIOCM_RI)
 		msr |= MSR_RI;
 	if (set & TIOCM_CD)
 		msr |= MSR_CD;
-	if (set & TIOCM_CTS)
-		msr |= MSR_CTS;
 
-	clear &= TIOCM_DSR | TIOCM_RI | TIOCM_CD | TIOCM_CTS;
-
+	if (clear & TIOCM_DTR)
+		mcr &= ~MCR_DTR;
+	if (clear & TIOCM_RTS)
+		mcr &= ~MCR_RTS;
+	if (clear & TIOCM_LOOP)
+		mcr &= ~MCR_LOOP;
 	if (clear & TIOCM_RI)
 		msr &= ~MSR_RI;
-	if (clear & TIOCM_DSR)
-		msr &= ~MSR_DSR;
 	if (clear & TIOCM_CD)
 		msr &= ~MSR_CD;
-	if (clear & TIOCM_CTS)
-		msr &= ~MSR_CTS;
 
 	mutex_lock(&port->mutex_lock);
 	port->mcr = mcr;
@@ -2248,4 +2515,31 @@ static int gs_tiocmset(struct tty_struct *tty, struct file *file,
 	mutex_unlock(&port->mutex_lock);
 
 	return 0;
+}
+
+static struct async_icount gs_current_icount(struct gs_port *port)
+{
+	struct async_icount icount;
+
+	if (port->msr & MSR_RI)
+		icount.rng = TIOCM_RI;
+	else
+		icount.rng = 0;
+
+	if (port->msr & MSR_DSR)
+		icount.dsr = TIOCM_DSR;
+	else
+		icount.dsr = 0;
+
+	if (port->msr & MSR_CD)
+		icount.dcd = TIOCM_CD;
+	else
+		icount.dcd = 0;
+
+	if (port->msr & MSR_CTS)
+		icount.cts = TIOCM_CTS;
+	else
+		icount.cts = 0;
+
+	return icount;
 }

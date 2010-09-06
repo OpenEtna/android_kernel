@@ -31,6 +31,39 @@ struct null_context
 
 static struct null_context _context;
 
+/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-19, defined descriptor */
+static struct usb_interface_descriptor intf_desc = {
+	.bLength =              sizeof intf_desc,
+	.bDescriptorType =      USB_DT_INTERFACE,
+	.bNumEndpoints =        1,
+        .bInterfaceClass =      0xff,
+        .bInterfaceSubClass =   0x42,
+        .bInterfaceProtocol =   0x01,
+};
+
+static struct usb_endpoint_descriptor hs_bulk_out_desc = {
+        .bLength =              USB_DT_ENDPOINT_SIZE,
+        .bDescriptorType =      USB_DT_ENDPOINT,
+        .bEndpointAddress =     USB_DIR_OUT,
+        .bmAttributes =         USB_ENDPOINT_XFER_BULK,
+        .wMaxPacketSize =       __constant_cpu_to_le16(512),
+        .bInterval =            0,
+};
+ 
+static struct usb_endpoint_descriptor fs_bulk_out_desc = {
+        .bLength =              USB_DT_ENDPOINT_SIZE,
+        .bDescriptorType =      USB_DT_ENDPOINT,
+        .bEndpointAddress =     USB_DIR_OUT,
+        .bmAttributes =         USB_ENDPOINT_XFER_BULK,
+        .wMaxPacketSize =       __constant_cpu_to_le16(64),
+        .bInterval =            0,
+};
+
+static struct usb_function usb_func_null;
+/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-19 */
+
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-19, redefined function */
+#if 0
 static void null_bind(struct usb_endpoint **ept, void *_ctxt)
 {
 	struct null_context *ctxt = _ctxt;
@@ -40,6 +73,26 @@ static void null_bind(struct usb_endpoint **ept, void *_ctxt)
 	ctxt->req0 = usb_ept_alloc_req(ctxt->out, 4096);
 	ctxt->req1 = usb_ept_alloc_req(ctxt->out, 4096);
 }
+#else
+static void null_bind(void *_ctxt)
+{
+	struct null_context *ctxt = _ctxt;
+
+	intf_desc.bInterfaceNumber =
+                usb_msm_get_next_ifc_number(&usb_func_null);
+
+	ctxt->out = usb_alloc_endpoint(USB_DIR_OUT);
+        if (ctxt->out) {
+                hs_bulk_out_desc.bEndpointAddress = USB_DIR_OUT|ctxt->out->num;
+                fs_bulk_out_desc.bEndpointAddress = USB_DIR_OUT|ctxt->out->num;
+        }
+
+	printk(KERN_INFO "null_bind() %p\n", ctxt->out);
+
+	ctxt->req0 = usb_ept_alloc_req(ctxt->out, 4096);
+	ctxt->req1 = usb_ept_alloc_req(ctxt->out, 4096);
+}
+#endif
 
 static void null_unbind(void *_ctxt)
 {
@@ -53,6 +106,8 @@ static void null_unbind(void *_ctxt)
 		usb_ept_free_req(ctxt->out, ctxt->req1);
 		ctxt->req1 = 0;
 	}
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-19, free endpoint */
+	usb_free_endpoint(ctxt->out);
 	ctxt->out = 0;
 }
 
@@ -108,9 +163,28 @@ static struct usb_function usb_func_null = {
 	.ifc_ept_type = { EPT_BULK_OUT },
 };
 
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-19, descriptor */
+struct usb_descriptor_header *null_hs_descriptors[3];
+struct usb_descriptor_header *null_fs_descriptors[3];
 static int __init null_init(void)
 {
 	printk(KERN_INFO "null_init()\n");
+
+	/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-19, descriptor */
+        null_hs_descriptors[0] = (struct usb_descriptor_header *)&intf_desc;
+        null_hs_descriptors[1] =
+                (struct usb_descriptor_header *)&hs_bulk_out_desc;
+        null_hs_descriptors[2] = NULL;
+ 
+        null_fs_descriptors[0] = (struct usb_descriptor_header *)&intf_desc;
+        null_fs_descriptors[1] =
+                (struct usb_descriptor_header *)&fs_bulk_out_desc;
+        null_fs_descriptors[2] = NULL;
+
+        usb_func_null.hs_descriptors = null_hs_descriptors;
+        usb_func_null.fs_descriptors = null_fs_descriptors;
+	/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-19 */
+
 	usb_function_register(&usb_func_null);
 	return 0;
 }
