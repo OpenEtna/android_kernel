@@ -288,7 +288,13 @@ void mmc_set_data_timeout(struct mmc_data *data, const struct mmc_card *card)
 			 * The limit is really 250 ms, but that is
 			 * insufficient for some crappy cards.
 			 */
+/* LGE_CHANGES_S [hoonylove004@lge.com] 2009-10-08, resolve data end error. */
+#ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION
+			limit_us = 500000;
+#else	/* origin */
 			limit_us = 300000;
+#endif
+/* LGE_CHANGES_E [hoonylove004@lge.com] 2009-10-08 */		
 		else
 			limit_us = 100000;
 
@@ -847,6 +853,11 @@ out:
 		wake_lock_timeout(&mmc_delayed_work_wake_lock, HZ / 2);
 	else
 		wake_unlock(&mmc_delayed_work_wake_lock);
+
+/* LGE_CHANGES_S [fred.cho@lge.com ] 2010-04-03, Rarely got here without mmc_release_host. */
+	if (host->ops == NULL && host->claimed)
+		mmc_release_host(host);
+/* LGE_CHANGES_E [fred.cho@lge.com ] 2010-04-03 */
 
 	if (host->caps & MMC_CAP_NEEDS_POLL)
 		mmc_schedule_delayed_work(&host->detect, HZ);
