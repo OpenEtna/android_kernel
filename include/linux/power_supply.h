@@ -14,6 +14,10 @@
 #define __LINUX_POWER_SUPPLY_H__
 
 #include <linux/device.h>
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-04, google's patch */
+#if defined(CONFIG_LG_FW_GOOGLE_PATCH)
+#include <linux/wakelock.h>
+#endif
 #include <linux/workqueue.h>
 #include <linux/leds.h>
 
@@ -131,6 +135,12 @@ struct power_supply {
 	/* private */
 	struct device *dev;
 	struct work_struct changed_work;
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-04, google's patch */
+#if defined(CONFIG_LG_FW_GOOGLE_PATCH)
+	spinlock_t changed_lock;
+	bool changed;
+	struct wake_lock work_wake_lock;
+#endif
 
 #ifdef CONFIG_LEDS_TRIGGERS
 	struct led_trigger *charging_full_trig;
