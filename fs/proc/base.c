@@ -257,8 +257,15 @@ struct mm_struct *mm_for_maps(struct task_struct *task)
 	task_lock(task);
 	if (task->mm != mm)
 		goto out;
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-04, google's patch */
+#if defined(CONFIG_LG_FW_GOOGLE_PATCH)
+	if (task->mm != current->mm &&
+	    __ptrace_may_access(task, PTRACE_MODE_READ) < 0 &&
+	    !capable(CAP_SYS_RESOURCE))
+#else
 	if (task->mm != current->mm &&
 	    __ptrace_may_access(task, PTRACE_MODE_READ) < 0)
+#endif
 		goto out;
 	task_unlock(task);
 	return mm;
