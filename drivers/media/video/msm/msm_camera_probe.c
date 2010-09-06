@@ -54,34 +54,52 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
 #include <linux/kernel.h>
-#include <linux/errno.h>
-#include <mach/pmic.h>
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/cdev.h>
+#include <linux/fs.h>
+#include <linux/list.h>
+#include <linux/platform_device.h>
+#include <linux/uaccess.h>
+#include <linux/poll.h>
+
+#include <mach/board.h>
 #include <mach/camera.h>
 
-int32_t flash_set_led_state(enum msm_camera_led_state_t led_state)
+#include <media/msm_camera.h>
+
+static int msm_camera_remove(struct platform_device *pdev)
 {
-	int32_t rc;
-
-  CDBG("flash_set_led_state: %d\n", led_state);
-  switch (led_state) {
-  case MSM_LED_OFF:
-    rc = pmic_flash_led_set_current(0);
-    break;
-
-  case MSM_LED_LOW:
-    rc = pmic_flash_led_set_current(30);
-    break;
-
-  case MSM_LED_HIGH:
-    rc = pmic_flash_led_set_current(100);
-    break;
-
-  default:
-    rc = -EFAULT;
-    break;
-  }
-  CDBG("flash_set_led_state: return %d\n", rc);
-
-  return rc;
+	return msm_camera_drv_remove(pdev);
 }
+
+static int __init msm_camera_probe(struct platform_device *dev)
+{
+	int rc;
+	rc = msm_camera_drv_start(dev);
+	return rc;
+}
+
+static struct platform_driver msm_camera_driver = {
+	.probe = msm_camera_probe,
+	.remove	 = msm_camera_remove,
+	.driver = {
+		.name = "msm_camera",
+		.owner = THIS_MODULE,
+	},
+};
+
+static int __init msm_camera_init(void)
+{
+	return platform_driver_register(&msm_camera_driver);
+}
+
+static void __exit msm_camera_exit(void)
+{
+	platform_driver_unregister(&msm_camera_driver);
+}
+
+module_init(msm_camera_init);
+module_exit(msm_camera_exit);
