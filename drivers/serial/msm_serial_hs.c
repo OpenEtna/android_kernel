@@ -54,6 +54,13 @@
 
 #include "msm_serial_hs_hwreg.h"
 
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifndef FEATURE_USE_BTLA
+#define FEATURE_USE_BTLA
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
+
 enum flush_reason {
 	FLUSH_NONE,
 	FLUSH_DATA_READY,
@@ -791,6 +798,17 @@ void msm_hs_set_mctrl_locked(struct uart_port *uport,
 	clk_disable(msm_uport->clk);
 }
 EXPORT_SYMBOL(msm_hs_set_mctrl_locked);
+
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifdef FEATURE_USE_BTLA
+struct uart_port* msm_hs_get_bt_uport(unsigned int line)
+{
+	return &q_uart_port[line].uport;
+}
+EXPORT_SYMBOL(msm_hs_get_bt_uport);
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
 
 /* Standard API, Enable modem status (CTS) interrupt  */
 static void msm_hs_enable_ms_locked(struct uart_port *uport)
