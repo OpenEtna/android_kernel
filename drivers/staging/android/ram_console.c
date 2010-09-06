@@ -35,6 +35,11 @@ struct ram_console_buffer {
 
 #define RAM_CONSOLE_SIG (0x43474244) /* DBGC */
 
+/* LGE_CHANGE_S, [munyoung@lge.com] write magic code when panic occure */
+#ifdef CONFIG_MACH_EVE
+#define RAM_CONSOLE_SIG_PANIC (0x43474242) /* DBGG */
+#endif
+/* LGE_CHANGE_E */
 #ifdef CONFIG_ANDROID_RAM_CONSOLE_EARLY_INIT
 static char __initdata
 	ram_console_old_log_init_buffer[CONFIG_ANDROID_RAM_CONSOLE_EARLY_SIZE];
@@ -54,6 +59,25 @@ static int ram_console_bad_blocks;
 #define ECC_SYMSIZE CONFIG_ANDROID_RAM_CONSOLE_ERROR_CORRECTION_SYMBOL_SIZE
 #define ECC_POLY CONFIG_ANDROID_RAM_CONSOLE_ERROR_CORRECTION_POLYNOMIAL
 #endif
+
+/* LGE_CHANGE [cleaneye@lge.com] 2009-05-26, for generating kernel panic */
+#if defined(CONFIG_MACH_EVE)
+static int dummy_arg;
+
+static int ram_console_gen_panic(const char *val, struct kernel_param *kp)
+{
+	struct ram_console_buffer *buffer = NULL;
+
+	printk(KERN_INFO"%s: kernel panic generation...\n",__func__);	
+
+	printk(KERN_INFO"%s: %d\n",__func__, buffer->sig);	
+
+	return 0;
+}
+
+module_param_call(gen_panic, ram_console_gen_panic, param_get_bool, &dummy_arg, S_IWUSR | S_IRUGO);
+#endif /* CONFIG_MACH_EVE */
+/* LGE_CHANGE [cleaneye@lge.com] 2009-05-26 */
 
 #ifdef CONFIG_ANDROID_RAM_CONSOLE_ERROR_CORRECTION
 static void ram_console_encode_rs8(uint8_t *data, size_t len, uint8_t *ecc)
@@ -142,7 +166,14 @@ ram_console_write(struct console *console, const char *s, unsigned int count)
 static struct console ram_console = {
 	.name	= "ram",
 	.write	= ram_console_write,
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-01, from swift */
+/* LGE_CHANGES_S [lsy@lge.com] 2009-10-29, Do not reprint buffer */
+#if defined (CONFIG_MACH_EVE)	
+	.flags	= CON_ENABLED,
+#else	/* origin */
 	.flags	= CON_PRINTBUFFER | CON_ENABLED,
+#endif	
+/* LGE_CHANGES_E [lsy@lge.com] 2009-10-29 */
 	.index	= -1,
 };
 
@@ -213,6 +244,21 @@ ram_console_save_old(struct ram_console_buffer *buffer, char *dest)
 #endif
 }
 
+/* LGE_CHANGE_S, [munyoung@lge.com] write magic code when panic occure */
+#ifdef CONFIG_MACH_EVE
+void ram_console_panic(void)
+{
+	struct ram_console_buffer *buffer = ram_console_buffer;
+	buffer->sig = RAM_CONSOLE_SIG_PANIC;
+#ifdef CONFIG_ANDROID_RAM_CONSOLE_ERROR_CORRECTION
+	ram_console_update_header();
+#endif
+	printk(KERN_ERR"%s: panic!! write magic code, sig=%x(%x)\n", __func__, buffer->sig, &buffer->sig);
+}
+EXPORT_SYMBOL(ram_console_panic);
+#endif
+/* LGE_CHANGE_E */
+
 static int __init ram_console_init(struct ram_console_buffer *buffer,
 				   size_t buffer_size, char *old_buf)
 {
@@ -270,7 +316,11 @@ static int __init ram_console_init(struct ram_console_buffer *buffer,
 	}
 #endif
 
+#ifdef CONFIG_MACH_EVE
+	if (buffer->sig == RAM_CONSOLE_SIG_PANIC) {
+#else
 	if (buffer->sig == RAM_CONSOLE_SIG) {
+#endif
 		if (buffer->size > ram_console_buffer_size
 		    || buffer->start > buffer->size)
 			printk(KERN_INFO "ram_console: found existing invalid "
