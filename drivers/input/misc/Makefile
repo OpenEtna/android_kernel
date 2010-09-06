@@ -26,3 +26,4 @@ obj-$(CONFIG_INPUT_GPIO)		+= gpio_event.o gpio_matrix.o gpio_input.o gpio_output
 obj-$(CONFIG_INPUT_KEYCHORD)	+= keychord.o
 obj-$(CONFIG_BMA150)			+= bma150.o
 obj-$(CONFIG_KEYLED)			+= keyled_pm.o
+obj-$(CONFIG_SHARP_PROXIMITY)		+= prox_sharp.o
