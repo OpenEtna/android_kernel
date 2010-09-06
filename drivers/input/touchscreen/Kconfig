@@ -224,6 +224,11 @@ config TOUCHSCREEN_SYNAPTICS_I2C_RMI
 	depends on I2C
 	help
 	  This enables support for Synaptics RMI over I2C based touchscreens.
+config TOUCHSCREEN_SYNAPTICS_I2C_S0240001
+	tristate "Synaptics-S0240001 i2c touchscreen"
+	depends on I2C
+	help
+	  This enables support for Synaptics S028001_24QFN over I2C based touchscreens.
 
 config TOUCHSCREEN_TOUCHRIGHT
 	tristate "Touchright serial touchscreen"
