@@ -40,6 +40,8 @@
 #include <mach/board.h>
 #include <mach/msm_hsusb.h>
 #include <mach/rpc_hsusb.h>
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-19 */
+#include <mach/rpc_charger.h>
 #include <mach/rpc_pmapp.h>
 #include <mach/gpio.h>
 #include <mach/msm_hsusb_hw.h>
@@ -68,12 +70,21 @@
 #define TRUE			1
 #define FALSE			0
 #define USB_LINK_RESET_TIMEOUT	(msecs_to_jiffies(10))
-#define USB_CHG_DET_DELAY	msecs_to_jiffies(1000)
 
 #define is_phy_45nm()     (PHY_MODEL(ui->phy_info) == USB_PHY_MODEL_45NM)
 #define is_phy_external() (PHY_TYPE(ui->phy_info) == USB_PHY_EXTERNAL)
 
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-21, for USB serial number */	
+static char *df_serialno = "1234567890ABCDEF";
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-21 */	
+
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */	
+#ifdef LGE_USB_DRIVER
+static int pid = 0x6000;
+#else
 static int pid = 0x9018;
+#endif
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */	
 static int usb_init_err;
 
 struct usb_fi_ept {
@@ -125,6 +136,8 @@ static void usb_disable_pullup(struct usb_info *ui);
 
 static struct workqueue_struct *usb_work;
 static void usb_chg_stop(struct work_struct *w);
+static int usb_chg_detect_type(struct usb_info *ui);
+static void usb_chg_set_type(struct usb_info *ui);
 
 #define USB_STATE_IDLE    0
 #define USB_STATE_ONLINE  1
@@ -150,10 +163,9 @@ struct lpm_info {
 };
 
 enum charger_type {
-	USB_CHG_TYPE__SDP,
-	USB_CHG_TYPE__CARKIT,
-	USB_CHG_TYPE__WALLCHARGER,
-	USB_CHG_TYPE__INVALID
+	CHG_HOST_PC,
+	CHG_WALL = 2,
+	CHG_UNDEFINED,
 };
 
 struct usb_info {
@@ -203,7 +215,6 @@ struct usb_info {
 	struct usb_endpoint ept[32];
 
 	struct delayed_work work;
-	struct delayed_work chg_legacy_det;
 	unsigned phy_status;
 	unsigned phy_fail_count;
 	struct usb_composition *composition;
@@ -254,15 +265,26 @@ static void usb_uninit(struct usb_info *ui);
 
 static unsigned ulpi_read(struct usb_info *ui, unsigned reg);
 static int ulpi_write(struct usb_info *ui, unsigned val, unsigned reg);
-
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */	
+#ifdef LGE_USB_DRIVER
+static void ep0_setup_ack(struct usb_info *ui);
+#endif
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */	
 
 
 struct usb_device_descriptor desc_device = {
 	.bLength = USB_DT_DEVICE_SIZE,
 	.bDescriptorType = USB_DT_DEVICE,
 	.bcdUSB = 0x0200,
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */		
+#ifdef LGE_USB_DRIVER	
+	.bDeviceClass = 2,
+	.bDeviceSubClass = 2,
+#else
 	.bDeviceClass = 0,
-	.bDeviceSubClass = 0,
+	.bDeviceSubClass = 0,			
+#endif
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */ 
 	.bDeviceProtocol = 0,
 	.bMaxPacketSize0 = 64,
 	/* the following fields are filled in by usb_probe */
@@ -275,8 +297,21 @@ struct usb_device_descriptor desc_device = {
 	.bNumConfigurations = 1,
 };
 
+/* LGE_CHANGE_S [jinwoonam@lge.com] 2009-03-06, Workaround of detecting AC or USB */
+int get_charger_type( void )
+{
+	if ( NULL != the_usb_info )
+	{
+		return (int)(the_usb_info->chg_type);
+	}
+	else
+	{
+		return (int)CHG_UNDEFINED;
+	}
+}
+EXPORT_SYMBOL(get_charger_type);
+/* LGE_CHANGE_E [ybw75@lge.com] 2009-03-06 */
 static void flush_endpoint(struct usb_endpoint *ept);
-static void msm_hsusb_suspend_locks_acquire(struct usb_info *, int);
 
 static ssize_t print_switch_name(struct switch_dev *sdev, char *buf)
 {
@@ -287,91 +322,48 @@ static ssize_t print_switch_state(struct switch_dev *sdev, char *buf)
 {
 	struct usb_info *ui = the_usb_info;
 
-	return sprintf(buf, "%s\n", (ui->online ? "online" : "offline"));
+	return sprintf(buf, "%s\n", (ui->online? "online" : "offline"));
 }
 
-#define USB_WALLCHARGER_CHG_CURRENT 1800
-static int usb_get_max_power(struct usb_info *ui)
+static int usb_chg_detect_type(struct usb_info *ui)
 {
-	unsigned long flags;
-	enum charger_type temp;
-	int suspended;
-	int configured;
+	int ret = CHG_UNDEFINED;
 
-	spin_lock_irqsave(&ui->lock, flags);
-	temp = ui->chg_type;
-	suspended = ui->usb_state == USB_STATE_SUSPENDED ? 1 : 0;
-	configured = ui->configured;
-	spin_unlock_irqrestore(&ui->lock, flags);
+	msleep(10);
+	switch (PHY_TYPE(ui->phy_info)) {
+	case USB_PHY_EXTERNAL:
+		if (ulpi_write(ui, 0x30, 0x3A))
+			return ret;
 
-	if (temp == USB_CHG_TYPE__INVALID)
-		return -ENODEV;
+		/* 50ms is requried for charging circuit to powerup
+		 * and start functioning
+		 */
+		msleep(50);
+		if ((readl(USB_PORTSC) & PORTSC_LS) == PORTSC_LS)
+			ret = CHG_WALL;
+		else
+			ret = CHG_HOST_PC;
 
-	if (temp == USB_CHG_TYPE__WALLCHARGER)
-		return USB_WALLCHARGER_CHG_CURRENT;
+		ulpi_write(ui, 0x30, 0x3B);
+		break;
+	case USB_PHY_INTEGRATED:
+	{
+		unsigned running = readl(USB_USBCMD) & USBCMD_RS;
 
-	if (suspended || !configured)
-		return 0;
+		if (!running)
+			return CHG_UNDEFINED;
 
-	return ui->maxpower * 2;
-}
-
-static void usb_chg_legacy_detect(struct work_struct *w)
-{
-	struct usb_info *ui = the_usb_info;
-	unsigned long flags;
-	enum charger_type temp = USB_CHG_TYPE__INVALID;
-	int maxpower;
-	int ret = 0;
-
-	spin_lock_irqsave(&ui->lock, flags);
-
-	if (ui->usb_state == USB_STATE_NOTATTACHED) {
-		ret = -ENODEV;
-		goto chg_legacy_det_out;
+		if ((readl(USB_PORTSC) & PORTSC_LS) == PORTSC_LS)
+			ret = CHG_WALL;
+		else
+			ret = CHG_HOST_PC;
+		break;
+	}
+	default:
+		pr_err("%s: undefined phy type\n", __func__);
 	}
 
-	if ((readl(USB_PORTSC) & PORTSC_LS) == PORTSC_LS) {
-		ui->chg_type = temp = USB_CHG_TYPE__WALLCHARGER;
-		goto chg_legacy_det_out;
-	}
-
-	ui->chg_type = temp = USB_CHG_TYPE__SDP;
-chg_legacy_det_out:
-	spin_unlock_irqrestore(&ui->lock, flags);
-
-	if (ret)
-		return;
-
-	msm_chg_usb_charger_connected(temp);
-	maxpower = usb_get_max_power(ui);
-	if (maxpower > 0)
-		msm_chg_usb_i_is_available(maxpower);
-
-	/* USB driver prevents idle and suspend power collapse(pc)
-	 * while usb cable is connected. But when dedicated charger is
-	 * connected, driver can vote for idle and suspend pc. In order
-	 * to allow pc, driver has to initiate low power mode which it
-	 * cannot do as phy cannot be accessed when dedicated charger
-	 * is connected due to phy lockup issues. Just to allow idle &
-	 * suspend pc when dedicated charger is connected, release the
-	 * wakelock, set driver latency to default and act as if we are
-	 * in low power mode so that, driver will re-acquire wakelocks
-	 * for any sub-sequent usb interrupts.
-	 */
-	if (temp == USB_CHG_TYPE__WALLCHARGER) {
-		pr_info("\n%s: WALL-CHARGER\n", __func__);
-		spin_lock_irqsave(&ui->lock, flags);
-		if (ui->usb_state == USB_STATE_NOTATTACHED) {
-			spin_unlock_irqrestore(&ui->lock, flags);
-			return;
-		}
-		ui->in_lpm = 1;
-		spin_unlock_irqrestore(&ui->lock, flags);
-
-		msm_hsusb_suspend_locks_acquire(ui, 0);
-	} else
-		pr_info("\n%s: Standard Downstream Port\n", __func__);
+	return ret;
 }
 
 int usb_msm_get_next_strdesc_id(char *str)
@@ -1008,6 +1000,18 @@ static void ep0out_complete(struct usb_endpoint *ept, struct usb_request *req)
 {
 	req->complete = 0;
 }
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */	
+#ifdef LGE_USB_DRIVER
+//jyoo
+static void line_coding_complete(struct usb_endpoint *ept, struct usb_request *req)
+{
+	struct usb_info *ui = the_usb_info;
+	req->complete =0;
+	ep0_setup_ack(ui);
+}
+//jyoo end
+#endif
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */	
 
 static void ep0in_complete(struct usb_endpoint *ept, struct usb_request *req)
 {
@@ -1148,15 +1152,35 @@ static void handle_setup(struct usb_info *ui)
 					return;
 				}
 			} else {
+				/* FIXME - support reading setup
+				 * data from host.
+				 */
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */					 
+#ifdef LGE_USB_DRIVER
+//jyoo
+				struct usb_request *req = ui->setup_req;
+//jyoo end
+#endif 
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */	
+
 				int ret = func->setup(&ctl, NULL, 0,
 							func->context);
-				if (ret == 0) {
+				if (ret >= 0) {
 					ep0_setup_ack(ui);
 					return;
-				} else if (ret > 0) {
-					ep0_setup_receive(ui, ret);
+				}
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */					
+#ifdef LGE_USB_DRIVER
+				//jyoo
+				if(ctl.bRequest == 0x20) { /* SET_LINE_CODING */
+					req->length = 7;
+					req->complete = line_coding_complete;
+					usb_ept_queue_xfer(&ui->ep0out, req);
 					return;
 				}
+				//jyoo end
+#endif
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */	
 			}
 		}
 		goto stall;
@@ -1303,6 +1327,13 @@ static void handle_setup(struct usb_info *ui)
 			break;
 		}
 		break;
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */			
+#ifdef LGE_USB_DRIVER
+//jyoo
+		ep0_setup_ack(ui);
+//jyoo end
+#endif		
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */	
 	}
 
 	case USB_REQ_SET_INTERFACE:
@@ -1573,25 +1604,13 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 				break;
 			}
 		}
-
-		/* pci interrutpt would also be generated when resuming
-		 * from bus suspend, following check would avoid kick
-		 * starting usb main thread in case of pci interrupts
-		 * during enumeration
-		 */
-		if (ui->configured && ui->chg_type == USB_CHG_TYPE__SDP) {
-			ui->usb_state = USB_STATE_CONFIGURED;
-			ui->flags = USB_FLAG_RESUME;
-			queue_delayed_work(usb_work, &ui->work, 0);
-		}
+		ui->flags = USB_FLAG_RESUME;
+		queue_delayed_work(usb_work, &ui->work, 0);
 	}
 
 	if (n & STS_URI) {
 		pr_info("hsusb reset interrupt\n");
 		ui->usb_state = USB_STATE_DEFAULT;
-		ui->configured = 0;
-		schedule_work(&ui->chg_stop);
-
 		writel(readl(USB_ENDPTSETUPSTAT), USB_ENDPTSETUPSTAT);
 		writel(readl(USB_ENDPTCOMPLETE), USB_ENDPTCOMPLETE);
 		writel(0xffffffff, USB_ENDPTFLUSH);
@@ -1612,8 +1631,6 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 
 	if (n & STS_SLI) {
 		pr_info("hsusb suspend interrupt\n");
-		ui->usb_state = USB_STATE_SUSPENDED;
-
 		/* stop usb charging */
 		schedule_work(&ui->chg_stop);
 	}
@@ -1644,7 +1661,8 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 			/* Wait for 100ms to stabilize VBUS before initializing
 			 * USB and detecting charger type
 			 */
-			queue_delayed_work(usb_work, &ui->work, 0);
+			queue_delayed_work(usb_work, &ui->work,
+						DELAY_FOR_USB_VBUS_STABILIZE);
 		} else {
 			int i;
 
@@ -1652,7 +1670,6 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 
 			printk(KERN_INFO "usb cable disconnected\n");
 			ui->usb_state = USB_STATE_NOTATTACHED;
-			ui->configured = 0;
 			for (i = 0; i < ui->num_funcs; i++) {
 				struct usb_function_info *fi = ui->func[i];
 				if (!fi ||
@@ -1696,7 +1713,6 @@ static void usb_prepare(struct usb_info *ui)
 	INIT_WORK(&ui->li.detach_int_h, usb_lpm_detach_int_h);
 	INIT_WORK(&ui->li.wakeup_phy, usb_lpm_wakeup_phy);
 	INIT_DELAYED_WORK(&ui->work, usb_do_work);
-	INIT_DELAYED_WORK(&ui->chg_legacy_det, usb_chg_legacy_detect);
 }
 
 static int usb_is_online(struct usb_info *ui)
@@ -1881,7 +1897,7 @@ static int usb_hw_reset(struct usb_info *ui)
 		 * SW workaround, Issue#2
 		 */
 		cfg_val = ulpi_read(ui, ULPI_CONFIG_REG);
-		cfg_val |= ULPI_AMPLITUDE_MAX;
+		cfg_val = (cfg_val & ~0x0C) | ULPI_AMPLITUDE;
 		ulpi_write(ui, cfg_val, ULPI_CONFIG_REG);
 
 		writel(0x0, USB_AHB_BURST);
@@ -2215,13 +2231,45 @@ static void usb_switch_composition(unsigned short pid)
 	struct usb_info *ui = the_usb_info;
 	int i;
 	unsigned long flags;
-
+	unsigned char nv_imei_ptr[19];
+		
+	/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-21, for Serial number generation */ 	
+	msm_nv_imei_get(nv_imei_ptr);
+	//printk(KERN_ERR "[JMLEE] msm_nv_imem_get %s\n", nv_imei_ptr);
+	/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-21 */ 
 
 	if (!ui->active)
 		return;
 	if (!usb_validate_product_id(pid))
 		return;
-
+	/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */		
+#ifdef LGE_USB_DRIVER	
+	if((pid == 0x6000) || (pid == 0x6001)) {
+		ui->pdata->vendor_id = 0x1004;
+		desc_device.bDeviceClass = 0x02;			
+		/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-21, for USB serial number */
+		if(pid == 0x6001) {
+			//if((nv_imei_ptr[0] != '8') || (nv_imei_ptr[1] != '0') || (nv_imei_ptr[2] != 'A'))
+			ui->pdata->serial_number = df_serialno;
+		//else
+			//ui->pdata->serial_number = nv_imei_ptr;
+		}
+		else
+			ui->pdata->serial_number = NULL;
+	/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-21 */					
+	}
+	else {
+		//ui->pdata->vendor_id = 0x5c6;
+		desc_device.bDeviceClass = 0x00;
+		/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-21, for USB serial number */
+		if((nv_imei_ptr[0] != '8') || (nv_imei_ptr[1] != '0') || (nv_imei_ptr[2] != 'A'))
+			ui->pdata->serial_number = df_serialno;
+		else
+			ui->pdata->serial_number = nv_imei_ptr;
+		/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-21 */		
+	}
+#endif
+	/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */	
 	disable_irq(ui->irq);
 	if (cancel_delayed_work_sync(&ui->work))
 		pr_info("%s: Removed work successfully\n", __func__);
@@ -2263,7 +2311,7 @@ static void usb_switch_composition(unsigned short pid)
 
 	for (i = 0; i < ui->num_funcs; i++) {
 		struct usb_function_info *fi = ui->func[i];
-		if (!fi || !fi->func || !fi->enabled)
+		if (!fi || !fi->func)
 			continue;
 		if (fi->func->configure)
 			fi->func->configure(0, fi->func->context);
@@ -2334,13 +2382,42 @@ void usb_function_enable(const char *function, int enable)
 		pr_err("%s: continuing with current composition\n", __func__);
 		return;
 	}
+	/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, for LGE USB driver */		
+#ifdef LGE_USB_DRIVER
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-19, new LG Android USB Driver */
+#if 0
+	if(((pid == 0x6002) || (pid == 0x6005)) && (enable == 1)) {	//01011
+		pr_err("%s: mask (%x) change product ID 6002 -> 9016\n",
+						__func__, pid);
+		pid = 0x6171;//01010 
+	}
+#else
+	if(((pid == 0x6002) || (pid == 0x6005)) && (enable == 1)) {
+		pr_err("%s: mask (%x) change product ID %x -> 618E\n",
+						__func__, pid, pid);
+		pid = 0x618E;	//11111 
+	}
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-07, PID: 6008 --> 6000 */
+	if ((pid == 0x6008) && (enable == 0)) {
+		pr_err("%s: mask (%x) change product ID 6008 -> 6000\n",
+						__func__, pid);
+		pid = 0x6000;	//00011 
+	}
+#endif
+	else if((pid == 0x6003) && (enable == 0)) //00010
+	{
+		pr_err("%s: mask (%x) change product ID 6003 -> 6000\n",
+						__func__, pid);
+		pid = 0x6000;	//00011
+	}
+#endif
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-02 */	
 	usb_switch_composition(pid);
 }
 EXPORT_SYMBOL(usb_function_enable);
 
 static int usb_free(struct usb_info *ui, int ret)
 {
-
 	switch_dev_unregister(&ui->sdev);
 	if (ui->irq) {
 		disable_irq_wake(ui->irq);
@@ -2429,9 +2506,14 @@ static void usb_do_work(struct work_struct *w)
 					msm_hsusb_suspend_locks_acquire(ui, 1);
 					ui->state = USB_STATE_ONLINE;
 					usb_enable_pullup(ui);
-					schedule_delayed_work(
-							&ui->chg_legacy_det,
-							USB_CHG_DET_DELAY);
+					usb_chg_set_type(ui);
+					if ((ui->chg_type == CHG_WALL) &&
+						(PHY_TYPE(ui->phy_info) ==
+							USB_PHY_EXTERNAL)) {
+						usb_disable_pullup(ui);
+						msleep(500);
+						usb_lpm_enter(ui);
+					}
 					pr_info("hsusb: IDLE -> ONLINE\n");
 				} else {
 					ui->usb_state = USB_STATE_NOTATTACHED;
@@ -2444,6 +2526,13 @@ static void usb_do_work(struct work_struct *w)
 						msm_pm_app_enable_usb_ldo(0);
 				}
 				enable_irq(ui->irq);
+/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.06.02, report charger state to lge_battery */
+#if defined(CONFIG_MACH_EVE)
+    #ifdef CONFIG_BATTERY_LGE
+				lge_battery_update_charger();
+    #endif
+#endif
+/* LGE_CHANGE_E [jinwoonam@lge.com] 2009.06.02 */
 				break;
 			}
 			goto reset;
@@ -2453,26 +2542,9 @@ static void usb_do_work(struct work_struct *w)
 			 * the signal to go offline, we must honor it
 			 */
 			if (flags & USB_FLAG_VBUS_OFFLINE) {
-				enum charger_type temp;
-				unsigned long f;
-
-				cancel_delayed_work_sync(&ui->chg_legacy_det);
-
-				spin_lock_irqsave(&ui->lock, f);
-				temp = ui->chg_type;
-				ui->chg_type = USB_CHG_TYPE__INVALID;
-				spin_unlock_irqrestore(&ui->lock, f);
-
-				if (temp != USB_CHG_TYPE__INVALID) {
-					/* re-acquire wakelock and restore axi
-					 * freq if they have been reduced by
-					 * charger work item
-					 */
-					msm_hsusb_suspend_locks_acquire(ui, 1);
-
-					msm_chg_usb_i_is_not_available();
-					msm_chg_usb_charger_disconnected();
-				}
+				msm_chg_usb_i_is_not_available();
+				ui->chg_type = CHG_UNDEFINED;
+				msm_chg_usb_charger_disconnected();
 
 				/* reset usb core and usb phy */
 				disable_irq(ui->irq);
@@ -2487,6 +2559,13 @@ static void usb_do_work(struct work_struct *w)
 				enable_irq(ui->irq);
 				switch_set_state(&ui->sdev, 0);
 				pr_info("hsusb: ONLINE -> OFFLINE\n");
+/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.06.02, report charger state to lge_battery */
+#if defined(CONFIG_MACH_EVE)
+	#ifdef CONFIG_BATTERY_LGE
+				lge_battery_update_charger();
+	#endif
+#endif
+/* LGE_CHANGE_E [jinwoonam@lge.com] 2009.06.02 */
 				break;
 			}
 			if (flags & USB_FLAG_SUSPEND) {
@@ -2497,23 +2576,16 @@ static void usb_do_work(struct work_struct *w)
 			}
 			if ((flags & USB_FLAG_RESUME) ||
 					(flags & USB_FLAG_CONFIGURE)) {
-				int maxpower = usb_get_max_power(ui);
-
 				if (ui->online) {
 					ui->usb_state = USB_STATE_CONFIGURED;
 					msm_chg_usb_i_is_available
 							(ui->maxpower * 2);
-
 					if (flags & USB_FLAG_CONFIGURE)
 						switch_set_state(&ui->sdev, 1);
 				} else {
 					ui->usb_state = USB_STATE_DEFAULT;
 					msm_chg_usb_i_is_available(100);
 				}
-
-
-				if (maxpower > 0)
-					msm_chg_usb_i_is_available(maxpower);
 				break;
 			}
 			goto reset;
@@ -2537,11 +2609,23 @@ static void usb_do_work(struct work_struct *w)
 					goto reset;
 				}
 				usb_enable_pullup(ui);
-				schedule_delayed_work(
-						&ui->chg_legacy_det,
-						USB_CHG_DET_DELAY);
-				pr_info("hsusb: OFFLINE -> ONLINE\n");
 				enable_irq(ui->irq);
+				usb_chg_set_type(ui);
+				if ((ui->chg_type == CHG_WALL) &&
+					(PHY_TYPE(ui->phy_info) ==
+						USB_PHY_EXTERNAL)) {
+					usb_disable_pullup(ui);
+					msleep(500);
+					usb_lpm_enter(ui);
+				}
+				pr_info("hsusb: OFFLINE -> ONLINE\n");
+/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.06.02, report charger state to lge_battery */
+#if defined(CONFIG_MACH_EVE)
+	#ifdef CONFIG_BATTERY_LGE
+				lge_battery_update_charger();
+	#endif
+#endif
+/* LGE_CHANGE_E [jinwoonam@lge.com] 2009.06.02 */
 				break;
 			}
 			if (flags & USB_FLAG_SUSPEND) {
@@ -2754,15 +2838,27 @@ static void usb_disable_pullup(struct usb_info *ui)
 static void usb_chg_stop(struct work_struct *w)
 {
 	struct usb_info *ui = the_usb_info;
-	enum charger_type temp;
-	unsigned long flags;
 
-	spin_lock_irqsave(&ui->lock, flags);
-	temp = ui->chg_type;
-	spin_unlock_irqrestore(&ui->lock, flags);
-
-	if (temp == USB_CHG_TYPE__SDP)
+	if (ui->chg_type == CHG_HOST_PC)
 		msm_chg_usb_i_is_not_available();
+}
+
+static void usb_chg_set_type(struct usb_info *ui)
+{
+	ui->chg_type = usb_chg_detect_type(ui);
+	switch (ui->chg_type) {
+	case CHG_WALL:
+		pr_info("\n*********** Charger Type: WALL CHARGER\n\n");
+		msm_chg_usb_charger_connected(CHG_WALL);
+		msm_chg_usb_i_is_available(1500);
+		break;
+	case CHG_HOST_PC:
+		pr_info("\n*********** Charger Type: HOST PC\n\n");
+		msm_chg_usb_charger_connected(CHG_HOST_PC);
+		break;
+	default:
+		pr_err("%s:undefned charger type", __func__);
+	}
 }
 
 static void usb_vbus_online(struct usb_info *ui)
@@ -3043,8 +3139,14 @@ static void usb_configure_device_descriptor(struct usb_info *ui)
 	if (ui->pdata->serial_number) {
 		msm_hsusb_is_serial_num_null(FALSE);
 		msm_hsusb_send_serial_number(ui->pdata->serial_number);
-	} else
+/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-21, for USB serial number */		
+//	} else
+//		msm_hsusb_is_serial_num_null(TRUE);
+	} else{
 		msm_hsusb_is_serial_num_null(TRUE);
+		desc_device.iSerialNumber = 0;
+	}
+/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-21 */		
 
 	msm_hsusb_send_productID(desc_device.idProduct);
 
@@ -3176,26 +3278,35 @@ static struct attribute_group msm_hsusb_attr_grp = {
 	.attrs = msm_hsusb_attrs,
 };
 
-#define msm_hsusb_func_attr(function, index)				\
-static ssize_t  show_##function(struct device *dev,			\
-		struct device_attribute *attr, char *buf)		\
-{									\
-	struct usb_info *ui = the_usb_info;				\
-	struct usb_function_info *fi = ui->func[index];			\
-									\
-	return sprintf(buf, "%d", fi->enabled);				\
-									\
-}									\
-									\
+#define msm_hsusb_func_attr(function, index)                           \
+static ssize_t  show_##function(struct device *dev,                    \
+               struct device_attribute *attr, char *buf)               \
+{                                                                      \
+	struct usb_info *ui = the_usb_info;                            \
+	struct usb_function_info *fi = ui->func[index];                \
+								       \
+	return sprintf(buf, "%d", fi->enabled);                        \
+                                                                       \
+}                                                                      \
+                                                                       \
 static DEVICE_ATTR(function, S_IRUGO, show_##function, NULL);
 
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, for LG USB DRIVER */
+#if defined(LGE_USB_DRIVER)
+msm_hsusb_func_attr(modem, 0);
+msm_hsusb_func_attr(diag, 1);
+msm_hsusb_func_attr(nmea, 2);
+msm_hsusb_func_attr(mass_storage, 3);
+msm_hsusb_func_attr(adb, 4);
+msm_hsusb_func_attr(ethernet, 5);
+#else
 msm_hsusb_func_attr(diag, 0);
 msm_hsusb_func_attr(adb, 1);
 msm_hsusb_func_attr(modem, 2);
 msm_hsusb_func_attr(nmea, 3);
 msm_hsusb_func_attr(mass_storage, 4);
 msm_hsusb_func_attr(ethernet, 5);
-msm_hsusb_func_attr(rmnet, 6);
+#endif
 
 static struct attribute *msm_hsusb_func_attrs[] = {
 	&dev_attr_diag.attr,
@@ -3204,7 +3315,6 @@ static struct attribute *msm_hsusb_func_attrs[] = {
 	&dev_attr_nmea.attr,
 	&dev_attr_mass_storage.attr,
 	&dev_attr_ethernet.attr,
-	&dev_attr_rmnet.attr,
 	NULL,
 };
 
@@ -3335,6 +3445,14 @@ static int __init usb_probe(struct platform_device *pdev)
 		return usb_init_err;
 	}
 
+/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.08.25, Eve use VREG_WLAN for USB */
+#if defined(CONFIG_MACH_EVE)
+	ui->vreg = vreg_get(NULL, "wlan");
+#else
+	ui->vreg = vreg_get(NULL, "usb");
+#endif
+/* LGE_CHANGE_E [jinwoonam@lge.com] 2009.08.25 */
+
 	if (ui->pdata->core_clk) {
 		ui->cclk = clk_get(&pdev->dev, "usb_hs_core_clk");
 		if (IS_ERR(ui->cclk)) {
@@ -3377,7 +3495,7 @@ static int __init usb_probe(struct platform_device *pdev)
 	ui->selfpowered = 0;
 	ui->remote_wakeup = 0;
 	ui->maxpower = 0xFA;
-	ui->chg_type = USB_CHG_TYPE__INVALID;
+	ui->chg_type = CHG_UNDEFINED;
 
 	if (!ui->pdata->ulpi_data_1_pin)
 		goto no_gpios;
@@ -3437,7 +3555,7 @@ no_gpios:
 		pr_info("Created the sysfs entry successfully \n");
 
 	if (!sysfs_create_group(&pdev->dev.kobj, &msm_hsusb_func_attr_grp))
-		pr_info("Created the functions sysfs entry successfully \n");
+		pr_info("Created the sysfs functions sysfs entry successfully \n");
 
 	usb_work = create_singlethread_workqueue("usb_work");
 	if (!usb_work)

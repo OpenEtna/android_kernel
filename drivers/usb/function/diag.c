@@ -79,7 +79,6 @@ static struct usb_endpoint_descriptor fs_bulk_out_desc = {
 struct diag_req_entry {
 	struct list_head re_entry;
 	struct usb_request *usb_req;
-	void *diag_request;
 };
 struct diag_context {
 	struct usb_endpoint *epout;
@@ -281,10 +280,14 @@ EXPORT_SYMBOL(diag_open);
 
 void diag_close(void)
 {
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-20, spinlock */
+	unsigned long flags;
 	struct diag_context *ctxt = &_context;
 	struct diag_req_entry *req_entry;
 	/* free write requests */
 
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-20, spinlock */
+	spin_lock_irqsave(&ctxt->dev_lock , flags);
 	while (!list_empty(&ctxt->dev_write_req_list)) {
 		req_entry = list_entry(ctxt->dev_write_req_list.next,
 				struct diag_req_entry, re_entry);
@@ -299,6 +302,7 @@ void diag_close(void)
 		list_del(&req_entry->re_entry);
 		diag_free_req_entry(ctxt->epout, req_entry);
 	}
+	spin_unlock_irqrestore(&ctxt->dev_lock , flags);
 	return;
 }
 EXPORT_SYMBOL(diag_close);
@@ -334,7 +338,7 @@ static struct diag_req_entry *diag_alloc_req_entry(struct usb_endpoint *ep,
 	return req;
 }
 
-int diag_read(struct diag_request *d_req)
+int diag_read(unsigned char *buf, int length)
 {
 	unsigned long flags;
 	struct usb_request *req = NULL;
@@ -348,14 +352,13 @@ int diag_read(struct diag_request *d_req)
 	if (!list_empty(&ctxt->dev_read_req_list)) {
 		req_entry = list_entry(ctxt->dev_read_req_list.next ,
 				struct diag_req_entry , re_entry);
-		req_entry->diag_request = d_req;
 		req = req_entry->usb_req;
 		list_del(&req_entry->re_entry);
 	}
 	spin_unlock_irqrestore(&ctxt->dev_lock , flags);
 	if (req) {
-		req->buf = d_req->buf;
-		req->length = d_req->length;
+		req->buf = buf;
+		req->length = length;
 		req->device = ctxt;
 		if (usb_ept_queue_xfer(ctxt->epout, req)) {
 			/* If error add the link to the linked list again. */
@@ -375,7 +378,7 @@ int diag_read(struct diag_request *d_req)
 }
 EXPORT_SYMBOL(diag_read);
 
-int diag_write(struct diag_request *d_req)
+int diag_write(unsigned char *buf, int length)
 {
 	unsigned long flags;
 	struct usb_request *req = NULL;
@@ -388,14 +391,13 @@ int diag_write(struct diag_request *d_req)
 	if (!list_empty(&ctxt->dev_write_req_list)) {
 		req_entry = list_entry(ctxt->dev_write_req_list.next ,
 				struct diag_req_entry , re_entry);
-		req_entry->diag_request = d_req;
 		req = req_entry->usb_req;
 		list_del(&req_entry->re_entry);
 	}
 	spin_unlock_irqrestore(&ctxt->dev_lock, flags);
 	if (req) {
-		req->buf = d_req->buf;
-		req->length = d_req->length;
+		req->buf = buf;
+		req->length = length;
 		req->device = ctxt;
 		if (usb_ept_queue_xfer(ctxt->epin, req)) {
 			/* If error add the link to linked list again*/
@@ -420,8 +422,6 @@ static void diag_write_complete(struct usb_endpoint *ep ,
 {
 	struct diag_context *ctxt = (struct diag_context *)req->device;
 	struct diag_req_entry *diag_req = req->context;
-	struct diag_request *d_req = (struct diag_request *)
-						diag_req->diag_request;
 	unsigned long flags;
 
 	if (ctxt == NULL) {
@@ -434,8 +434,6 @@ static void diag_write_complete(struct usb_endpoint *ep ,
 				((req->length % ep->max_pkt) == 0)) {
 			req->length = 0;
 			req->device = ctxt;
-			d_req->actual = req->actual;
-			d_req->status = req->status;
 			/* Queue zero length packet */
 			usb_ept_queue_xfer(ctxt->epin, req);
 			return;
@@ -444,26 +442,20 @@ static void diag_write_complete(struct usb_endpoint *ep ,
 		spin_lock_irqsave(&ctxt->dev_lock, flags);
 		list_add_tail(&diag_req->re_entry ,
 				&ctxt->dev_write_req_list);
-		if (req->length != 0) {
-			d_req->actual = req->actual;
-			d_req->status = req->status;
-		}
 		spin_unlock_irqrestore(&ctxt->dev_lock , flags);
 		if ((ctxt->operations) &&
 			(ctxt->operations->diag_char_write_complete))
 				ctxt->operations->diag_char_write_complete(
-					d_req);
+					req->buf, req->actual, req->status);
 	} else {
 		spin_lock_irqsave(&ctxt->dev_lock, flags);
 		list_add_tail(&diag_req->re_entry ,
 			&ctxt->dev_write_req_list);
-		d_req->actual = req->actual;
-		d_req->status = req->status;
 		spin_unlock_irqrestore(&ctxt->dev_lock , flags);
 		if ((ctxt->operations) &&
 			(ctxt->operations->diag_char_write_complete))
 				ctxt->operations->diag_char_write_complete(
-					d_req);
+					req->buf, req->actual, req->status);
 	}
 }
 static void diag_read_complete(struct usb_endpoint *ep ,
@@ -471,8 +463,6 @@ static void diag_read_complete(struct usb_endpoint *ep ,
 {
 	 struct diag_context *ctxt = (struct diag_context *)req->device;
 	 struct diag_req_entry *diag_req = req->context;
-	 struct diag_request *d_req = (struct diag_request *)
-							diag_req->diag_request;
 	 unsigned long flags;
 
 	if (ctxt == NULL) {
@@ -485,24 +475,20 @@ static void diag_read_complete(struct usb_endpoint *ep ,
 		spin_lock_irqsave(&ctxt->dev_lock, flags);
 		list_add_tail(&diag_req->re_entry ,
 				&ctxt->dev_read_req_list);
-		d_req->actual = req->actual;
-		d_req->status = req->status;
 		spin_unlock_irqrestore(&ctxt->dev_lock, flags);
 		if ((ctxt->operations) &&
 			(ctxt->operations->diag_char_read_complete))
 				ctxt->operations->diag_char_read_complete(
-					d_req);
+					req->buf, req->actual, req->status);
 	} else {
 		spin_lock_irqsave(&ctxt->dev_lock, flags);
 		list_add_tail(&diag_req->re_entry ,
 				&ctxt->dev_read_req_list);
-		d_req->actual = req->actual;
-		d_req->status = req->status;
 		spin_unlock_irqrestore(&ctxt->dev_lock, flags);
 		if ((ctxt->operations) &&
 			(ctxt->operations->diag_char_read_complete))
 				ctxt->operations->diag_char_read_complete(
-					d_req);
+					req->buf, req->actual, req->status);
 	}
 }
 void usb_config_work_func(struct work_struct *work)
