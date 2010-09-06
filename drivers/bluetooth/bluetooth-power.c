@@ -66,13 +66,55 @@
 #include <linux/platform_device.h>
 #include <linux/rfkill.h>
 
+
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifndef FEATURE_USE_BTLA
+#define FEATURE_USE_BTLA
+#endif/*FEATURE_USE_BTLA*/
+
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifdef FEATURE_USE_BTLA
+int bluesleep_start(void);
+void bluesleep_stop(void);
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26
+
+
 static int bluetooth_toggle_radio(void *data, enum rfkill_state state)
 {
 	int ret;
 	int (*power_control)(int enable);
 
 	power_control = data;
+
+	printk(KERN_DEBUG
+			"+++%s+++(%d)(%d)(%d)(%d)\n", __func__, state, RFKILL_STATE_UNBLOCKED, RFKILL_STATE_SOFT_BLOCKED, RFKILL_STATE_HARD_BLOCKED);
+	
 	ret = (*power_control)((state == RFKILL_STATE_UNBLOCKED) ? 1 : 0);
+
+	printk(KERN_DEBUG
+			"+++%s+++(%d)(%d)(%d)(%d)\n", __func__, state, RFKILL_STATE_UNBLOCKED, RFKILL_STATE_SOFT_BLOCKED, RFKILL_STATE_HARD_BLOCKED);
+
+// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+// ADD: 0002333: [SWIFT][BT] Bluetooth Sleep. 
+#ifdef FEATURE_USE_BTLA
+	if(state == RFKILL_STATE_UNBLOCKED)
+	{
+		printk(KERN_DEBUG
+			"RFKILL_STATE_UNBLOCKED\n");
+		bluesleep_start();
+	}
+	else
+	{
+		printk(KERN_DEBUG
+			"RFKILL_STATE_OTHER\n", __func__);
+		bluesleep_stop();
+	}
+#endif/*FEATURE_USE_BTLA*/
+// END: 0002333 chpark9@lge.com 2009-12-26	
+	
 	return ret;
 }
 
