@@ -112,6 +112,9 @@ static int smd_tty_open(struct tty_struct *tty, struct file *f)
 		name = "DS";
 	else if (n == 7)
 		name = "DATA1";
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-25, add DATA11 */
+	else if (n == 17)
+		name = "DATA11";
 	else if (n == 21)
 		name = "DATA21";
 	else if (n == 27)
@@ -273,6 +276,10 @@ static int __init smd_tty_init(void)
 
 	tty_register_device(smd_tty_driver, 7, 0);
 	INIT_WORK(&smd_tty[7].tty_work, smd_tty_work_func);
+
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-25, add DATA11 */
+	tty_register_device(smd_tty_driver, 17, 0);
+	INIT_WORK(&smd_tty[17].tty_work, smd_tty_work_func);
 
 	tty_register_device(smd_tty_driver, 27, 0);
 	INIT_WORK(&smd_tty[27].tty_work, smd_tty_work_func);
