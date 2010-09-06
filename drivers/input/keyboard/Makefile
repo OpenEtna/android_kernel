@@ -30,4 +30,5 @@ obj-$(CONFIG_KEYBOARD_BFIN)		+= bf54x-keys.o
 obj-$(CONFIG_KEYBOARD_SH_KEYSC)		+= sh_keysc.o
 obj-$(CONFIG_KEYBOARD_I2C_MSM)		+= msm-i2ckbd.o
 obj-$(CONFIG_KEYBOARD_PMIC8058)		+= pmic8058-keypad.o
+obj-$(CONFIG_KEYBOARD_QWERTY_PP2106) += kbd_pp2106.o
 
