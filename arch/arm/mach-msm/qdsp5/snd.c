@@ -324,9 +324,9 @@ enum audio_path {
 #define AUD_PWROFF 0xFF
 
 static atomic_t current_snd_device;
-static atomic_t amp_ctl_mode;
-static int loopback_at=false;
-static int last_device_at=-1;
+//static atomic_t amp_ctl_mode;
+//static int loopback_at=false;
+//static int last_device_at=-1;
 static int fm_radio_flag = 0;
 
 
@@ -399,13 +399,13 @@ static void set_amp_gain(voc_codec_type voc_codec, amp_gain_type gain_type, int 
 			break;
 		default :
 			printk("GW620 : voc_codec %d does not support AMP cal tool\n", voc_codec);
-			return -EINVAL;
 	}
 }
- 
+
+/*
 static int get_amp_gain(voc_codec_type voc_codec, amp_gain_type gain_type)
 {
-	int ret = 0;
+	char ret = 0;
 
 	switch(voc_codec) {
 		case  VOC_CODEC_ON_CHIP_0:
@@ -446,6 +446,7 @@ static int get_amp_gain(voc_codec_type voc_codec, amp_gain_type gain_type)
 	}
 	return ret;
 }
+
 static int amp_control(uint32_t path)
 {
 	//int value;
@@ -510,6 +511,7 @@ static int amp_control(uint32_t path)
 			return -EINVAL;
 	}
 }
+*/
 #endif
 
 static inline int check_mute(int mute)

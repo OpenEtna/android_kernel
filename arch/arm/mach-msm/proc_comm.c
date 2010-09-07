@@ -138,7 +138,7 @@ int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2)
 
 	spin_lock_irqsave(&proc_comm_lock, flags);
 
-again:
+//again:
 	if (proc_comm_wait_for(base + MDM_STATUS, PCOM_READY))
 		goto crash; //goto again; /* LGE_CHANGE [bluerti@lge.com] 2009-07-06 <For Error Handler > */
 
@@ -169,7 +169,7 @@ again:
 crash:
 	{
 		extern char * error_modem_message ;
-		extern int get_status_hidden_reset();
+		extern int get_status_hidden_reset(void);
 		int ret;
 		spin_unlock_irqrestore(&proc_comm_lock, flags);
 		if(get_status_hidden_reset()==0 ) {
