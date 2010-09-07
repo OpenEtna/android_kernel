@@ -62,7 +62,7 @@ void dump_backtrace_entry(unsigned long where, unsigned long from, unsigned long
  // LGE_CHANGE_S [bluerti@lge.com]
 	if (lge_error_analyzing == 1){
 	  char * temp;
-	  sprintf(crash_buf[lge_error_fb_cnt], "[<%08lx>] " ); temp = crash_buf[lge_error_fb_cnt]; temp+=13; sprint_symbol(temp, where);		
+	  sprintf(crash_buf[lge_error_fb_cnt], "[<%08lx>] ", where ); temp = crash_buf[lge_error_fb_cnt]; temp+=13; sprint_symbol(temp, where);		
 	  lge_error_fb_cnt++;
 	} else {	// Normal case 
 	printk("[<%08lx>] ", where);
@@ -227,7 +227,7 @@ static void __die(const char *str, int err, struct thread_info *thread, struct p
 {
 	struct task_struct *tsk = thread->task;
 	static int die_counter;
-	extern int get_status_hidden_reset();	//LGE_CHANGE [bluerti@lge.com] 2009-08-20 
+	extern int get_status_hidden_reset(void);	//LGE_CHANGE [bluerti@lge.com] 2009-08-20 
 
 	printk("Internal error: %s: %x [#%d]" S_PREEMPT S_SMP "\n",
 	       str, err, ++die_counter);
@@ -274,7 +274,7 @@ static void __die(const char *str, int err, struct thread_info *thread, struct p
 		lge_error_fb_cnt = 17;
 		dump_backtrace(regs, tsk);
 			
-		ret = LGE_ErrorHandler_Main(APPL_CRASH, crash_buf);
+		ret = LGE_ErrorHandler_Main(APPL_CRASH, (char*)crash_buf);
 		lge_error_analyzing = 0;
 		
 		smsm_reset_modem(ret);

@@ -438,7 +438,6 @@ int msm_nv_imei_get(unsigned char *nv_imei_ptr)
 	int rc = 0;
 	uint32_t nv_result;
 	uint32_t dummy1, dummy2;
-	nv_ue_imei_type imea_data;
 //	unsigned char imei_ptr[MAX_IMEI_SIZE+3];
 	int i;
 	
@@ -471,7 +470,7 @@ int msm_nv_imei_get(unsigned char *nv_imei_ptr)
 	req.item = cpu_to_be32(NV_UE_IMEI_I);
 	req.more_data = cpu_to_be32(1);
 	req.disc = cpu_to_be32(NV_UE_IMEI_I);
-	req.imea_data = imea_data;
+	//req.imea_data = imea_data;
 	
 	rc = msm_rpc_call_reply(nv_imei_get_ep,
 					ONCRPC_NV_CMD_REMOTE_PROC,

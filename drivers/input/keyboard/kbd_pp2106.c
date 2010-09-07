@@ -171,7 +171,7 @@ static unsigned char at_gkpd_keycode[256]  = { //Encoder from AT cmd ASCII to An
 };
 
 static unsigned char at_fkpd_keycode[42]  = { //Encoder from AT cmd ASCII to Android key map code for GKPD
-KEY_0,	KEY_1,	KEY_2,	KEY_3,	KEY_4,	KEY_5,	KEY_6,	KEY_7,	KEY_8,	KEY_9,	/*#*/228,	227/***/, KEY_SEND, END_CALL,
+KEY_0,	KEY_1,	KEY_2,	KEY_3,	KEY_4,	KEY_5,	KEY_6,	KEY_7,	KEY_8,	KEY_9,	/*#*/228,	227/***/, KEY_SEND, KEY_EDIT,
 48,			49,			50,			51,			52,			53,			54,			55,			56,			57,			35,			42,			83,				69,
 41,			33,			64,			126,			36,			37,			60,			38,			62,			40,			63,			124,			115,				101
 };
