@@ -393,7 +393,9 @@ static ssize_t sharp_gp2ap002_enable_store(
 	 *    value ==1  : start hall ic_irq_wake
 	       value ==   :  */
 
-	PDBG("\n[PROX] %s(%d)\n", __FUNCTION__, value);
+	printk(KERN_ERR,"\n[PROX] %s(old: %d, new: %d)\n", __FUNCTION__, irq_set, value);
+    if(value != 0 || value != 1 || value == irq_set)
+      return size; /* nothing to do */
 
 	if(value ==1 ) {
 		irq_set = 1;
