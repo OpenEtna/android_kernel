@@ -1444,7 +1444,7 @@ static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
 	int ret = 0;
 
 	if (!mfd->op_enable) {
-        printk(KERN_ERR, "%s: !mfd->op_enable\n",__func__);
+        printk(KERN_ERR "%s: !mfd->op_enable\n",__func__);
 		return -EPERM;
     }
 
