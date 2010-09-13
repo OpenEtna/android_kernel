@@ -77,6 +77,7 @@ typedef enum {
 	MDDI_LCD_TOSHIBA,
 	MDDI_LCD_PRISM,
 	MDDI_LCD_TP2,
+	MDDI_LCD_INNOTEK_IM300WBN1A,
 	MDDI_NUM_LCD_TYPES,
 	MDDI_LCD_DEFAULT = MDDI_LCD_TOSHIBA
 } mddi_lcd_type;
@@ -210,4 +211,10 @@ void mddi_assign_max_pkt_dimensions(uint16 image_cols,
 uint16 mddi_assign_pkt_height(uint16 pkt_width, uint16 pkt_height, uint16 bpp);
 void mddi_queue_reverse_encapsulation(boolean wait);
 void mddi_disable(int lock);
+/* LGE_CHANGE_S [jh.koo@lge.com] 2009-05-23 */
+#if defined(CONFIG_MACH_EVE)
+void mddi_host_register_cmd_write(unsigned reg_addr, unsigned count, unsigned char reg_val[], 
+					boolean wait, mddi_llist_done_cb_type done_cb, mddi_host_type host);
+#endif
+/* LGE_CHANGE_E [jh.koo@lge.com] 2009-05-23 */
 #endif /* MDDIHOST_H */

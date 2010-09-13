@@ -552,6 +552,12 @@ void mdp_refresh_screen(unsigned long data)
 {
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)data;
 
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-25, prevent the LCD shift (referenced from swift) */
+#if defined(CONFIG_MACH_EVE)
+	extern void mddi_innoteck_fix_position(void);
+	mddi_innoteck_fix_position();
+#endif
+
 	if ((mfd->sw_currently_refreshing) && (mfd->sw_refreshing_enable)) {
 		init_timer(&mfd->refresh_timer);
 		mfd->refresh_timer.function = mdp_refresh_screen;

@@ -100,6 +100,22 @@ extern void mddi_s6d0142_window_adjust(uint16 x1,
 				       mddi_llist_done_cb_type done_cb);
 #endif
 
+#if defined(CONFIG_MACH_EVE)
+#define MDDI_WRITE     (0 << 14)
+
+void wr32(void *_dst, unsigned n)
+{
+    unsigned char *src = (unsigned char*) &n;
+    unsigned char *dst = _dst;
+
+    dst[0] = src[0];
+    dst[1] = src[1];
+    dst[2] = src[2];
+    dst[3] = src[3];
+}
+
+#endif
+
 void mddi_init(void)
 {
 	if (mddi_host_initialized)
@@ -265,6 +281,99 @@ int mddi_host_register_write(uint32 reg_addr,
 
 	return ret;
 }				/* mddi_host_register_write */
+
+/* LGE_CHANGE_S [jh.koo@lge.com] 2009-05-23 */
+#if defined(CONFIG_MACH_EVE)
+void mddi_host_register_cmd_write(unsigned reg_addr, unsigned count, unsigned char reg_val[], boolean wait, mddi_llist_done_cb_type done_cb, mddi_host_type host) 
+{     
+	
+	mddi_linked_list_type *curr_llist_ptr;
+	mddi_linked_list_type *curr_llist_dma_ptr;
+	mddi_register_access_packet_type *regacc_pkt_ptr;
+	unsigned curr_llist_idx;
+
+	unsigned aligned_count = (count + 3) / 4;
+    unsigned *data_list;
+    unsigned four_byte_aligned_data;
+    unsigned i;
+    unsigned char *tmp;
+	
+	//printk(KERN_DEBUG "%s: started.\n", __func__);
+
+	if (in_interrupt()) {
+		MDDI_MSG_CRIT("Called from ISR context\n");
+	}
+
+	if (!mddi_host_powered) {
+		MDDI_MSG_ERR("MDDI powered down!\n");
+		mddi_init();
+	}
+
+	down(&mddi_host_mutex);
+
+	curr_llist_idx = mddi_get_next_free_llist_item(host, TRUE);
+	curr_llist_ptr = &llist_extern[host][curr_llist_idx];
+	curr_llist_dma_ptr = &llist_dma_extern[host][curr_llist_idx];
+
+	curr_llist_ptr->link_controller_flags = 1;
+	curr_llist_ptr->packet_header_count = 14;
+	curr_llist_ptr->packet_data_count = aligned_count * 4;
+
+	curr_llist_ptr->next_packet_pointer = NULL;
+	curr_llist_ptr->reserved = 0;
+
+	regacc_pkt_ptr = &curr_llist_ptr->packet_header.register_pkt;
+	
+	regacc_pkt_ptr->packet_length = curr_llist_ptr->packet_header_count + (aligned_count * 4);
+	regacc_pkt_ptr->packet_type = 146;	/* register access packet */
+	regacc_pkt_ptr->bClient_ID = 0;
+	regacc_pkt_ptr->read_write_info = MDDI_WRITE | aligned_count;	
+	regacc_pkt_ptr->register_address = reg_addr;
+//	regacc_pkt_ptr->register_data_list = reg_val;
+		
+	data_list = &regacc_pkt_ptr->register_data_list;
+	
+	tmp= (unsigned char *)&four_byte_aligned_data;
+	for(i = 0; i < aligned_count; i++) {
+
+//		EPRINTK("val[%d] : 0x%x\n", (0 + i * 4), reg_val[0 + i * 4]);
+//        EPRINTK("val[%d] : 0x%x\n", (1 + i * 4), reg_val[1 + i * 4]);
+//        EPRINTK("val[%d] : 0x%x\n", (2 + i * 4), reg_val[2 + i * 4]);
+//        EPRINTK("val[%d] : 0x%x\n", (3 + i * 4), reg_val[3 + i * 4]);
+	
+		tmp[0] = ((0 + i * 4) < count) ? reg_val[0 + i * 4] : 0;
+		tmp[1] = ((1 + i * 4) < count) ? reg_val[1 + i * 4] : 0;
+		tmp[2] = ((2 + i * 4) < count) ? reg_val[2 + i * 4] : 0;
+		tmp[3] = ((3 + i * 4) < count) ? reg_val[3 + i * 4] : 0;
+		wr32(data_list + i, four_byte_aligned_data);
+	}	
+	
+	MDDI_MSG_DEBUG("Reg Access write reg=0x%x, value=0x%x\n",
+		       regacc_pkt_ptr->register_address,
+		       regacc_pkt_ptr->register_data_list);
+
+	
+	regacc_pkt_ptr = &curr_llist_dma_ptr->packet_header.register_pkt;
+	curr_llist_ptr->packet_data_pointer =
+	    (void *)(&regacc_pkt_ptr->register_data_list);
+
+	/* now adjust pointers */
+	mddi_queue_forward_packets(curr_llist_idx, curr_llist_idx, wait,
+				   done_cb, host);
+
+	up(&mddi_host_mutex);
+
+	if (wait) {
+		mddi_linked_list_notify_type *llist_notify_ptr;
+		llist_notify_ptr = &llist_extern_notify[host][curr_llist_idx];
+		wait_for_completion_interruptible(&
+						  (llist_notify_ptr->
+						   done_comp));
+	}
+
+}				/* mddi_host_register_cmd_write */
+#endif
+/* LGE_CHANGE_E [jh.koo@lge.com] 2009-05-23 */
 
 boolean mddi_host_register_read_int
     (uint32 reg_addr, uint32 *reg_value_ptr, mddi_host_type host) {
