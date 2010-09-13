@@ -379,6 +379,38 @@ static ssize_t show_pan(struct device *device,
 			fb_info->var.yoffset);
 }
 
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, from EVE-cupcake
+ *   workaround for resuming bug of android
+ */
+#if defined(CONFIG_MACH_LGE)
+static struct fb_info *fb_info_force_pan;
+extern unsigned int forcepan_last_xoffset;
+extern unsigned int forcepan_last_yoffset;
+
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, check the fb suspend */
+//int need_force_pan = 0;
+//EXPORT_SYMBOL(need_force_pan);
+
+void force_pan(void) 
+{
+	struct fb_info *fb_info = fb_info_force_pan;
+	struct fb_var_screeninfo var;
+	int err;
+	
+	printk(KERN_INFO"%s: \n",__func__);
+
+	var = fb_info->var;
+	var.xoffset = forcepan_last_xoffset;
+	var.yoffset = forcepan_last_yoffset;
+
+	acquire_console_sem();
+	err = fb_pan_display(fb_info, &var);
+	release_console_sem();
+
+	return;
+}
+EXPORT_SYMBOL(force_pan);
+#endif
 static ssize_t show_name(struct device *device,
 			 struct device_attribute *attr, char *buf)
 {
@@ -511,6 +543,12 @@ int fb_init_device(struct fb_info *fb_info)
 
 	dev_set_drvdata(fb_info->dev, fb_info);
 
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, from EVE-cupcake 
+	 *   workaround for resuming bug of android
+	 */
+#if defined(CONFIG_MACH_LGE)
+	fb_info_force_pan = fb_info;
+#endif
 	fb_info->class_flag |= FB_SYSFS_FLAG_ATTR;
 
 	for (i = 0; i < ARRAY_SIZE(device_attrs); i++) {

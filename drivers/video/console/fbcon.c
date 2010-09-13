@@ -277,12 +277,22 @@ static int fbcon_get_rotate(struct fb_info *info)
 	return (ops) ? ops->rotate : 0;
 }
 
+/* LGE_CHANGE_S, [munyoung@lge.com] booting logo */
+#ifdef CONFIG_FB_MSM_LOGO
+extern int msm_fb_get_console_inactive(void);
+#endif
+/* LGE_CHANGE_S, [munyoung@lge.com] booting logo */
 static inline int fbcon_is_inactive(struct vc_data *vc, struct fb_info *info)
 {
 	struct fbcon_ops *ops = info->fbcon_par;
 
 	return (info->state != FBINFO_STATE_RUNNING ||
-		vc->vc_mode != KD_TEXT || ops->graphics);
+		vc->vc_mode != KD_TEXT || ops->graphics
+ 		/* LGE_CHANGE, [munyoung@lge] booting logo */
+		#ifdef CONFIG_FB_MSM_LOGO
+		|| msm_fb_get_console_inactive()
+		#endif
+		);
 }
 
 static inline int get_color(struct vc_data *vc, struct fb_info *info,
@@ -1228,6 +1238,31 @@ static void fbcon_clear(struct vc_data *vc, int sy, int sx, int height,
 		ops->clear(vc, info, real_y(p, sy), sx, height, width);
 }
 
+/* LGE_CHANGE_S [bluerti@lge.com] 2009-07-13 */
+void fbcon_putcs_byLGE(struct vc_data *vc, const unsigned short *s,
+			int count, int ypos, int xpos)
+{
+	struct fb_info *info = registered_fb[con2fb_map[vc->vc_num]];
+	struct display *p = &fb_display[vc->vc_num];
+	struct fbcon_ops *ops = info->fbcon_par;
+
+	//printk("[Blue Debug] fbcon_putcs_byLGE\n");
+	ops->putcs(vc, info, s, count, real_y(p, ypos), xpos,
+			   1, 0);
+
+	//ops->update_start(info);
+
+}
+void fbcon_update_byLGE(struct vc_data *vc)
+{
+	struct fb_info *info = registered_fb[con2fb_map[vc->vc_num]];
+	//struct display *p = &fb_display[vc->vc_num];
+	struct fbcon_ops *ops = info->fbcon_par;
+	
+	//printk("[Blue Debug] fbcon_update_byLGE\n");
+	ops->update_start(info);
+}
+/* LGE_CHANGE_E [bluerti@lge.com] 2009-07-13 */
 static void fbcon_putcs(struct vc_data *vc, const unsigned short *s,
 			int count, int ypos, int xpos)
 {
@@ -1268,24 +1303,32 @@ static void fbcon_cursor(struct vc_data *vc, int mode)
 	if (fbcon_is_inactive(vc, info) || vc->vc_deccm != 1)
 		return;
 
-	if (vc->vc_cursor_type & 0x10)
-		fbcon_del_cursor_timer(info);
-	else
-		fbcon_add_cursor_timer(info);
+/* LGE_CHANGE_S [parksh03@lge.com] 2009-07-28 */
+	if (vc->vc_num == 0) {
+		if (vc->vc_cursor_type & 0x10)
+			fbcon_del_cursor_timer(info);
+		else
+			fbcon_add_cursor_timer(info);
 
-	ops->cursor_flash = (mode == CM_ERASE) ? 0 : 1;
-	if (mode & CM_SOFTBACK) {
-		mode &= ~CM_SOFTBACK;
-		y = softback_lines;
-	} else {
-		if (softback_lines)
-			fbcon_set_origin(vc);
-		y = 0;
+		ops->cursor_flash = (mode == CM_ERASE) ? 0 : 1;
+		if (mode & CM_SOFTBACK) {
+			mode &= ~CM_SOFTBACK;
+			y = softback_lines;
+		} else {
+			if (softback_lines)
+				fbcon_set_origin(vc);
+			y = 0;
+		}
+
+		ops->cursor(vc, info, mode, y, get_color(vc, info, c, 1),
+				get_color(vc, info, c, 0));
+		vbl_cursor_cnt = CURSOR_DRAW_DELAY;
+
 	}
-
-	ops->cursor(vc, info, mode, y, get_color(vc, info, c, 1),
-		    get_color(vc, info, c, 0));
-	vbl_cursor_cnt = CURSOR_DRAW_DELAY;
+	else {
+		fbcon_del_cursor_timer(info);
+	}
+/* LGE_CHANGE_E [parksh03@lge.com] 2009-07-28 */
 }
 
 static int scrollback_phys_max = 0;

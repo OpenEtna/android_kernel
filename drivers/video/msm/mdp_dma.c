@@ -95,6 +95,9 @@ extern struct workqueue_struct *mdp_dma_wq;
 
 int vsync_start_y_adjust = 4;
 
+#if defined(CONFIG_MACH_EVE)
+extern int LG_ErrorHandler_enable ;	/*LGE_CHANGE [bluerti@lge.com] */
+#endif
 static void mdp_dma2_update_lcd(struct msm_fb_data_type *mfd)
 {
 	MDPIBUF *iBuf = &mfd->ibuf;
@@ -152,6 +155,13 @@ static void mdp_dma2_update_lcd(struct msm_fb_data_type *mfd)
 						   iBuf->dma_w - 1, iBuf->dma_y,
 						   iBuf->dma_h - 1);
 #endif
+/* LGE_CHANGE [zugwan@lge.com] for double buffering */
+#ifdef CONFIG_MACH_EVE
+				iBuf->dma_x = 0;
+				iBuf->dma_y = 0;
+				iBuf->dma_w = 320;
+				iBuf->dma_h = 480;
+#endif 
 			} else {
 				dma2_cfg_reg |=
 				    DMA_MDDI_DMAOUT_LCD_SEL_SECONDARY;
@@ -544,6 +554,14 @@ void mdp_dma_pan_update(struct fb_info *info)
 		/* waiting for this update to complete */
 		mfd->pan_waiting = TRUE;
 		wait_for_completion_killable(&mfd->pan_comp);
+
+		/*LGE_CHANGE_S [bluerti@lge.com] 2009-08-24 */
+#if defined(CONFIG_MACH_EVE)
+		if (LG_ErrorHandler_enable) {
+			mfd->dma_fnc(mfd);
+		}
+#endif
+		/*LGE_CHANGE_E [bluerti@lge.com] */
 	} else
 		mfd->dma_fnc(mfd);
 }

@@ -839,6 +839,14 @@ fb_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 	return (cnt) ? cnt : err;
 }
 
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, from EVE-cupcake
+ *   workaround for resuming bug of android
+ */
+#if defined(CONFIG_MACH_LGE)
+unsigned int forcepan_last_xoffset = 0;
+unsigned int forcepan_last_yoffset = 0;
+#endif
+
 int
 fb_pan_display(struct fb_info *info, struct fb_var_screeninfo *var)
 {
@@ -859,6 +867,13 @@ fb_pan_display(struct fb_info *info, struct fb_var_screeninfo *var)
 	if (var->xoffset > 0 && (!fix->xpanstep ||
 				 (var->xoffset % fix->xpanstep)))
 		err = -EINVAL;
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, from EVE-cupcake
+ *   workaround for resuming bug of android
+ */
+#if defined(CONFIG_MACH_LGE)
+	forcepan_last_xoffset = var->xoffset;
+	forcepan_last_yoffset = var->yoffset;
+#endif
 
 	if (err || !info->fbops->fb_pan_display ||
 	    var->yoffset + yres > info->var.yres_virtual ||

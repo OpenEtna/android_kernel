@@ -80,6 +80,8 @@ u32 msm_fb_msg_level = 7;
 
 /* Setting mddi_msg_level to 8 prints out ALL messages */
 u32 mddi_msg_level = 5;
+int msm_fb_refesh_enabled = 1;	// LGE_CHANGE [bluerti@lge.com] 2009-07-18
+int msm_fb_open_enabled = 0;	//LGE_CHANGE [jh.koo@lge.com] 2009-08-18
 
 extern int32 mdp_block_power_cnt[MDP_MAX_BLOCK];
 extern unsigned long mdp_timer_duration;
@@ -101,6 +103,23 @@ static int msm_fb_resume_sub(struct msm_fb_data_type *mfd);
 static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
 			unsigned long arg);
 
+/* LGE_CHANGE_S, [munyoung@lge.com] booting logo */
+#ifdef CONFIG_FB_MSM_LOGO
+static int is_console_inactive = 0;
+
+static void msm_fb_set_console_inactive(int inactive)
+{
+
+	is_console_inactive = inactive;
+}
+
+int msm_fb_get_console_inactive(void)
+{
+	return is_console_inactive;
+}
+EXPORT_SYMBOL(msm_fb_get_console_inactive);
+#endif
+/* LGE_CHANGE_E, [munyoung@lge.com] booting logo */
 #ifdef MSM_FB_ENABLE_DBGFS
 
 #define MSM_FB_MAX_DBGFS 1024
@@ -460,6 +479,12 @@ static struct platform_driver msm_fb_driver = {
 };
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, workaround for resuming bug of android */
+#if defined(CONFIG_MACH_LGE)
+//extern int need_force_pan;
+extern void force_pan(void);
+#endif
+
 static void msmfb_early_suspend(struct early_suspend *h)
 {
 	struct msm_fb_data_type *mfd = container_of(h, struct msm_fb_data_type,
@@ -472,6 +497,12 @@ static void msmfb_early_resume(struct early_suspend *h)
 	struct msm_fb_data_type *mfd = container_of(h, struct msm_fb_data_type,
 						    early_suspend);
 	msm_fb_resume_sub(mfd);
+
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, workaround for resuming bug of android */
+#if defined(CONFIG_MACH_LGE)
+	//need_force_pan = 1;
+	force_pan();
+#endif
 }
 #endif
 
@@ -847,6 +878,10 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 	mfd->op_enable = TRUE;
 	mfd->panel_power_on = FALSE;
 
+#ifdef CONFIG_FB_MSM_LOGO
+	/* LGE_CHANGE,[munyoung@lge.com] booting logo */
+	msm_fb_set_console_inactive(1);
+#endif
 	/* cursor memory allocation */
 	if (mfd->cursor_update) {
 		mfd->cursor_buf = dma_alloc_coherent(NULL,
@@ -1036,6 +1071,12 @@ static int msm_fb_open(struct fb_info *info, int user)
 			return -1;
 		}
 	}
+/* LGE_CHANGE_S, [munyoung@lge.com] booting logo */
+#ifdef CONFIG_FB_MSM_LOGO
+	if(mfd->ref_cnt > 1 && msm_fb_get_console_inactive())
+		msm_fb_set_console_inactive(0);
+#endif
+/* LGE_CHANGE_E, [munyoung@lge.com] booting logo */
 
 	mfd->ref_cnt++;
 	return 0;
@@ -1075,6 +1116,9 @@ static int msm_fb_pan_display(struct fb_var_screeninfo *var,
 	struct mdp_dirty_region *dirtyPtr = NULL;
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
 
+/* LGE_CHNAGE [bluerti@lge.com] 2009-07-22*/
+if (msm_fb_refesh_enabled)
+{
 	if ((!mfd->op_enable) || (!mfd->panel_power_on))
 		return -EPERM;
 
@@ -1130,6 +1174,8 @@ static int msm_fb_pan_display(struct fb_var_screeninfo *var,
 			     (var->activate == FB_ACTIVATE_VBL));
 	mdp_dma_pan_update(info);
 	up(&msm_fb_pan_sem);
+}
+/* LGE_CHNAGE [bluerti@lge.com] 2009-07-22*/
 
 	return 0;
 }
@@ -1397,8 +1443,10 @@ static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
 #endif
 	int ret = 0;
 
-	if (!mfd->op_enable)
+	if (!mfd->op_enable) {
+        printk(KERN_ERR, "%s: !mfd->op_enable\n",__func__);
 		return -EPERM;
+    }
 
 	switch (cmd) {
 	case MSMFB_BLIT:
