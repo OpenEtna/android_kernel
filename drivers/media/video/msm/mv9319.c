@@ -2403,7 +2403,7 @@ probe_failure:
 	return rc;
 }
 
-static int __exit mv9319_remove(struct i2c_client *client)
+static int mv9319_remove(struct i2c_client *client)
 {
 	/* TODO: this function is called twice. Handle It! */
 
@@ -2413,10 +2413,8 @@ static int __exit mv9319_remove(struct i2c_client *client)
 
 	mv9319_sysfs_rm(&client->dev.kobj);
 	free_irq(client->irq, sensorw);
-	i2c_detach_client(client);
 	mv9319_client = NULL;
 	mv9319_fw_client = NULL;
-	kfree(sensorw);
 	return 0;
 }
 
@@ -2431,7 +2429,7 @@ MODULE_DEVICE_TABLE(i2c, mv9319__id);
 static struct i2c_driver mv9319_driver = {
 	.id_table = mv9319_id,
 	.probe = mv9319_probe,
-	.remove = __exit_p(mv9319_remove),
+	.remove = mv9319_remove,
 	.driver = {
 		.name = "mv9319",
 	},
