@@ -33,8 +33,6 @@
 #endif 
 #include <mach/rpc_server_handset.h>
 
-#include "keypad-surf-ffa.h"
-
 #define DRIVER_NAME	"msm-handset"
 
 #define HS_SERVER_PROG 0x30000062
@@ -202,17 +200,17 @@ static int hs_find_key(uint32_t hscode)
 	return -1;
 }
 
+#if 0 /* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, FIXME: conflict with eve_hs_device */
 static void
 report_headset_switch(struct input_dev *dev, int key, int value)
 {
-	struct msm_handset *hs = input_get_drvdata(dev);
+    struct msm_handset *hs = input_get_drvdata(dev);
 
 	input_report_switch(dev, key, value);
-	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, FIXME: conflict with eve_hs_device */
-#if 0
-	switch_set_state(&hs->sdev, value);
-#endif
+	
+    switch_set_state(&hs->sdev, value);
 }
+#endif
 
 /*
  * tuple format: (key_code, key_param)
