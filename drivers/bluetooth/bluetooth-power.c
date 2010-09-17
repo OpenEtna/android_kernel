@@ -109,7 +109,7 @@ static int bluetooth_toggle_radio(void *data, enum rfkill_state state)
 	else
 	{
 		printk(KERN_DEBUG
-			"RFKILL_STATE_OTHER\n", __func__);
+			"RFKILL_STATE_OTHER\n");
 		bluesleep_stop();
 	}
 #endif/*FEATURE_USE_BTLA*/
