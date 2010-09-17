@@ -304,26 +304,10 @@ static void part_release(struct device *dev)
 	kfree(p);
 }
 
-/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-04, google's patch */
-#if defined(CONFIG_LG_FW_GOOGLE_PATCH)
-static int part_uevent(struct device *dev, struct kobj_uvent_env *env)
-{
-	struct gendisk *disk = dev_to_disk(dev);
-	struct hd_struct *part = dev_to_part(dev);
-
-	add_uevent_var(env, "PARTN=%u", part->partno);
-	return 0;
-}
-#endif
-
 struct device_type part_type = {
 	.name		= "partition",
 	.groups		= part_attr_groups,
 	.release	= part_release,
-	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-04, google's patch */
-#if defined(CONFIG_LG_FW_GOOGLE_PATCH)
-	.uevent		= part_uevent,
-#endif
 };
 
 static void delete_partition_rcu_cb(struct rcu_head *head)
