@@ -230,7 +230,7 @@ void __init eve_init_i2c_camera(void)
     gpio_direction_input(GPIO_CAMERA_I2C_SDA); // make sda pin high
     gpio_direction_input(GPIO_CAMERA_I2C_SCL); // make scl pin high
 
-    i2c_register_board_info(I2C_BUS_NUM_CAMERA, &eve_camera_i2c_device, 2);
+    i2c_register_board_info(I2C_BUS_NUM_CAMERA, eve_camera_i2c_device, 2);
     platform_device_register(&eve_camera_i2c_adap_device);
 }
 
