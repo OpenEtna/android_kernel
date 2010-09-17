@@ -65,6 +65,8 @@ EXTRA_CFLAGS = \
 	-DSDIO_VENDOR_ID_BROADCOM=0x2d0 \
 	-DSDIO_DEVICE_ID_BROADCOM_4325=0x4c6 \
 	-DANDROID_SPECIFIC \
+	-Wframe-larger-than=8192
+
 
 #	\
 	-fshort-wchar \
