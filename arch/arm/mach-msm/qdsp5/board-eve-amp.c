@@ -36,6 +36,7 @@ struct amp_dev {
 
 static struct amp_dev *_dev = NULL;
 
+#if 0
 int amp_write_register(char reg, char val)
 {
 	unsigned int err;
@@ -67,7 +68,7 @@ int amp_read_register(unsigned char reg, unsigned char *ret)
 		{ _dev->client->addr, I2C_M_RD, 1, ret}
 	};
 
-	if ((err = i2c_transfer(_dev->client->adapter, &msg, 2)) < 0) {
+	if ((err = i2c_transfer(_dev->client->adapter, msg, 2)) < 0) {
 		dev_err(&_dev->client->dev, "i2c read error\n");
 	}else{
 		D(KERN_INFO "%s():i2c read ok:%x\n", __FUNCTION__, reg);
@@ -75,10 +76,10 @@ int amp_read_register(unsigned char reg, unsigned char *ret)
 
 	return 0;
 }
+#endif
 
-static int eve_amp_ctl_probe(struct i2c_client *client)
+static int eve_amp_ctl_probe(struct i2c_client *client, const struct i2c_device_id *did)
 {
-	int err;
 	struct amp_dev *dev;
 	
 	printk(KERN_INFO "%s()\n", __FUNCTION__);

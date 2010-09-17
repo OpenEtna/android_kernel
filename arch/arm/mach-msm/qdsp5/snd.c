@@ -333,6 +333,7 @@ static int fm_radio_flag = 0;
 extern int amp_write_register(char reg, char val);
 extern int amp_read_register(char reg, char *ret);
 
+#if 0 //unused
 static void set_amp_gain(voc_codec_type voc_codec, amp_gain_type gain_type, int value)
 {
 	switch(voc_codec) {
@@ -402,7 +403,7 @@ static void set_amp_gain(voc_codec_type voc_codec, amp_gain_type gain_type, int 
 	}
 }
 
-/*
+
 static int get_amp_gain(voc_codec_type voc_codec, amp_gain_type gain_type)
 {
 	char ret = 0;
@@ -511,8 +512,8 @@ static int amp_control(uint32_t path)
 			return -EINVAL;
 	}
 }
-*/
-#endif
+#endif //0
+#endif //defined(EVE
 
 static inline int check_mute(int mute)
 {
@@ -561,25 +562,11 @@ static long snd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	struct snd_ctxt *snd = file->private_data;
 	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-18, from cupcake */
 #if defined (CONFIG_MACH_EVE)		
-	struct msm_snd_set_voccal_param voccal;
-	struct snd_set_voccal_param_msg cmsg;
-	struct msm_snd_set_voccal_iir_param voccaliir;
-	struct snd_set_voccal_iir_param_msg cimsg;
-	struct msm_snd_set_next_ec_param nextec;
-	struct snd_set_next_ec_param_msg nmsg;
 	struct msm_snd_set_rx_volume_param rxvol;
 	struct snd_set_rx_volume_param_msg rmsg;
-	struct msm_snd_set_dtmf_volume_param dtmfvol;
-	struct snd_set_dtmf_volume_param_msg fmsg;
 	struct msm_snd_set_pad_value_param padvalue;
-	struct snd_set_loopback_mode_msg lmsg;
-	struct msm_snd_set_loopback_mode_param loopback;
 	struct snd_set_pad_value_param_msg pmsg;
-	struct msm_snd_set_amp_gain_param ampgain;
-	struct snd_set_set_amp_gain_param_msg amsg;
 	struct snd_write_efs_msg wmsg;
-	struct msm_snd_set_micamp_gain_param micampgain;
-	struct snd_set_micamp_gain_param_msg mamsg;
 	struct msm_snd_set_fm_radio_vol_param fmradiovol;
 	struct snd_set_fm_radio_vol_msg fmrmsg;
 	struct msm_snd_set_voice_clarity_param voiceclarity;
@@ -777,6 +764,10 @@ static long snd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 /* LGE_CHANGE [dojip.kim@lge.com] 2010-03-18, from cupcake */
 #if defined (CONFIG_MACH_EVE)		
 	case SND_SET_VOCCAL_PARAM:
+    {
+        struct msm_snd_set_voccal_param voccal;
+        struct snd_set_voccal_param_msg cmsg;
+
 		if (copy_from_user(&voccal, (void __user *) arg, sizeof(voccal))) {
 			pr_err("snd_ioctl set voccal_param: invalid pointer.\n");
 			rc = -EFAULT;
@@ -807,8 +798,12 @@ static long snd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			}
 		}
 		break;
-
+    }
 	case SND_SET_VOCCAL_IIR_PARAM:
+    {
+        struct msm_snd_set_voccal_iir_param voccaliir;
+        struct snd_set_voccal_iir_param_msg cimsg;
+
 		if (copy_from_user(&voccaliir, (void __user *) arg, sizeof(voccaliir))) {
 			pr_err("snd_ioctl set_voccal_iir_param: invalid pointer.\n");
 			rc = -EFAULT;
@@ -839,8 +834,12 @@ static long snd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			}
 		}
 		break;
-
+    }
 	case SND_SET_NEXT_EC_PARAM:
+    {
+        struct msm_snd_set_next_ec_param nextec;
+        struct snd_set_next_ec_param_msg nmsg;
+
 		if (copy_from_user(&nextec, (void __user *) arg, sizeof(nextec))) {
 			pr_err("snd_ioctl set_next_ec_param: invalid pointer.\n");
 			rc = -EFAULT;
@@ -871,7 +870,7 @@ static long snd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			}
 		}
 		break;
-
+    }
 	case SND_SET_RX_VOLUME:
 		if (copy_from_user(&rxvol, (void __user *) arg, sizeof(rxvol))) {
 			pr_err("snd_ioctl set_rx_volume: invalid pointer.\n");
@@ -906,6 +905,10 @@ static long snd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		break;
 
 	case SND_SET_DTMF_VOLUME:
+    {
+        struct msm_snd_set_dtmf_volume_param dtmfvol;
+        struct snd_set_dtmf_volume_param_msg fmsg;
+
 		if (copy_from_user(&dtmfvol, (void __user *) arg, sizeof(dtmfvol))) {
 			pr_err("snd_ioctl set_dtmf_volume: invalid pointer.\n");
 			rc = -EFAULT;
@@ -937,7 +940,7 @@ static long snd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			}
 		}
 		break;
-
+    }
 	case SND_SET_PAD_VALUE:
 		if (copy_from_user(&padvalue, (void __user *) arg, sizeof(padvalue))) {
 			pr_err("snd_ioctl set_pad_value: invalid pointer.\n");
@@ -972,6 +975,10 @@ static long snd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		break;
 
 	case SND_SET_LOOPBACK_MODE:
+    {
+         struct snd_set_loopback_mode_msg lmsg;
+         struct msm_snd_set_loopback_mode_param loopback;
+
 		if (copy_from_user(&loopback, (void __user *) arg, sizeof(loopback))) {
 			pr_err("snd_ioctl set amp_gain: invalid pointer.\n");
 			rc = -EFAULT;
@@ -998,8 +1005,12 @@ static long snd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			}
 		}
 		break;
-		
+    }
 	case SND_SET_AMP_GAIN:
+    {
+        struct msm_snd_set_amp_gain_param ampgain;
+        struct snd_set_set_amp_gain_param_msg amsg;
+
 		if (copy_from_user(&ampgain, (void __user *) arg, sizeof(ampgain))) {
 			pr_err("snd_ioctl set amp_gain: invalid pointer.\n");
 			rc = -EFAULT;
@@ -1032,7 +1043,7 @@ static long snd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			rc = -EFAULT;
 		}
 		break;
-
+    }
 	case SND_WRITE_EFS:
 		wmsg.args.cb_func = -1;
 		wmsg.args.client_data = 0;
@@ -1076,6 +1087,10 @@ static long snd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		}
 		break;
 	case SND_SET_MICAMP_GAIN:
+    {
+        struct msm_snd_set_micamp_gain_param micampgain;
+        struct snd_set_micamp_gain_param_msg mamsg;
+
 		if (copy_from_user(&micampgain, (void __user *) arg, sizeof(micampgain))) {
 			pr_err("snd_ioctl set_pad_value: invalid pointer.\n");
 			rc = -EFAULT;
@@ -1106,6 +1121,7 @@ static long snd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			}
 		}
 		break;
+    }
 	case SND_SET_FM_RADIO_VOLUME:
 		if (copy_from_user(&fmradiovol, (void __user *) arg, sizeof(fmradiovol))) {
 			pr_err("snd_ioctl set amp_gain: invalid pointer.\n");
