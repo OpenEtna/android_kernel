@@ -116,6 +116,7 @@ struct platform_device keypad_device_eve = {
 
 static struct input_dev *keypad_dev;
 
+#if 0
 static int keypad_gpio_event_matrix_func(struct input_dev *input_dev,
 					  struct gpio_event_info *info,
 					  void **data, int func)
@@ -136,6 +137,7 @@ static int keypad_gpio_event_matrix_func(struct input_dev *input_dev,
 
 	return err;
 }
+#endif
 
 struct input_dev *msm_keypad_get_input_dev(void)
 {
