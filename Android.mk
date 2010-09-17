@@ -16,5 +16,5 @@ $(KERNEL_CONFIG): $(LOCAL_PATH)/arch/arm/configs/openetna | $(ACP)
 	$(transform-prebuilt-to-target)
 
 $(TARGET_PREBUILT_KERNEL): $(KERNEL_OUT) $(KERNEL_CONFIG)
-	$(MAKE) -j3 -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi-
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi-
 
