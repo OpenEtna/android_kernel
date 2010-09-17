@@ -415,7 +415,7 @@ static void bd6083_set_camera_on_mode_internal(void);
 static void bd6083_set_alc_mode(struct i2c_client *client)
 {
 	int ret;
-	unsigned long flags;
+	//unsigned long flags;
 
 	pre_main_lcd_level = eve_bl_get_intensity(bd6083_dev->bl_dev);
 
@@ -464,7 +464,7 @@ static void bd6083_set_alc_mode(struct i2c_client *client)
 static void bd6083_set_normal_mode(struct i2c_client *client)
 {
 	int ret;
-	unsigned long flags;
+	//unsigned long flags;
 
 	D_FUNC("%s()\n", __FUNCTION__);
 	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, use mutex instead of spinlock */
@@ -505,7 +505,7 @@ static void bd6083_set_normal_mode(struct i2c_client *client)
 static void bd6083_set_camera_on_mode_internal(void)
 {
 	int ret;
-	unsigned long flags;
+	//unsigned long flags;
 
 	D_FUNC("%s()\n", __FUNCTION__);
 
@@ -805,8 +805,7 @@ static int bd6083_remove(struct i2c_client *i2c_dev)
 	return 0;
 }
 
-/* LGE_CHANGE_S [jh.koo@lge.com] 2009-06-11 */
-#if defined(CONFIG_MACH_EVE)
+#if 0
 static int bd6083_suspend(struct i2c_client *client, pm_message_t state)
 {
 	int ret;
@@ -825,7 +824,6 @@ static int bd6083_resume(struct i2c_client *client)
 	return 0;
 }
 #endif
-/* LGE_CHANGE_E [jh.koo@lge.com] 2009-06-10 */
 
 /* LGE_CHANGE_S [jh.koo@lge.com] 2009-08-14, for early suspend */
 #ifdef CONFIG_HAS_EARLYSUSPEND
