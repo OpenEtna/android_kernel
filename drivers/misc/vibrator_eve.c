@@ -71,7 +71,7 @@ static atomic_t s_amp = ATOMIC_INIT(1);
 static int s_vibstate = 0;
 static atomic_t s_vibstate_work_check =  ATOMIC_INIT(0);
 static uint8_t vibrator_start_first = FALSE;
-static int s_vibstate_work = 0; /*0: not to work, 1: working on*/
+//static int s_vibstate_work = 0; /*0: not to work, 1: working on*/
 
 
 #define MOTOR_VOLT_LEVEL	3000 /* 3000mV */
@@ -159,7 +159,7 @@ void vibrator_set(int amp)
 {
 	int gain;
 
-	printk(KERN_ERR "android-vibrator: vibrator_set\n");
+	printk(KERN_ERR "android-vibrator: vibrator_set amp=%d\n",amp);
 
 	if(amp == 0) {
 		if(s_vibstate)
@@ -284,7 +284,7 @@ static int  android_vibrator_suspend(struct platform_device *pdev, pm_message_t 
 	return 0;
 }
 
-static int  android_vibrator_resume(struct platform_device *pdev, pm_message_t state)
+static int  android_vibrator_resume(struct platform_device *pdev)
 {
 	/* future capability*/
 	return 0;
