@@ -344,7 +344,7 @@ static unsigned char touchbutton_keycode[TBSIZE] = {
 	unsigned char keycode[ARRAY_SIZE(touchbutton_keycode)];
 };*/
 
-#define swap(x, y) do { typeof(x) z = x; x = y; y = z; } while (0)
+//#define swap(x, y) do { typeof(x) z = x; x = y; y = z; } while (0)
 //static int count = 0;
 static struct workqueue_struct *synaptics_wq;
 
@@ -488,8 +488,8 @@ static void synaptics_ts_work_func(struct work_struct *work)
 	//printk("i2c_button_state - ret : %x %x %x %x\n", buf[0], buf[1], buf[2], buf[3]);
 
 	ret = i2c_transfer(ts->client->adapter, data_read_msg2, 2);
-	printk("i2c_PRESSURE - ret : %d/  %d / %d / %d\n", buf2[0], buf2[1],
-	       buf2[2], buf2[3]);
+	/*printk("i2c_PRESSURE - ret : %d/  %d / %d / %d\n", buf2[0], buf2[1],
+	       buf2[2], buf2[3]);*/
 
 	/* LGE_CHANGE [bluerti@lge.com] 2009-09-15 
 	 * <skip Home/Back key Event for some period after menukey. >
@@ -502,7 +502,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 			 * send HOME key (AT cmd ASCII "soft2" key ) for AT+GKPD
 			 */
 			write_gkpd_value(93);	
-			printk("Left key pressed\n");
+			//printk("Left key pressed\n");
 			if (lg_block_touch_event == 0) {
 				if (msm_touch_option == TOUCH_INVERT_EVENT) {	// Invert Event 
 					mod_timer(&lg_enhanced_longkey, 
@@ -530,7 +530,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 			 * send HOME key (AT cmd ASCII "soft2" key ) for AT+GKPD 
 			 */
 			write_gkpd_value(93);	
-			printk("Right key pressed\n");
+			//printk("Right key pressed\n");
 			if (lg_block_touch_event == 0) {
 				if (msm_touch_option == TOUCH_INVERT_EVENT) ;	//input_report_key(ts->input_dev, KEY_BACK, 0);
 				else
@@ -553,7 +553,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 					is_longkey_timer_state =
 					    LONGKEY_TIMER_STOPPED;
 				}
-				printk("Left key released\n");
+				//printk("Left key released\n");
 				ts->leftkey_pressed = 0;
 				//LGE_CHANGE [blue.park@lge.com]
 				if (lg_block_touch_event == 0 && Is_valid_touch_event(TOUCH_HOME_KEY)) {
@@ -580,7 +580,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 				}
 
 			} else if (ts->rightkey_pressed) {
-				printk("Right key released\n");
+				//printk("Right key released\n");
 				ts->rightkey_pressed = 0;
 				//LGE_CHANGE [blue.park@lge.com]
 				if (lg_block_touch_event == 0 && Is_valid_touch_event(TOUCH_BACK_KEY)) {
@@ -607,6 +607,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 
 }
 
+#if 0
 static enum hrtimer_restart synaptics_ts_timer_func(struct hrtimer *timer)
 {
 	struct synaptics_ts_data *ts =
@@ -619,13 +620,14 @@ static enum hrtimer_restart synaptics_ts_timer_func(struct hrtimer *timer)
 	hrtimer_start(&ts->timer, ktime_set(0, 12500000), HRTIMER_MODE_REL);
 	return HRTIMER_NORESTART;
 }
+#endif
 
 static irqreturn_t synaptics_ts_irq_handler(int irq, void *dev_id)
 {
 	struct synaptics_ts_data *ts = dev_id;
 	//u8 pReg[4];
 	//int ret;
-	printk("%s\n", __FUNCTION__);
+	//printk("%s\n", __FUNCTION__);
 
 	//printk("synaptics_ts_irq_handler\n : %d == %d", ts->client->irq, gpio_to_irq(GPIO_TOUCH_IRQ)); 
 	disable_irq(ts->client->irq);
@@ -633,6 +635,7 @@ static irqreturn_t synaptics_ts_irq_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+#if 0
 static int synaptics_init_gpio_panel(void)
 {
 	int ret;
@@ -664,6 +667,7 @@ static int synaptics_init_gpio_panel(void)
 	return 0;
 
 }
+#endif
 
 static int synaptics_ts_init_chip(struct i2c_client *client)
 {
@@ -769,7 +773,7 @@ static int synaptics_ts_probe(struct i2c_client *client,
 	struct synaptics_ts_data *ts;
 	int ret = 0;
 	struct synaptics_i2c_rmi_platform_data *pdata;
-	u32 bCounter = 0x0, break_mark = 0;	//TIMER to GPIO-20 ( TOUCH_GPIO_IRQ ) 
+	u32 break_mark = 0;	//TIMER to GPIO-20 ( TOUCH_GPIO_IRQ ) 
 	//struct touchbutton *touchbutton; //touch-key //diyu@lge.com
 
 	printk("%s\n", __FUNCTION__);
@@ -910,7 +914,7 @@ err_input_register_device_failed:
 	input_free_device(ts->input_dev);
 
 err_input_dev_alloc_failed:
-err_detect_failed:
+//err_detect_failed:
 err_power_failed:
 	kfree(ts);
 err_alloc_data_failed:
@@ -967,7 +971,7 @@ static int synaptics_ts_resume(struct i2c_client *client)
 {
 	int ret;
 	struct synaptics_ts_data *ts = i2c_get_clientdata(client);
-	u32 bCounter = 0x0, break_mark = 0;	//TIMER to GPIO-20 ( TOUCH_GPIO_IRQ ) 
+	u32 break_mark = 0;	//TIMER to GPIO-20 ( TOUCH_GPIO_IRQ ) 
 	printk("%s\n", __FUNCTION__);
 
 	ret = synaptics_ts_set_vreg(1);
