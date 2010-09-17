@@ -202,6 +202,8 @@ static struct atcmd_dev *atpdev;
 #define OTHER_FB_TIMEOUT	3000
 #define ORG_FB_TIMEOUT		21000
 
+#if 0
+//unused
 struct timer_list lg_fb_control;
 static int fb_control_timer_init = 0;
 extern int msm_fb_refesh_enabled;
@@ -211,6 +213,7 @@ static void lg_fb_control_timer(unsigned long arg)
 	msm_fb_refesh_enabled = 1;
 
 }
+#endif
 
 //LGE_CHANGE_E [bluerti@lge.com] 2009-10-08
 
@@ -536,109 +539,7 @@ static int dsatHandleAT_ARM11(uint32_t at_cmd, uint32_t at_act,
 	return result;
 }
 
-int lg_get_flex_from_xml(char *strIndex, char *flexValue)
-{
-	int fd;
-	int iFlexSize;
-	signed long int res;
-	int iTotalCnt, iItemCnt, iValueCnt, j, iItemCntAll;
-
-	char *s_bufFlexINI;	//Flex INI 파일의 전체 string
-	char s_bufItem[500];	//one line
-	// char                    s_bufValue1[10];   //country
-	char s_bufValue2[400];	//value
-	char s_bufValue3[100];	//ID
-
-	iFlexSize = 500;
-	fd = sys_open((const char __user *)"/system/etc/flex/flex.xml",
-		      O_RDONLY, 0);
-
-	if (fd == -1) {
-		printk("read data fail");
-		return 0;
-	}
-	//iFlexSize = (unsigned)sys_lseek(fd, (off_t)0, 0);
-
-	s_bufFlexINI = kmalloc(500, GFP_KERNEL);
-	//memset(s_bufFlexINI,0x00,sizeof(char)*iFlexSize);     
-	res =
-	    sys_read(fd, (char __user *)s_bufFlexINI, sizeof(char) * iFlexSize);
-
-	sys_close(fd);
-
-	printk("read data flex.xml fd: %d iFlexSize : %d res;%ld\n", fd,
-	       iFlexSize, res);
-
-	iFlexSize = res;
-
-	iItemCnt = 0;
-	iItemCntAll = 0;
-
-	for (iTotalCnt = 0; iTotalCnt < iFlexSize; iTotalCnt++)	//Flex ini 파일의 한 character 가져오기
-	{
-		//printk("%x ",s_bufFlexINI[iTotalCnt]);
-		if ((s_bufFlexINI[iItemCntAll]) != '\n')	//문자열을 한줄 읽어서 버퍼에 넣기
-		{
-			s_bufItem[iItemCnt] = s_bufFlexINI[iItemCntAll];
-			iItemCnt++;
-
-		} else		//읽어온 문자열 분석
-		{
-			//printk("\n",s_bufFlexINI[iTotalCnt]);
-			s_bufItem[iItemCnt] = '\n';
-
-			j = 0;
-			iValueCnt = 0;
-			memset(s_bufValue3, 0x00, sizeof(char) * 100);
-			while ((s_bufItem[j] != '=')
-			       && (s_bufItem[j] !=
-				   '\n') /*&& (s_bufItem[j] != ';') */ ) {
-				//printk("\ns_bufValue3 ");
-				if (s_bufItem[j] != ' ' && s_bufItem[j] != '\t') {
-					s_bufValue3[iValueCnt++] = s_bufItem[j];
-					//printk("%x ",s_bufValue3[iValueCnt]);
-				}
-				j++;
-			}
-
-			if (!strncmp(s_bufValue3, strIndex, strlen(strIndex))) {
-				//printk("find %s ",strIndex);
-				iValueCnt = 0;
-				j++;
-				while (s_bufItem[j] != '\n') {
-					//printk("\ns_bufItem ");
-					if (s_bufItem[j] != '"') {
-						s_bufValue2[iValueCnt++] =
-						    s_bufItem[j];
-						//printk("%x ",s_bufValue2[iValueCnt]);
-					}
-					j++;
-				}
-				memcpy(flexValue, s_bufValue2, iValueCnt);
-				if (flexValue[iValueCnt - 1] == '\r') {
-					flexValue[iValueCnt - 1] = 0x00;
-					if (iValueCnt == 1) {
-						printk("\niValueCnt == 1");
-						return 0;
-					}
-				} else {
-					flexValue[iValueCnt] = 0x00;
-					if (iValueCnt == 0) {
-						printk("\niValueCnt == 0");
-						return 0;
-					}
-				}
-
-				return 1;
-			}
-			iItemCnt = 0;
-		}
-		iItemCntAll++;
-	}
-	return 0;
-
-}
-
+#if 0
 //LGE_CHANTE_S [seypark@lge.com] 2009-04-16 - for AT+MTC
 /* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, fix the mixed declarations and code */
 static int eta_execute(char *string)
@@ -812,6 +713,7 @@ uint32_t at_cmd,at_act;
 /////////////////////////////////////////////////////////////////
 	return result;
 }
+#endif
 
 static int handle_misc_rpc_call(struct msm_rpc_server *server,
 				struct rpc_request_hdr *req, unsigned len)
@@ -879,8 +781,9 @@ static int handle_misc_rpc_call(struct msm_rpc_server *server,
 	case ONCRPC_LGE_ATCMD_FACTORY_LARGE_PROC:
 		{
 			printk("ONCRPC_LGE_ATCMD_FACTORY_LARGE_PROC\n");
+            /* is that needed? */
+#if 0
 			{
-				int loop = 0;
 				int dsat_result = HANDLE_OK;
 				struct rpc_misc_apps_LARGE_bases_args *args;
 				args =
@@ -910,6 +813,7 @@ static int handle_misc_rpc_call(struct msm_rpc_server *server,
 
 				return result;
 			}
+#endif
 		}
 		return 0;
 	case ONCRPC_LGE_ATCMD_MSG_PROC:
@@ -923,65 +827,24 @@ static int handle_misc_rpc_call(struct msm_rpc_server *server,
 			printk(KERN_INFO "ONCRPC_LGE_ATCMD_MSG_RSTSTR_PROC\n");
 		}
 		return 0;
-//LGE_UPDATE_S [seypark@lge.com] 2009.07.24 - Get Flex MCC/MNC value
 	case ONCRPC_LGE_GET_FLEX_MCC_PROC:
 		{
 			printk(KERN_INFO "ONCRPC_LGE_GET_FLEX_MCC_PROC\n");
-			memset(server->retvalue.ret_string, 0,
-			       sizeof(server->retvalue.ret_string));
-			if (lg_get_flex_from_xml
-			    ("FLEX_MCC_CODE", server->retvalue.ret_string))
-				result = RPC_RETURN_RESULT_OK;
-			else
-				result = RPC_RETURN_RESULT_ERROR;
-			server->retvalue.ret_value1 =
-			    strlen(server->retvalue.ret_string);
-			server->retvalue.ret_value2 = 0;
-			printk(KERN_INFO
-			       "ONCRPC_LGE_GET_FLEX_MCC_PROC return string : %d , %s\n",
-			       server->retvalue.ret_value1,
-			       server->retvalue.ret_string);
-			return result;
+			return 0;
 		}
 	case ONCRPC_LGE_GET_FLEX_MNC_PROC:
 		{
 			printk(KERN_INFO "ONCRPC_LGE_GET_FLEX_MNC_PROC\n");
-			memset(server->retvalue.ret_string, 0,
-			       sizeof(server->retvalue.ret_string));
-			if (lg_get_flex_from_xml
-			    ("FLEX_MNC_CODE", server->retvalue.ret_string))
-				result = RPC_RETURN_RESULT_OK;
-			else
-				result = RPC_RETURN_RESULT_ERROR;
-			server->retvalue.ret_value1 =
-			    strlen(server->retvalue.ret_string);
-			server->retvalue.ret_value2 = 0;
-			printk(KERN_INFO
-			       "ONCRPC_LGE_GET_FLEX_MNC_PROC return string : %d , %s\n",
-			       server->retvalue.ret_value1,
-			       server->retvalue.ret_string);
-
-			return result;
+			return 0;
 		}
 	case ONCRPC_LGE_GET_FLEX_OPERATOR_CODE_PROC:
 		{
 			printk(KERN_INFO
 			       "ONCRPC_LGE_GET_FLEX_OPERATOR_CODE_PROC\n");
-			memset(server->retvalue.ret_string, 0,
-			       sizeof(server->retvalue.ret_string));
-			if (lg_get_flex_from_xml
-			    ("FLEX_OPERATOR_CODE", server->retvalue.ret_string))
-				result = RPC_RETURN_RESULT_OK;
-			else
-				result = RPC_RETURN_RESULT_ERROR;
-			server->retvalue.ret_value1 =
-			    strlen(server->retvalue.ret_string);
-			server->retvalue.ret_value2 = 0;
-			printk(KERN_INFO
-			       "ONCRPC_LGE_GET_FLEX_OPERATOR_CODE_PROC return string : %d , %s\n",
-			       server->retvalue.ret_value1,
-			       server->retvalue.ret_string);
-			//LGE_CHANGE_S [bluerti@lge.com] 2009-08-17 <Activate fb_refresh during hidden reset > 
+            return 0;
+#if 0
+            /* what the heck does this code do here? */
+            //LGE_CHANGE_S [bluerti@lge.com] 2009-08-17 <Activate fb_refresh during hidden reset > 
 			if (!msm_fb_refesh_enabled && !fb_control_timer_init) {
 				printk("[Blue Debug] Set Timer\n");
 				setup_timer(&lg_fb_control, lg_fb_control_timer, 0);	// LGE_CHANGE [bluerti@lge.com] 2009-10-8
@@ -994,31 +857,13 @@ static int handle_misc_rpc_call(struct msm_rpc_server *server,
 
 				fb_control_timer_init = 1;
 			}
-			//LGE_CHANGE_E [bluerti@lge.com]
-
-			return result;
+#endif
 		}
 	case ONCRPC_LGE_GET_FLEX_COUNTRY_CODE_PROC:
 		{
 			printk(KERN_INFO "ONCRPC_LGE_GET_FLEX_COUNTRY_PROC\n");
-			memset(server->retvalue.ret_string, 0,
-			       sizeof(server->retvalue.ret_string));
-			if (lg_get_flex_from_xml
-			    ("FLEX_COUNTRY_CODE", server->retvalue.ret_string))
-				result = RPC_RETURN_RESULT_OK;
-			else
-				result = RPC_RETURN_RESULT_ERROR;
-			server->retvalue.ret_value1 =
-			    strlen(server->retvalue.ret_string);
-			server->retvalue.ret_value2 = 0;
-			printk(KERN_INFO
-			       "ONCRPC_LGE_GET_FLEX_COUNTRY_PROC return string : %d , %s\n",
-			       server->retvalue.ret_value1,
-			       server->retvalue.ret_string);
-			return result;
+			return 0;
 		}
-
-//LGE_UPDATE_E
 	default:
 		return -ENODEV;
 	}
@@ -1036,4 +881,3 @@ static int __init rpc_misc_server_init(void)
 }
 
 module_init(rpc_misc_server_init);
-/* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
