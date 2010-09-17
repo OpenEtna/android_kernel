@@ -62,7 +62,7 @@ struct psensor_dev {
 
 static struct workqueue_struct *proximity_wq;
 static atomic_t s_prox_sensor = ATOMIC_INIT(0);
-static int prox_sensor_status = -1;
+//static int prox_sensor_status = -1;
 static struct psensor_dev sharp_psensor;
 static int irq_set = 0; 
 static int proximity_near =-1; 
