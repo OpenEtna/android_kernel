@@ -134,7 +134,7 @@ static unsigned char pp2106m2_keycode[256]  = {
 };
 #else /*EVE Rev.B*/
 /* LGE_CHANGE [EVE:FW:james.jang@lge.com] 2010-04-19, u32 -> unsigned char */
-static unsigned char pp2106m2_keycode[256]  = {
+static u32 pp2106m2_keycode[256]  = {
 0xff, KEY_LEFT	, KEY_SPACE , KEY_MENU  , KEY_SEARCH/*KEY_BACK*/, KEY_LEFTSHIFT, KEY_DOT	, KEY_8, KEY_PROG3,/* 0x00~0x08 */
 0xff, 0xff		, 0xff		, 0xff		, 0xff	  , 0xff  		 , 0xff	  	, 
 0xff, KEY_M		, KEY_B		, KEY_C		, KEY_V   , KEY_X 		 , KEY_N  	, KEY_5, KEY_VIDEO_PREV, /* 0x10~0x18 */
@@ -253,7 +253,7 @@ struct qwerty_kbd_record {
 	struct delayed_work kb_cmdq;
 	u32 (*xlf)(struct qwerty_kbd_record *kbdrec, s32 code,
 		   s32 *kstate, s32 *i2cerr);
-	unsigned char pp2106m2_keycode[QKBD_IN_MXKYEVTS];
+	u32 pp2106m2_keycode[QKBD_IN_MXKYEVTS];
 	//unsigned char xltable[QKBD_IN_MXKYEVTS];
 };
 
@@ -760,6 +760,8 @@ static void qwerty_kbd_fetchkeys(struct work_struct *work)
 	lge_xlscancode();
 }
 
+#if 0
+//unused
 static void qwerty_kbd_shutdown(struct qwerty_kbd_record *rd)
 {	
 	QDBG(" %s\n",__FUNCTION__);
@@ -770,6 +772,7 @@ static void qwerty_kbd_shutdown(struct qwerty_kbd_record *rd)
 		rd->kybd_connected = 0;
 	}
 }
+#endif
 
 struct input_dev *qwerty_get_input_dev(void)
 {
