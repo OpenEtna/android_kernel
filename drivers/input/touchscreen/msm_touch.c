@@ -171,7 +171,7 @@ static int preRejectValue = TOUCH_REJECTCOUNT0;
 static int distanceValue = DISTANCE_VALUE;
 /* LGE_CHANGE_E, [luckyjun77@lge.com]  2009-10-17*/
 /* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
-static int SkipToggle = 0;
+//static int SkipToggle = 0;
 static int TouchWindowPress = 1;	//  touch  1 : press,  0: release
 /* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
 
@@ -194,8 +194,8 @@ typedef struct {
 	int y;
 } point;
 
-static int xbuf[2] = { 0 };
-static int ybuf[2] = { 0 };
+//static int xbuf[2] = { 0 };
+//static int ybuf[2] = { 0 };
 
 //static point res;
 #endif
@@ -265,6 +265,7 @@ static DEVICE_ATTR(penup_time, S_IRUGO | S_IWUSR, penup_time_show,
 
 /* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
 #ifdef FEATURE_TSSC_D1_FILTER
+#if 0
 static int dist(point * p1, point * p2)
 {
 	return abs(p1->x - p2->x) + abs(p1->y - p2->y);
@@ -307,7 +308,7 @@ static point pbwa(point points[])
 	result.y = (sorted[0]->y * 3 + sorted[1]->y) >> 2;
 	return result;
 }
-
+#endif
 #endif
 
 /* LGE_CHANGE_S, [munyoung@lge.com] */
@@ -580,8 +581,8 @@ static int __devinit ts_probe(struct platform_device *pdev)
 	unsigned int x_max, y_max, pressure_max;
 	struct msm_ts_platform_data *pdata = pdev->dev.platform_data;
 	/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
-	struct touchbutton *touchbutton;
-	u32 test_status;
+	//struct touchbutton *touchbutton;
+	//u32 test_status;
 	/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
 
 	/* The primary initialization of the TS Hardware
