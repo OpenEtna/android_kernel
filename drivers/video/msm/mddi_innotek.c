@@ -222,6 +222,7 @@ void mddi_innoteck_fix_position(void)
 }
 EXPORT_SYMBOL(mddi_innoteck_fix_position);
 
+#if 0
 static void compare_table(struct display_table *table, unsigned int count)
 {
 	unsigned int i;
@@ -247,7 +248,7 @@ static void compare_table(struct display_table *table, unsigned int count)
 		}
 	}	
 }
-
+#endif
 
 static void mddi_innotek_vsync_set_handler(msm_fb_vsync_handler_type handler,	/* ISR to be executed */
 					 void *arg)
@@ -384,16 +385,16 @@ static int mddi_innotek_lcd_off(struct platform_device *pdev)
 	return 0;
 }
 
-ssize_t mddi_innotek_lcd_show_onoff(struct platform_device *pdev)
+ssize_t mddi_innotek_lcd_show_onoff(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	EPRINTK("%s : strat\n", __func__);
 
 	return 0;
 }
 
-ssize_t mddi_innotek_lcd_store_onoff(struct platform_device *pdev, struct device_attribute *attr, const char *buf, size_t count)
+ssize_t mddi_innotek_lcd_store_onoff(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
-	int onoff; // = simple_strtol(buf, NULL, count);
+	int onoff;
 	sscanf(buf, "%d", &onoff);
 
 	EPRINTK("%s: buf %s, onoff : %d\n", __func__, buf, onoff);
