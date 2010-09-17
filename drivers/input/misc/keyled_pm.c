@@ -58,11 +58,11 @@ typedef enum
 
 /* LGE_CHANGE_S [jinwoonam@lge.com] 2009.03.09 Add for rpc */
 // LED type (From products\76xx\drivers\pmic\pmic3\lib\interface\Pmgen.h)
-static void keyled_work_func(struct work_struct *work);
-static void touchled_work_func(struct work_struct *work);
+//static void keyled_work_func(struct work_struct *work);
+//static void touchled_work_func(struct work_struct *work);
 
-DECLARE_WORK(keyled_work, keyled_work_func);
-DECLARE_WORK(touchled_work, touchled_work_func);
+//DECLARE_WORK(keyled_work, keyled_work_func);
+//DECLARE_WORK(touchled_work, touchled_work_func);
 
 #define KEYLED_DEBUG 0
 #if KEYLED_DEBUG
@@ -77,11 +77,11 @@ DECLARE_WORK(touchled_work, touchled_work_func);
 
 #define MAX_TIMEOUT_MS   (15000)
 
-static void keyled_timeout(unsigned long arg);
-static void touchled_timeout(unsigned long arg);
+//static void keyled_timeout(unsigned long arg);
+//static void touchled_timeout(unsigned long arg);
 
-static struct timer_list s_keytimer = TIMER_INITIALIZER(keyled_timeout, 0, 0);
-static struct timer_list s_touchtimer = TIMER_INITIALIZER(touchled_timeout, 0, 0);
+//static struct timer_list s_keytimer = TIMER_INITIALIZER(keyled_timeout, 0, 0);
+//static struct timer_list s_touchtimer = TIMER_INITIALIZER(touchled_timeout, 0, 0);
 
 static int s_keyled;
 static int s_touchled;
@@ -220,6 +220,7 @@ EXPORT_SYMBOL(msm_keyled_send);
 EXPORT_SYMBOL(msm_touchled_send);
 #endif
 
+#if 0
 static void keyled_work_func(struct work_struct *work)
 {	
 	pm_set_led_intensity(PM_KBD_LED, 0);
@@ -230,6 +231,7 @@ static void keyled_timeout(unsigned long arg __attribute__((unused)))
 {		
 	schedule_work(&keyled_work);
 }
+#endif
 
 static ssize_t keyled_enable_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
@@ -288,6 +290,7 @@ static ssize_t keyled_enable_store(
 	return size;
 }
 
+#if 0
 static void touchled_work_func(struct work_struct *work)
 {	
 	pm_set_led_intensity(PM_TOUCH_LED, 0);
@@ -298,6 +301,7 @@ static void touchled_timeout(unsigned long arg __attribute__((unused)))
 {		
 	schedule_work(&touchled_work);
 }
+#endif
 
 static ssize_t touchled_enable_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
