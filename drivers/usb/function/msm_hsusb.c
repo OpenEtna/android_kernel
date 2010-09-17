@@ -1088,11 +1088,13 @@ static void ep0_setup_stall(struct usb_info *ui)
 	writel((1<<16) | (1<<0), USB_ENDPTCTRL(0));
 }
 
+#if 0
 static void ep0_setup_receive(struct usb_info *ui, unsigned len)
 {
 	ui->ep0out_req->length = len;
 	usb_ept_queue_xfer(&ui->ep0out, ui->ep0out_req);
 }
+#endif
 
 static void ep0_setup_send(struct usb_info *ui, unsigned wlen)
 {

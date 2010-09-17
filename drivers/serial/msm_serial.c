@@ -898,12 +898,12 @@ static void msm_console_write(struct console *co, const char *s,
  *  fix the mismatched section. 
  *  boot_command_line is initdata. so rework */
 #if defined(CONFIG_SERIAL_MSM_CONSOLE) && defined(CONFIG_MACH_EVE)
-static int is_serial_console_enable()
+static int is_serial_console_enable(void)
 {
 	return msm_serial_console_enabled;
 }
 
-static int __init check_serial_console_enable()
+static int __init check_serial_console_enable(void)
 {
 	char *boot_cmd = boot_command_line;
 	char *arm11_uart_bootcmd = "root=/dev/mtdblock1 rootfstype=yaffs2 lpj=1912832 console=ttyMSM2,115200n8";

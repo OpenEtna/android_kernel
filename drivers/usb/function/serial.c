@@ -1778,6 +1778,7 @@ static void /* __init_or_exit */ gs_unbind(void *_ctxt)
 	pr_debug("%s: %s %s\n", __func__, GS_LONG_NAME, GS_VERSION_STR);
 }
 
+#if 0
 static void gser_complete_set_line_coding(struct usb_endpoint *ep,
 		struct usb_request *req)
 {
@@ -1810,6 +1811,7 @@ static void gser_complete_set_line_coding(struct usb_endpoint *ep,
 	in_req->complete = 0;
 	usb_ept_queue_xfer(dev->func->ep0_in, in_req);
 }
+#endif
 
 static int gs_setup(struct usb_ctrlrequest *ctrl,
 		void *buf, int len, void *_ctxt)
