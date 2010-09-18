@@ -134,7 +134,7 @@ static unsigned char pp2106m2_keycode[256]  = {
 };
 #else /*EVE Rev.B*/
 /* LGE_CHANGE [EVE:FW:james.jang@lge.com] 2010-04-19, u32 -> unsigned char */
-static u32 pp2106m2_keycode[256]  = {
+static unsigned char pp2106m2_keycode[256]  = {
 0xff, KEY_LEFT	, KEY_SPACE , KEY_MENU  , KEY_SEARCH/*KEY_BACK*/, KEY_LEFTSHIFT, KEY_DOT	, KEY_8, KEY_PROG3,/* 0x00~0x08 */
 0xff, 0xff		, 0xff		, 0xff		, 0xff	  , 0xff  		 , 0xff	  	, 
 0xff, KEY_M		, KEY_B		, KEY_C		, KEY_V   , KEY_X 		 , KEY_N  	, KEY_5, KEY_VIDEO_PREV, /* 0x10~0x18 */
@@ -143,7 +143,7 @@ static u32 pp2106m2_keycode[256]  = {
 0xff, 0xff		, 0xff		, 0xff		, 0xff    , 0xff  		 , 0xff   	, 
 0xff, KEY_I		, KEY_Y		, KEY_R		, KEY_T   , KEY_E 		 , KEY_U  	, KEY_7, KEY_MENU ,  /* 0x30~0x38 */
 0xff, 0xff		, 0xff		, 0xff		, 0xff    , 0xff  		 , 0xff   	,  
-0xff, KEY_DOWN	, KEY_A		, KEY_1		, KEY_Z   , KEY_FN		 , KEY_RIGHT, KEY_6, /* 0x40~0x47 */
+0xff, KEY_DOWN	, KEY_A		, KEY_1		, KEY_Z   , (unsigned char)KEY_FN		 , KEY_RIGHT, KEY_6, /* 0x40~0x47 */
 0xff, 0xff		, 0xff		, 0xff		, 0xff    , 0xff  		 , 0xff   	, 0xff, 
 0xff, KEY_UP	, KEY_L		, KEY_W		, KEY_BACKSPACE , KEY_S  , KEY_ENTER, KEY_2, /* 0x50~0x57 */
 0xff, 0xff		, 0xff		, 0xff		, 0xff    , 0xff  		 , 0xff     , 0xff, 
@@ -253,7 +253,7 @@ struct qwerty_kbd_record {
 	struct delayed_work kb_cmdq;
 	u32 (*xlf)(struct qwerty_kbd_record *kbdrec, s32 code,
 		   s32 *kstate, s32 *i2cerr);
-	u32 pp2106m2_keycode[QKBD_IN_MXKYEVTS];
+	unsigned char pp2106m2_keycode[QKBD_IN_MXKYEVTS];
 	//unsigned char xltable[QKBD_IN_MXKYEVTS];
 };
 
