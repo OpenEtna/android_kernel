@@ -3,18 +3,18 @@
  *
  * Copyright (c) 2008-2009 QUALCOMM USA, INC.
  * Copyright (c) 2009 LG Electronics, INC.
- * 
+ *
  * All source code in this file is licensed under the following license
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, you can find it at http://www.fsf.org
  */
@@ -315,7 +315,7 @@ int mv9319_power_off_1(void)
 	gpio_set_value(GPIO_CAM_RESET, 0);
 
 	mdelay(10);
-	
+
 	// MCLK to Low
 	rc = gpio_tlmm_config(cam_mclk_config[0], GPIO_ENABLE);
 	if (rc != 0) {
@@ -510,17 +510,17 @@ int mv9319_is_fw_downloaded(void)
 	mv9319_i2c_read_byte(mv9319_client, MV9319_CMD_VER_MAJOR, &firmware_ver_major);
 	mv9319_i2c_read_byte(mv9319_client, MV9319_CMD_VER_MINOR, &firmware_ver_minor);
 
-	LDBG("mv9319: Is firmware 0x%x.0x%x downloaded ? ", 
+	printk(KERN_INFO "mv9319: Is firmware 0x%x.0x%x downloaded ? ",
 			MV9319_FIRMWARE_VER_MAJOR, MV9319_FIRMWARE_VER_MINOR);
 
 	if ((firmware_ver_major != MV9319_FIRMWARE_VER_MAJOR)
 	    || (firmware_ver_minor != MV9319_FIRMWARE_VER_MINOR)) {
-		LDBG("NO. major=0x%x,minor=0x%x\n", 
+		printk(KERN_INFO "NO. major=0x%x,minor=0x%x\n",
 				firmware_ver_major, firmware_ver_minor);
 		return 0;
 	}
 
-	LDBG("YES. major=0x%x, minor=0x%x\n", firmware_ver_major, firmware_ver_minor);
+	printk(KERN_INFO "YES. major=0x%x, minor=0x%x\n", firmware_ver_major, firmware_ver_minor);
 
 	return 1;
 }
@@ -542,7 +542,7 @@ static int mv9319_burn_firmware(void)
 		{0x80, 0x02},	// Start Cmd
 	};
 
-	printk("mv9319: burning firwmare....\n");
+	printk(KERN_INFO "mv9319: burning firwmare....\n");
 
 	/* PLL Setup Start */
 	rc = mv9319_i2c_write_byte_table(mv9319_client,
@@ -559,7 +559,7 @@ static int mv9319_burn_firmware(void)
 		return rc;
 
 	rc = mv9319_i2c_write_buffer(mv9319_fw_client, cmd_buf[0], 3);
-	if (rc < 0) 
+	if (rc < 0)
 		return rc;
 
 	msleep(150);
@@ -581,7 +581,7 @@ static int mv9319_burn_firmware(void)
 	if (rc < 0)
 		return rc;
 
-	LDBG("mv9319: firmware buring end\n");
+	printk(KERN_INFO "mv9319: firmware buring end\n");
 
 	return 0;
 }
@@ -631,7 +631,7 @@ static int mv9319_burn_firmware_from_file(void)
 	LDBG("mv9319: firmware file size %u\n", count);
 
 	// XXX: MUST: count <= MV9319_ISP_BINARY_BUF_SIZE
-	
+
 	for (i = 0; i < count; i++) {
 		if ((unsigned)sys_read(fd, (char *)&data, 1) != 1) {
 			rc = -EIO;
@@ -662,13 +662,13 @@ static int mv9319_burn_firmware_from_file(void)
 		return rc;
 
 	rc = mv9319_i2c_write_buffer(mv9319_fw_client, cmd_buf[0], 3);
-	if (rc < 0) 
+	if (rc < 0)
 		return rc;
 
 	msleep(150);
 
 	rc = mv9319_i2c_write_buffer(mv9319_fw_client, cmd_buf[1], 3);
-	if (rc < 0) 
+	if (rc < 0)
 		return rc;
 
 	printk("mv9319: firmware buring start\n");
@@ -755,7 +755,7 @@ static int mv9319_verify_firmware(void)
 		return 1;
 	}
 
-	LDBG("Firmware checksum check succeed. msb=0x%x, lsb=0x%x\n",
+	printk(KERN_INFO "Firmware checksum check succeed. msb=0x%x, lsb=0x%x\n",
 	      checksum_msb, checksum_lsb);
 
 	return 0;
@@ -849,7 +849,7 @@ static int mv9319_enable_flash_led_strobe(int is_pre_flash)
 		}
 		LDBG("mv9319: current luminance 0x%x\n", current_luminance);
 
-		if (current_luminance < 2) { /* 50 Lux */ 
+		if (current_luminance < 2) { /* 50 Lux */
 			if (is_pre_flash) {
 				eve_flash_set_led_state(7);
 
@@ -874,7 +874,7 @@ static int mv9319_enable_flash_led_strobe(int is_pre_flash)
 		}
 
 		if (is_pre_flash) {
-			if (current_luminance < 2) {/* 50 Lux */ 
+			if (current_luminance < 2) {/* 50 Lux */
 				eve_flash_set_led_state(7);
 #if 0 /* 2009/09/25 too dark */
 				rc = mv9319_i2c_write_byte(mv9319_client,
@@ -1115,7 +1115,7 @@ static int32_t mv9319_snapshot_config(enum sensor_mode_t mode,
 	}
 
 	/* Image Size Change & Mode Selection */
-	rc = mv9319_i2c_write_byte(mv9319_client, 
+	rc = mv9319_i2c_write_byte(mv9319_client,
 			MV9319_CMD_STATUS_SET_FORMAT, 0x00);
 	if (rc < 0)
 		return rc;
@@ -1158,7 +1158,7 @@ static long mv9319_set_jpg_control(void)
 #endif
 
 	rc = mv9319_i2c_write_byte(mv9319_client,
-				   MV9319_CMD_JPG_BUFFER_SIZE, 
+				   MV9319_CMD_JPG_BUFFER_SIZE,
 				   mv9319_ctrl->jpg_buf_size);
 	if (rc < 0)
 		return rc;
@@ -1371,7 +1371,7 @@ static int mv9319_sensor_open_init(struct msm_camera_sensor_info *data)
 	if (rc < 0)
 		goto init_fail1;
 
-	if (rc >= 0) 
+	if (rc >= 0)
 		rc = mv9319_normal_boot();
 	else
 		goto init_fail1;
@@ -1560,7 +1560,7 @@ static long mv9319_set_wb(int8_t wb)
 	rc = mv9319_i2c_write_byte(mv9319_client, MV9319_CMD_WB, new_wb);
 
 	mv9319_ctrl->wb = wb;
-	
+
 	msleep(MV9319_SET_DELAY_MSEC);
 
 	return rc;
@@ -1757,7 +1757,7 @@ static long mv9319_set_zoom(int8_t zoom)
 		return rc;
 
 	mv9319_ctrl->zoom = zoom;
-	
+
 	msleep(MV9319_SET_DELAY_MSEC);
 
 	return rc;
@@ -1772,7 +1772,7 @@ static long mv9319_set_flash_mode(int8_t mode)
 		return -EINVAL;
 	}
 
-	/* This controls only flash in Camera mode, not Camcorder 
+	/* This controls only flash in Camera mode, not Camcorder
 	 * Camcorder uses sysfs interface to control flash.*/
 	mv9319_ctrl->flashmode = mode;
 
@@ -1973,7 +1973,7 @@ int mv9319_sensor_config(void __user * argp)
 		rc = -EFAULT;
 		break;
 	}
-	
+
 	if (rc < 0)
 		printk("mv9319: ERROR in sensor_config, %ld\n", rc);
 
@@ -1987,7 +1987,7 @@ static ssize_t mv9319_brightness_show(struct device* dev, struct device_attribut
 	unsigned char val;
 
 	if (mv9319_ctrl == NULL)
-		return sprintf(buf,"%x\n", 0); 
+		return sprintf(buf,"%x\n", 0);
 
 	val = mv9319_ctrl->brightness;
 	return sprintf(buf,"%x\n", val);
@@ -2016,7 +2016,7 @@ static ssize_t mv9319_flash_show(struct device* dev, struct device_attribute* at
 	unsigned char val;
 
 	if (mv9319_ctrl == NULL)
-		return sprintf(buf,"%x\n", 0); 
+		return sprintf(buf,"%x\n", 0);
 
 	val = mv9319_ctrl->video_flash;
 	return sprintf(buf,"%d\n", val);
@@ -2047,7 +2047,7 @@ static ssize_t mv9319_scene_show(struct device* dev, struct device_attribute* at
 	unsigned char val;
 
 	if (mv9319_ctrl == NULL)
-		return sprintf(buf,"%x\n", 0); 
+		return sprintf(buf,"%x\n", 0);
 
 	val = mv9319_ctrl->scene;
 	return sprintf(buf,"%x\n", val);
@@ -2085,7 +2085,7 @@ static ssize_t mv9319_zoom_show(struct device* dev, struct device_attribute* att
 	unsigned char val;
 
 	if (mv9319_ctrl == NULL)
-		return sprintf(buf,"%x\n", 0); 
+		return sprintf(buf,"%x\n", 0);
 
 	val = mv9319_ctrl->zoom;
 	return sprintf(buf,"%x\n", val);
@@ -2119,7 +2119,7 @@ static ssize_t mv9319_wb_show(struct device* dev, struct device_attribute* attr,
 	unsigned char val;
 
 	if (mv9319_ctrl == NULL)
-		return sprintf(buf,"%x\n", 0); 
+		return sprintf(buf,"%x\n", 0);
 
 	val = mv9319_ctrl->wb;
 	return sprintf(buf,"%x\n", val);
@@ -2153,7 +2153,7 @@ static ssize_t mv9319_effect_show(struct device* dev, struct device_attribute* a
 	unsigned char val;
 
 	if (mv9319_ctrl == NULL)
-		return sprintf(buf,"%x\n", 0); 
+		return sprintf(buf,"%x\n", 0);
 
 	val = mv9319_ctrl->effect;
 	return sprintf(buf,"%x\n", val);
@@ -2184,7 +2184,7 @@ static DEVICE_ATTR(effect, S_IRUGO|S_IWUGO, mv9319_effect_show, mv9319_effect_st
 
 static ssize_t mv9319_firmware_show(struct device* dev, struct device_attribute* attr, char* buf)
 {
-	return sprintf(buf,"Current version %d.%d, update: %d\n", 
+	return sprintf(buf,"Current version %d.%d, update: %d\n",
 			firmware_ver_major, firmware_ver_minor,
 			flag_update_firmware);
 
@@ -2343,7 +2343,7 @@ int mv9319_sensor_release(void)
 	kfree(mv9319_ctrl);
 	mv9319_ctrl = NULL;
 
-	if (!flag_update_firmware) 
+	if (!flag_update_firmware)
 		bd6083_set_camera_off_mode();
 	flag_update_firmware = 0;
 
