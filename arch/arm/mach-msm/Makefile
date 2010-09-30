@@ -60,7 +60,6 @@ else
 endif
 obj-$(CONFIG_MSM_DMA_TEST) += dma_test.o
 obj-$(CONFIG_SURF_FFA_GPIO_KEYPAD) += keypad-surf-ffa.o
-#LGE_CHANGE [dojip.kim@lge.com] 2010-03-25, from keypad-surf-ffa
 obj-$(CONFIG_EVE_GPIO_KEYPAD) += board-eve-keypad.o
 
 obj-$(CONFIG_MACH_HALIBUT) += board-halibut.o board-halibut-panel.o

@@ -1438,10 +1438,6 @@ static void __init eve_init(void)
 	msm_device_hsusb_host.dev.platform_data = &msm_hsusb_pdata,
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 
-#ifdef CONFIG_EVE_GPIO_KEYPAD
-	platform_device_register(&keypad_device_eve);
-#endif
-
 	eve_init_mmc();
 	eve_init_i2c_backlight();
  	eve_init_i2c_amp();
@@ -1539,7 +1535,7 @@ static void __init eve_map_io(void)
 	msm_eve_allocate_memory_regions();
 }
 
-MACHINE_START(EVE, "Eve Board (LGE GW650)")
+MACHINE_START(EVE, "Eve")
 #ifdef CONFIG_MSM_DEBUG_UART
 	.phys_io        = MSM_DEBUG_UART_PHYS,
 	.io_pg_offst    = ((MSM_DEBUG_UART_BASE) >> 18) & 0xfffc,
