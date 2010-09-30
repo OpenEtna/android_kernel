@@ -264,7 +264,7 @@ static void gp2ap002_work_func(struct work_struct *work)
 	struct psensor_dev *dev = container_of(work, struct psensor_dev, work);
 
 	int do_report = 1, report_value;
-	PDBG("%s()\n",__FUNCTION__);
+	printk("%s()\n",__FUNCTION__);
 
 	if(gpio_get_value(GPIO_PROX_IRQ) == 1){
 		report_value = 1;
@@ -393,9 +393,7 @@ static ssize_t sharp_gp2ap002_enable_store(
 	 *    value ==1  : start hall ic_irq_wake
 	       value ==   :  */
 
-	printk(KERN_ERR "\n[PROX] %s(old: %d, new: %d)\n", __FUNCTION__, irq_set, value);
-    if(value != 0 || value != 1 || value == irq_set)
-      return size; /* nothing to do */
+	PDBG("\n[PROX] %s(%d)\n", __FUNCTION__, value);
 
 	if(value ==1 ) {
 		irq_set = 1;
@@ -435,7 +433,7 @@ static int gp2ap002_interrupt(int irq, void *dev_id)
 	struct psensor_dev *pdev = dev_id;
 	
 	if(irq_set == 1 ){
-		PDBG("diyu/yong 11p = %d\n", sharp_psensor.status);
+		printk("diyu/yong 11p = %d\n", sharp_psensor.status);
 		//disable_irq(pdev->client->irq);
 		sharp_psensor.status = !sharp_psensor.status; 
 		PDBG("diyu  proximity-interrupt  = %d\n", sharp_psensor.status);
