@@ -23,6 +23,7 @@
 #include <linux/i2c.h>
 //LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
 #include <linux/at_kpd_eve.h> 
+#include <../../../drivers/staging/android/timed_output.h>
 
 #define TRUE 		1
 #define FALSE 		0
@@ -66,7 +67,6 @@ DECLARE_WORK(vibrator_work, vibrator_work_func);
 static void vibrator_timeout(unsigned long arg);
 static atomic_t s_vibrator = ATOMIC_INIT(0);
 static struct timer_list s_timer = TIMER_INITIALIZER(vibrator_timeout, 0, 0);
-static int s_vibrator_gpio;
 static atomic_t s_amp = ATOMIC_INIT(1);
 static int s_vibstate = 0;
 static atomic_t s_vibstate_work_check =  ATOMIC_INIT(0);
@@ -198,6 +198,7 @@ static void vibrator_timeout(unsigned long arg __attribute__((unused)))
 //	s_vibstate_work =0;
 }
 
+#if 0
 static ssize_t vibrator_enable_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	int timeout = atomic_read(&s_vibrator);
@@ -366,21 +367,71 @@ static struct platform_driver android_vibrator_driver = {
 		.owner		= THIS_MODULE,
 	},
 };
+#endif
+
+static void to_vibrator_enable(struct timed_output_dev *sdev, int timeout) {
+    printk("vibrator_enable(%d)\n",timeout);
+    atomic_set(&s_amp, 120);
+    atomic_set(&s_vibrator, timeout);
+
+    /* 
+     * value == -1 : infinite vibration
+     * value == 0 : stop vibration   
+     * value > 0 : vibrate during <value> miliseconds
+     */
+     VDBG("%s -1",__FUNCTION__);
+    if(atomic_read(&s_vibrator)>0){
+        if (atomic_read(&s_vibstate_work_check) ==0){
+            del_timer(&s_timer);
+            VDBG("%s -2",__FUNCTION__);
+            vibrator_set(atomic_read(&s_amp));
+            s_timer.expires = jiffies + MS_TO_JIFFIES(atomic_read(&s_vibrator));
+            add_timer(&s_timer);
+            atomic_set(&s_vibstate_work_check ,1);
+        }
+    }
+    else if ( atomic_read(&s_vibrator) == 0){
+        if (atomic_read(&s_vibstate_work_check) ==1){
+            del_timer(&s_timer);
+            VDBG("%s -3",__FUNCTION__);
+
+            vibrator_set(0);
+            atomic_set(&s_vibstate_work_check ,0);
+        }
+    }
+}
+
+static int to_vibrator_get_time(struct timed_output_dev *sdev) {
+  printk("vibrator_get_time\n");
+  return atomic_read(&s_vibrator);
+}
+
+static struct timed_output_dev pmic_vibrator = {
+    .name = "vibrator",
+    .get_time = to_vibrator_get_time,
+    .enable = to_vibrator_enable,
+};
+
 
 static int __init android_vibrator_init(void)
 {
 	printk( "android-vibrator: init\n");
-	return platform_driver_register(&android_vibrator_driver);
-}
+    
+    gpio_request(GPIO_LIN_MOTOR_EN, "gpio_lin_motor_en");
+    gpio_request(GPIO_LIN_MOTOR_PWM, "gpio_lin_motor_pwm");
 
-static void __exit android_vibrator_exit(void)
-{
-	printk( "android-vibrator: exit\n");
- 	platform_driver_unregister(&android_vibrator_driver);
+    /* Off Enable */
+    gpio_set_value(GPIO_LIN_MOTOR_EN, 0);
+
+    REG_WRITEL((GPMN_M_DEFAULT & GPMN_M_MASK), GP_MN_CLK_MDIV);
+    REG_WRITEL((~( GPMN_N_DEFAULT - GPMN_M_DEFAULT )&GPMN_N_MASK), GP_MN_CLK_NDIV);
+    gpio_set_value(GPIO_LIN_MOTOR_PWM, 0);
+
+    printk("android_vibrator_init done\n");
+    return timed_output_dev_register(&pmic_vibrator);
 }
 
 module_init(android_vibrator_init);
-module_exit(android_vibrator_exit);
 
 MODULE_AUTHOR("Dae il, yu <diyu@lge.com>");
 MODULE_DESCRIPTION("Eve vibrator driver for Android");
