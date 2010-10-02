@@ -38,7 +38,6 @@ static unsigned int keypad_row_gpios[] = {
 static unsigned int keypad_col_gpios[] = { 36, 37, 38, 39, 40 };
 #endif
 
-#if 0
 static unsigned int keypad_row_gpios_eve[] = { 40 };
 static unsigned int keypad_col_gpios_eve[] = { 31, 32 };
 #define KEYMAP_INDEX_EVE(col, row) ((row)*ARRAY_SIZE(keypad_row_gpios_eve) + (col))
@@ -55,19 +54,17 @@ static const unsigned short keypad_virtual_keys[] = {
 };
 
 static struct gpio_event_matrix_info eve_keypad_matrix_info = {
-	//.info.func	= keypad_gpio_event_matrix_func,
-	.info.func	= gpio_event_matrix_func,
-	.keymap		= keypad_keymap_eve,
-	.output_gpios	= keypad_col_gpios_eve,
-	.input_gpios	= keypad_row_gpios_eve,
-	.noutputs	= ARRAY_SIZE(keypad_col_gpios_eve),
-	.ninputs	= ARRAY_SIZE(keypad_row_gpios_eve),
-	.settle_time.tv.nsec = 0,
-	.poll_time.tv.nsec = 20 * NSEC_PER_MSEC,
-	.flags		= GPIOKPF_LEVEL_TRIGGERED_IRQ | GPIOKPF_DRIVE_INACTIVE |
-			  GPIOKPF_PRINT_UNMAPPED_KEYS
+    .info.func	= gpio_event_matrix_func,
+    .keymap		= keypad_keymap_eve,
+    .output_gpios	= keypad_col_gpios_eve,
+    .input_gpios	= keypad_row_gpios_eve,
+    .noutputs	= ARRAY_SIZE(keypad_col_gpios_eve),
+    .ninputs	= ARRAY_SIZE(keypad_row_gpios_eve),
+    .settle_time.tv.nsec = 0,
+    .poll_time.tv.nsec = 20 * NSEC_PER_MSEC,
+    .flags		= GPIOKPF_LEVEL_TRIGGERED_IRQ | GPIOKPF_DRIVE_INACTIVE |
+                  GPIOKPF_PRINT_UNMAPPED_KEYS | GPIOKPF_PRINT_MAPPED_KEYS
 };
-#endif
 
 static struct gpio_event_direct_entry eve_keypad_switch_map[] = {
     { GPIO_HALL_IC_IRQ,       SW_LID       }
@@ -82,7 +79,7 @@ static struct gpio_event_input_info eve_keypad_switch_info = {
 };
 
 static struct gpio_event_info *eve_keypad_info[] = {
-//	&eve_keypad_matrix_info.info,
+    &eve_keypad_matrix_info.info,
     &eve_keypad_switch_info.info
 };
 
