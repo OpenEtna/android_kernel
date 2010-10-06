@@ -16,7 +16,6 @@
  *
  */
 
-#include <mach/debug_adsp_mm.h>
 #include <mach/qdsp5/qdsp5lpmcmdi.h>
 #include "adsp.h"
 
@@ -30,8 +29,8 @@ int adsp_lpm_verify_cmd(struct msm_adsp_module *module,
 	lpm_cmd_start *cmd;
 
 	if (queue_id != QDSP_lpmCommandQueue) {
-		MM_ERR("module %s: wrong queue id %d\n",
-				module->name, queue_id);
+		printk(KERN_ERR "adsp: module %s: wrong queue id %d\n",
+			module->name, queue_id);
 		return -1;
 	}
 
@@ -40,9 +39,8 @@ int adsp_lpm_verify_cmd(struct msm_adsp_module *module,
 
 	if (cmd_id == LPM_CMD_START) {
 		if (cmd_size != sizeof(lpm_cmd_start)) {
-			MM_ERR("module %s: wrong size %d, \
-				expect %d\n", module->name,
-				cmd_size, sizeof(lpm_cmd_start));
+			printk(KERN_ERR "adsp: module %s: wrong size %d, expect %d\n",
+				module->name, cmd_size, sizeof(lpm_cmd_start));
 			return -1;
 		}
 		col_height = cmd->ip_data_cfg_part1 & size_mask;
@@ -58,7 +56,8 @@ int adsp_lpm_verify_cmd(struct msm_adsp_module *module,
 				    output_size)))
 			return -1;
 	} else if (cmd_id > 1) {
-		MM_ERR("module %s: invalid cmd_id %d\n", module->name, cmd_id);
+		printk(KERN_ERR "adsp: module %s: invalid cmd_id %d\n",
+			module->name, cmd_id);
 		return -1;
 	}
 	return 0;

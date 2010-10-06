@@ -16,7 +16,6 @@
  *
  */
 
-#include <mach/debug_adsp_mm.h>
 #include <mach/qdsp5/qdsp5jpegcmdi.h>
 #include "adsp.h"
 
@@ -46,8 +45,8 @@ static inline int verify_jpeg_cmd_enc_cfg(struct msm_adsp_module *module,
 	int i, num_frags;
 
 	if (cmd_size != sizeof(jpeg_cmd_enc_cfg)) {
-		MM_ERR("module %s: JPEG ENC CFG invalid \
-			cmd_size %d\n", module->name, cmd_size);
+		printk(KERN_ERR "adsp: module %s: JPEG ENC CFG invalid cmd_size %d\n",
+			module->name, cmd_size);
 		return -1;
 	}
 
@@ -75,8 +74,8 @@ static inline int verify_jpeg_cmd_dec_cfg(struct msm_adsp_module *module,
 	uint32_t div;
 
 	if (cmd_size != sizeof(jpeg_cmd_dec_cfg)) {
-		MM_ERR("module %s: JPEG DEC CFG invalid \
-			cmd_size %d\n", module->name, cmd_size);
+		printk(KERN_ERR "adsp: module %s: JPEG DEC CFG invalid cmd_size %d\n",
+			module->name, cmd_size);
 		return -1;
 	}
 
@@ -109,8 +108,7 @@ static int verify_jpeg_cfg_cmd(struct msm_adsp_module *module,
 		return verify_jpeg_cmd_dec_cfg(module, cmd_data, cmd_size);
 	default:
 		if (cmd_id > 1) {
-			MM_ERR("module %s: invalid JPEG CFG cmd_id %d\n",
-					module->name, cmd_id);
+			printk(KERN_ERR "adsp: module %s: invalid JPEG CFG cmd_id %d\n", module->name, cmd_id);
 			return -1;
 		}
 	}
@@ -128,8 +126,8 @@ static int verify_jpeg_action_cmd(struct msm_adsp_module *module,
 			(jpeg_cmd_enc_op_consumed *)cmd_data;
 
 		if (cmd_size != sizeof(jpeg_cmd_enc_op_consumed)) {
-			MM_ERR("module %s: JPEG_CMD_ENC_OP_CONSUMED \
-				invalid size %d\n", module->name, cmd_size);
+			printk(KERN_ERR "adsp: module %s: JPEG_CMD_ENC_OP_CONSUMED invalid size %d\n",
+				module->name, cmd_size);
 			return -1;
 		}
 
@@ -145,8 +143,8 @@ static int verify_jpeg_action_cmd(struct msm_adsp_module *module,
 			(jpeg_cmd_dec_op_consumed *)cmd_data;
 
 		if (cmd_size != sizeof(jpeg_cmd_dec_op_consumed)) {
-			MM_ERR("module %s: JPEG_CMD_DEC_OP_CONSUMED \
-				invalid size %d\n", module->name, cmd_size);
+			printk(KERN_ERR "adsp: module %s: JPEG_CMD_DEC_OP_CONSUMED invalid size %d\n",
+				module->name, cmd_size);
 			return -1;
 		}
 
@@ -165,8 +163,8 @@ static int verify_jpeg_action_cmd(struct msm_adsp_module *module,
 			(jpeg_cmd_dec_ip *)cmd_data;
 
 		if (cmd_size != sizeof(jpeg_cmd_dec_ip)) {
-			MM_ERR("module %s: JPEG_CMD_DEC_IP invalid \
-				size %d\n", module->name, cmd_size);
+			printk(KERN_ERR "adsp: module %s: JPEG_CMD_DEC_IP invalid size %d\n",
+				module->name, cmd_size);
 			return -1;
 		}
 		if (adsp_pmem_fixup(module, (void **)&cmd->ip_buf_addr,
@@ -177,7 +175,7 @@ static int verify_jpeg_action_cmd(struct msm_adsp_module *module,
 
 	default:
 		if (cmd_id > 7) {
-			MM_ERR("module %s: invalid cmd_id %d\n",
+			printk(KERN_ERR "adsp: module %s: invalid cmd_id %d\n",
 				module->name, cmd_id);
 			return -1;
 		}

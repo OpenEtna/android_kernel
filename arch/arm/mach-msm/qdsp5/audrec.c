@@ -23,7 +23,6 @@
  *
  */
 
-#include <mach/debug_audio_mm.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/wait.h>
@@ -37,6 +36,15 @@
 #include <mach/qdsp5/qdsp5audrecmsg.h>
 
 #include "audmgr.h"
+/* for queue ids - should be relative to module number*/
+#include "adsp.h"
+
+#ifdef DEBUG
+#define dprintk(format, arg...) \
+printk(KERN_DEBUG format, ## arg)
+#else
+#define dprintk(format, arg...) do {} while (0)
+#endif
 
 static DEFINE_MUTEX(audrec_lock);
 
@@ -91,7 +99,7 @@ static void audrectask_dsp_event(void *data, unsigned id, size_t len,
 
 	switch (id) {
 	case AUDREC_MSG_CMD_CFG_DONE_MSG: {
-		MM_DBG("CMD CFG DONE %x\n", msg[1]);
+		dprintk(" %s : CMD CFG DONE %x\n", __func__, msg[1]);
 		if (msg[0] & AUDREC_MSG_CFG_DONE_ENC_ENA) {
 			for (cnt = 0; cnt < MAX_ENC_COUNT ; cnt++) {
 				if (audrec->enc_session[cnt].enc_type ==
@@ -128,7 +136,7 @@ static void audrectask_dsp_event(void *data, unsigned id, size_t len,
 		break;
 	}
 	case AUDREC_MSG_CMD_AREC_MEM_CFG_DONE_MSG: {
-		MM_DBG("CMD AREC MEM CFG DONE %x\n", msg[0]);
+		dprintk(" %s : CMD AREC MEM CFG DONE %x\n", __func__, msg[0]);
 		for (cnt = 0; cnt < MAX_ENC_COUNT ; cnt++) {
 			if (audrec->enc_session[cnt].audrec_obj_idx ==
 				msg[0]) {
@@ -140,7 +148,7 @@ static void audrectask_dsp_event(void *data, unsigned id, size_t len,
 		break;
 	}
 	case AUDREC_MSG_CMD_AREC_PARAM_CFG_DONE_MSG: {
-		MM_DBG("CMD AREC PARAM CFG DONE %x\n", msg[0]);
+		dprintk(" %s : CMD AREC PARAM CFG DONE %x\n", __func__, msg[0]);
 		for (cnt = 0; cnt < MAX_ENC_COUNT ; cnt++) {
 			if (audrec->enc_session[cnt].audrec_obj_idx ==
 				msg[0]) {
@@ -152,7 +160,7 @@ static void audrectask_dsp_event(void *data, unsigned id, size_t len,
 		break;
 	}
 	case AUDREC_MSG_PACKET_READY_MSG: {
-		MM_DBG("PCK READY %x\n", msg[0]);
+		dprintk(" %s : PCK READY %x\n", __func__, msg[0]);
 		for (cnt = 0; cnt < MAX_ENC_COUNT ; cnt++) {
 			if (audrec->enc_session[cnt].audrec_obj_idx ==
 				msg[0]) {
@@ -164,7 +172,7 @@ static void audrectask_dsp_event(void *data, unsigned id, size_t len,
 		break;
 	}
 	case AUDREC_MSG_FATAL_ERR_MSG: {
-		MM_ERR("ERROR %x\n", msg[0]);
+		pr_err(" %s : ERROR %x\n", __func__, msg[0]);
 		if (msg[1] & AUDREC_MSG_FATAL_ERR_TYPE_0) {
 			for (cnt = 0; cnt < MAX_ENC_COUNT ; cnt++) {
 				if (audrec->enc_session[cnt].audrec_obj_idx ==
@@ -184,12 +192,8 @@ static void audrectask_dsp_event(void *data, unsigned id, size_t len,
 		}
 		break;
 	}
-	case ADSP_MESSAGE_ID:
-		MM_DBG("Received ADSP event: module \
-				enable/disable(audrectask)\n");
-		break;
 	default:
-		MM_ERR("unknown event %d\n", id);
+		pr_err("audrectask_dsp_event: unknown event %d\n", id);
 	}
 }
 
@@ -205,7 +209,7 @@ int audrectask_enable(unsigned enc_type, audrec_event_func func, void *private)
 	mutex_lock(audrec->lock);
 
 	if (audrec->enc_count++ == 0) {
-		MM_DBG("enable\n");
+		dprintk(" %s : enable\n", __func__);
 		for (cnt = 0; cnt < MAX_ENC_COUNT ; cnt++) {
 			if (audrec->enc_session[cnt].state ==
 				ENC_SESSION_FREE) {
@@ -220,7 +224,7 @@ int audrectask_enable(unsigned enc_type, audrec_event_func func, void *private)
 		rc = msm_adsp_get("AUDRECTASK", &audrec->audrec_mod, &adsp_ops,
 					audrec);
 		if (rc < 0) {
-			MM_ERR("cannot open AUDRECTASK\n");
+			pr_err("audrec: cannot open AUDRECTASK\n");
 			audrec->enc_count = 0;
 			audrec->enc_session[cnt].state = ENC_SESSION_FREE;
 			audrec->enc_session[cnt].enc_type = 0xFFFFFFFF;
@@ -260,7 +264,7 @@ void audrectask_disable(unsigned enc_type, void *private)
 	mutex_lock(audrec->lock);
 
 	if (--audrec->enc_count == 0) {
-		MM_DBG("\n"); /* Macro prints the file name and function */
+		dprintk(" %s : disable\n", __func__);
 		msm_adsp_disable(audrec->audrec_mod);
 		msm_adsp_put(audrec->audrec_mod);
 		audrec->audrec_mod = NULL;

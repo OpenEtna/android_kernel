@@ -22,7 +22,6 @@
  *
  */
 
-#include <mach/debug_audio_mm.h>
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/miscdevice.h>
@@ -45,6 +44,16 @@
 #include <mach/qdsp5/qdsp5audpreprocmsg.h>
 #include <mach/qdsp5/qdsp5audreccmdi.h>
 #include <mach/qdsp5/qdsp5audrecmsg.h>
+
+/* for queue ids - should be relative to module number*/
+#include "adsp.h"
+
+#ifdef DEBUG
+#define dprintk(format, arg...) \
+printk(KERN_DEBUG format, ## arg)
+#else
+#define dprintk(format, arg...) do {} while (0)
+#endif
 
 /* FRAME_NUM must be a power of two */
 #define FRAME_NUM		(8)
@@ -126,7 +135,7 @@ static int audio_amrnb_in_enable(struct audio_amrnb_in *audio)
 	if (audrectask_enable(audio->enc_type, audio_amrnb_in_dsp_event,
 		audio)) {
 		audmgr_disable(&audio->audmgr);
-		MM_ERR("audrec_enable failed\n");
+		pr_err(" %s : audrec_enable failed\n", __func__);
 		return -ENODEV;
 	}
 
@@ -191,7 +200,7 @@ static void audio_amrnb_in_dsp_event(void *data, unsigned id, uint16_t *msg)
 
 	switch (id) {
 	case AUDREC_MSG_CMD_CFG_DONE_MSG:
-		MM_DBG("CFG_DONE_MSG\n");
+		dprintk(" %s : CFG_DONE_MSG\n", __func__);
 		if (msg[0] & AUDREC_MSG_CFG_DONE_ENC_ENA) {
 			audio->audrec_obj_idx = msg[1];
 			audio_amrnb_in_encmem_config(audio);
@@ -200,35 +209,35 @@ static void audio_amrnb_in_dsp_event(void *data, unsigned id, uint16_t *msg)
 		}
 		break;
 	case AUDREC_MSG_CMD_AREC_MEM_CFG_DONE_MSG: {
-		MM_DBG("AREC_MEM_CFG_DONE_MSG\n");
+		dprintk(" %s : AREC_MEM_CFG_DONE_MSG\n", __func__);
 		if (msg[0] == audio->audrec_obj_idx)
 			audio_amrnb_in_encparam_config(audio);
 		else
-			MM_ERR("AREC_MEM_CFG_DONE_MSG ERR\n");
+			pr_err(" %s :AREC_MEM_CFG_DONE_MSG ERR\n", __func__);
 		break;
 	}
 	case AUDREC_MSG_CMD_AREC_PARAM_CFG_DONE_MSG: {
-		MM_DBG("AREC_PARAM_CFG_DONE_MSG\n");
+		dprintk(" %s : AREC_PARAM_CFG_DONE_MSG\n", __func__);
 		if (msg[0] == audio->audrec_obj_idx)
 			audio->running = 1;
 		else
-			MM_ERR("AREC_PARAM_CFG_DONE_MSG ERR\n");
+			pr_err(" %s :AREC_PARAM_CFG_DONE_MSG ERR\n", __func__);
 		break;
 	}
 	case AUDREC_MSG_PACKET_READY_MSG: {
-		MM_DBG("AUDREC_MSG_PACKET_READY_MSG\n");
+		dprintk(" %s : AUDREC_MSG_PACKET_READY_MSG\n", __func__);
 		if (msg[0] == audio->audrec_obj_idx)
 			audio_amrnb_in_get_dsp_frames(audio);
 		else
-			MM_ERR("PACKET_READY_MSG ERR\n");
+			pr_err(" %s :PACKET_READY_MSG ERR\n", __func__);
 		break;
 	}
 	case AUDREC_MSG_FATAL_ERR_MSG: {
-		MM_ERR("FATAL_ERR_MSG %x\n", msg[0]);
+		pr_err(" %s : FATAL_ERR_MSG %x\n", __func__, msg[0]);
 		break;
 	}
 	default:
-		MM_ERR("unknown event %d\n", id);
+		pr_err(" %s : unknown event %d\n", __func__, id);
 	}
 }
 
@@ -268,8 +277,8 @@ static int audio_amrnb_in_encmem_config(struct audio_amrnb_in *audio)
 	 */
 	for (cnt = 0; cnt < FRAME_NUM; cnt++) {
 		audio->in[cnt].data = data + 4; /* Pointer to Raw Packet part*/
-		MM_DBG(" audio->in[%d].data = %x \n", cnt,
-				(unsigned int)audio->in[cnt].data);
+		dprintk(" audio->in[%d].data = %x \n",
+				cnt, (unsigned int) audio->in[cnt].data);
 		data += 22; /* Point to next Frame buffer */
 	}
 
@@ -294,22 +303,18 @@ static int audio_amrnb_in_encparam_config(struct audio_amrnb_in *audio)
 	cmd.test_mode = audio->amrnb_enc_cfg.test_mode_enable;
 	cmd.used_mode = audio->amrnb_enc_cfg.enc_mode;
 
-	MM_DBG("cmd.common.cmd_id = 0x%4x\n", cmd.common.cmd_id);
-	MM_DBG("cmd.common.audrec_obj_idx = 0x%4x\n",
-			cmd.common.audrec_obj_idx);
-	MM_DBG("cmd.samp_rate_idx = 0x%4x\n", cmd.samp_rate_idx);
-	MM_DBG("cmd.voicememoencweight1 = 0x%4x\n",
-			cmd.voicememoencweight1);
-	MM_DBG("cmd.voicememoencweight2 = 0x%4x\n",
-			cmd.voicememoencweight2);
-	MM_DBG("cmd.voicememoencweight3 = 0x%4x\n",
-			cmd.voicememoencweight3);
-	MM_DBG("cmd.voicememoencweight4 = 0x%4x\n",
-			cmd.voicememoencweight4);
-	MM_DBG("cmd.update_mode = 0x%4x\n", cmd.update_mode);
-	MM_DBG("cmd.dtx_mode = 0x%4x\n", cmd.dtx_mode);
-	MM_DBG("cmd.test_mode = 0x%4x\n", cmd.test_mode);
-	MM_DBG("cmd.used_mode = 0x%4x\n", cmd.used_mode);
+	dprintk("cmd.common.cmd_id = 0x%4x\n", cmd.common.cmd_id);
+	dprintk("cmd.common.audrec_obj_idx = 0x%4x\n",
+				cmd.common.audrec_obj_idx);
+	dprintk("cmd.samp_rate_idx = 0x%4x\n", cmd.samp_rate_idx);
+	dprintk("cmd.voicememoencweight1 = 0x%4x\n", cmd.voicememoencweight1);
+	dprintk("cmd.voicememoencweight2 = 0x%4x\n", cmd.voicememoencweight2);
+	dprintk("cmd.voicememoencweight3 = 0x%4x\n", cmd.voicememoencweight3);
+	dprintk("cmd.voicememoencweight4 = 0x%4x\n", cmd.voicememoencweight4);
+	dprintk("cmd.update_mode = 0x%4x\n", cmd.update_mode);
+	dprintk("cmd.dtx_mode = 0x%4x\n", cmd.dtx_mode);
+	dprintk("cmd.test_mode = 0x%4x\n", cmd.test_mode);
+	dprintk("cmd.used_mode = 0x%4x\n", cmd.used_mode);
 
 	return audrectask_send_cmdqueue(&cmd, sizeof(cmd));
 }
@@ -482,7 +487,7 @@ static ssize_t audio_amrnb_in_read(struct file *file,
 			count -= size;
 			buf += size;
 		} else {
-			MM_ERR("short read\n");
+			pr_err(" %s : short read\n", __func__);
 			break;
 		}
 	}
@@ -567,7 +572,7 @@ done:
 	return rc;
 }
 
-static const struct file_operations audio_fops = {
+static struct file_operations audio_fops = {
 	.owner		= THIS_MODULE,
 	.open		= audio_amrnb_in_open,
 	.release	= audio_amrnb_in_release,
@@ -629,7 +634,7 @@ static ssize_t audamrnb_in_debug_read(struct file *file, char __user *buf,
 	return simple_read_from_buffer(buf, count, ppos, buffer, n);
 }
 
-static const struct file_operations audamrnb_in_debug_fops = {
+static struct file_operations audamrnb_in_debug_fops = {
 	.read = audamrnb_in_debug_read,
 	.open = audamrnb_in_debug_open,
 };
@@ -651,7 +656,7 @@ static int __init audio_amrnb_in_init(void)
 		(void *) &the_audio_amrnb_in, &audamrnb_in_debug_fops);
 
 	if (IS_ERR(dentry))
-		MM_ERR("debugfs_create_file failed\n");
+		dprintk("AMRNB_IN:%s:debugfs_create_file failed\n", __func__);
 #endif
 	return misc_register(&audio_amrnb_in_misc);
 }
