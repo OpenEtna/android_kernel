@@ -6,7 +6,7 @@
     A U D I O   P O S T   P R O C E S S I N G  I N T E R N A L  C O M M A N D S
 
 GENERAL DESCRIPTION
-  This file contains defintions of format blocks of commands 
+  This file contains defintions of format blocks of commands
   that are accepted by AUDPP Task
 
 REFERENCES
@@ -20,7 +20,7 @@ Copyright (c) 1992-2009, Code Aurora Forum. All rights reserved.
 This software is licensed under the terms of the GNU General Public
 License version 2, as published by the Free Software Foundation, and
 may be copied, distributed, and modified under those terms.
- 
+
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -33,13 +33,13 @@ GNU General Public License for more details.
 
 This section contains comments describing changes made to this file.
 Notice that changes are listed in reverse chronological order.
-   
-$Header: //source/qcom/qct/multimedia2/Audio/drivers/QDSP5Driver/QDSP5Interface/main/latest/qdsp5audppcmdi.h#2 $   
-  
+
+$Header: //source/qcom/qct/multimedia2/Audio/drivers/QDSP5Driver/QDSP5Interface/main/latest/qdsp5audppcmdi.h#2 $
+
 ===========================================================================*/
 
 /*
- * ARM to AUDPPTASK Commands 
+ * ARM to AUDPPTASK Commands
  *
  * ARM uses three command queues to communicate with AUDPPTASK
  * 1)uPAudPPCmd1Queue : Used for more frequent and shorter length commands
@@ -61,7 +61,7 @@ $Header: //source/qcom/qct/multimedia2/Audio/drivers/QDSP5Driver/QDSP5Interface/
  */
 
 /*
- * Command Structure to enable or disable the active decoders 
+ * Command Structure to enable or disable the active decoders
  */
 
 #define AUDPP_CMD_CFG_DEC_TYPE 		0x0001
@@ -79,14 +79,14 @@ $Header: //source/qcom/qct/multimedia2/Audio/drivers/QDSP5Driver/QDSP5Interface/
 
 
 /* Type specification of cmd_cfg_dec */
- 
+
 typedef struct {
-  unsigned short cmd_id;
-  unsigned short dec0_cfg;
-  unsigned short dec1_cfg;
-  unsigned short dec2_cfg;
-  unsigned short dec3_cfg;
-  unsigned short dec4_cfg;
+	unsigned short cmd_id;
+	unsigned short dec0_cfg;
+	unsigned short dec1_cfg;
+	unsigned short dec2_cfg;
+	unsigned short dec3_cfg;
+	unsigned short dec4_cfg;
 } __attribute__((packed)) audpp_cmd_cfg_dec_type;
 
 /*
@@ -109,12 +109,12 @@ typedef struct {
 /* Type Spec for decoder control command*/
 
 typedef struct {
-  unsigned short cmd_id;
-  unsigned short dec0_ctrl;
-  unsigned short dec1_ctrl;
-  unsigned short dec2_ctrl;
-  unsigned short dec3_ctrl;
-  unsigned short dec4_ctrl;
+	unsigned short cmd_id;
+	unsigned short dec0_ctrl;
+	unsigned short dec1_ctrl;
+	unsigned short dec2_ctrl;
+	unsigned short dec3_ctrl;
+	unsigned short dec4_ctrl;
 } __attribute__((packed)) audpp_cmd_dec_ctrl;
 
 /*
@@ -132,7 +132,7 @@ typedef struct {
 } __attribute__((packed)) audpp_cmd_avsync;
 
 /*
- * Command Structure to enable or disable(sleep) the   AUDPPTASK 
+ * Command Structure to enable or disable(sleep) the   AUDPPTASK
  */
 
 #define AUDPP_CMD_CFG	0x0004
@@ -142,8 +142,8 @@ typedef struct {
 #define AUDPP_CMD_CFG_ENABLE  				0xFFFF
 
 typedef struct {
-  unsigned short cmd_id;
-  unsigned short cfg;
+	unsigned short cmd_id;
+	unsigned short cfg;
 } __attribute__((packed)) audpp_cmd_cfg;
 
 /*
@@ -248,7 +248,7 @@ struct audpp_cmd_routing_mode {
 #define  AUDPP_CMD_SAMP_RATE_8000  	0x000B
 
 
-/* 
+/*
  * Type specification of cmd_adec_cfg sent to all decoder
  */
 
@@ -269,12 +269,12 @@ typedef struct {
 	sizeof(audpp_cmd_cfg_adec_params_wav)
 
 
-#define	AUDPP_CMD_WAV_STEREO_CFG_MONO	0x0001
+#define AUDPP_CMD_WAV_STEREO_CFG_MONO	0x0001
 #define AUDPP_CMD_WAV_STEREO_CFG_STEREO	0x0002
 
 #define AUDPP_CMD_WAV_PCM_WIDTH_8	0x0000
 #define AUDPP_CMD_WAV_PCM_WIDTH_16	0x0001
-#define AUDPP_CMD_WAV_PCM_WIDTH_32	0x0002
+#define AUDPP_CMD_WAV_PCM_WIDTH_24	0x0002
 
 typedef struct {
 	audpp_cmd_cfg_adec_params_common		common;
@@ -362,7 +362,6 @@ typedef struct {
   unsigned short                        aac_spectral_data_resilience_flag;
   unsigned short                        sbr_on_flag;
   unsigned short                        sbr_ps_on_flag;
-  unsigned short                        dual_mono_mode;
   unsigned short                        channel_configuration;
 } __attribute__((packed)) audpp_cmd_cfg_adec_params_aac;
 
@@ -424,47 +423,47 @@ struct audpp_cmd_cfg_adec_params_evrc {
 
 #define  AUDPP_CMD_PCM_INTF_OBJECT_NUM           0x5
 #define  AUDPP_CMD_PCM_INTF_COMMON_OBJECT_NUM    0x6
-  
+
 
 typedef struct {
-  unsigned short  cmd_id;
-  unsigned short  object_num;
-  signed short  config;
-  unsigned short  intf_type;
-  
-  /* DSP -> ARM Configuration */
-  unsigned short  read_buf1LSW;
-  unsigned short  read_buf1MSW;
-  unsigned short  read_buf1_len;
+	unsigned short  cmd_id;
+	unsigned short  object_num;
+	signed short  config;
+	unsigned short  intf_type;
 
-  unsigned short  read_buf2LSW;
-  unsigned short  read_buf2MSW;
-  unsigned short  read_buf2_len;
-  /*   0:HOST_PCM_INTF disable
-   **  0xFFFF: HOST_PCM_INTF enable
-   */
-  signed short  dsp_to_arm_flag;
-  unsigned short  partition_number;
+	/* DSP -> ARM Configuration */
+	unsigned short  read_buf1LSW;
+	unsigned short  read_buf1MSW;
+	unsigned short  read_buf1_len;
 
-  /* ARM -> DSP Configuration */
-  unsigned short  write_buf1LSW;
-  unsigned short  write_buf1MSW;
-  unsigned short  write_buf1_len;
- 
-  unsigned short  write_buf2LSW;
-  unsigned short  write_buf2MSW;
-  unsigned short  write_buf2_len;
+	unsigned short  read_buf2LSW;
+	unsigned short  read_buf2MSW;
+	unsigned short  read_buf2_len;
+	/*   0:HOST_PCM_INTF disable
+	**  0xFFFF: HOST_PCM_INTF enable
+	*/
+	signed short  dsp_to_arm_flag;
+	unsigned short  partition_number;
 
-  /*   0:HOST_PCM_INTF disable
-   **  0xFFFF: HOST_PCM_INTF enable
-   */
-  signed short  arm_to_rx_flag;
-  unsigned short  weight_decoder_to_rx;
-  unsigned short  weight_arm_to_rx;
+	/* ARM -> DSP Configuration */
+	unsigned short  write_buf1LSW;
+	unsigned short  write_buf1MSW;
+	unsigned short  write_buf1_len;
 
-  unsigned short  partition_number_arm_to_dsp;
-  unsigned short  sample_rate;
-  unsigned short  channel_mode;
+	unsigned short  write_buf2LSW;
+	unsigned short  write_buf2MSW;
+	unsigned short  write_buf2_len;
+
+	/*   0:HOST_PCM_INTF disable
+	**  0xFFFF: HOST_PCM_INTF enable
+	*/
+	signed short  arm_to_rx_flag;
+	unsigned short  weight_decoder_to_rx;
+	unsigned short  weight_arm_to_rx;
+
+	unsigned short  partition_number_arm_to_dsp;
+	unsigned short  sample_rate;
+	unsigned short  channel_mode;
 } __attribute__((packed)) audpp_cmd_pcm_intf;
 
 /*
@@ -617,7 +616,7 @@ typedef struct {
 
 
 /*
- * Command Structure to configure post processing parameters (equalizer) 
+ * Command Structure to configure post processing parameters (equalizer)
  */
 
 #define AUDPP_CMD_CFG_OBJECT_PARAMS_EQALIZER_LEN		\
@@ -738,7 +737,7 @@ typedef struct {
 
 
 /*
- * Command Structure to configure post processing parameters (ADRC) 
+ * Command Structure to configure post processing parameters (ADRC)
  */
 
 #define AUDPP_CMD_CFG_OBJECT_PARAMS_ADRC_LEN		\
@@ -748,18 +747,46 @@ typedef struct {
 #define AUDPP_CMD_ADRC_FLAG_DIS		0x0000
 #define AUDPP_CMD_ADRC_FLAG_ENA		-1
 
+#define	AUDPP_MAX_MBADRC_BANDS		5
+#define	AUDPP_MBADRC_EXTERNAL_BUF_SIZE	196
+
+struct adrc_config {
+	uint16_t subband_enable;
+	uint16_t adrc_sub_mute;
+	uint16_t rms_time;
+	uint16_t compression_th;
+	uint16_t compression_slope;
+	uint16_t attack_const_lsw;
+	uint16_t attack_const_msw;
+	uint16_t release_const_lsw;
+	uint16_t release_const_msw;
+	uint16_t makeup_gain;
+};
+
 typedef struct {
 	audpp_cmd_cfg_object_params_common 	common;
-	signed short				adrc_flag;
-	unsigned short				compression_th;
-	unsigned short				compression_slope;
-	unsigned short				rms_time;
-	unsigned short				attack_const_lsw;
-	unsigned short				attack_const_msw;
-	unsigned short				release_const_lsw;
-	unsigned short				release_const_msw;
-	unsigned short				adrc_system_delay;
-} __attribute__((packed)) audpp_cmd_cfg_object_params_adrc;
+	uint16_t enable;
+	uint16_t num_bands;
+	uint16_t down_samp_level;
+	uint16_t adrc_delay;
+	uint16_t ext_buf_size;
+	uint16_t ext_partition;
+	uint16_t ext_buf_msw;
+	uint16_t ext_buf_lsw;
+	struct adrc_config adrc_band[AUDPP_MAX_MBADRC_BANDS];
+} __attribute__((packed)) audpp_cmd_cfg_object_params_mbadrc;
+
+struct audpp_cmd_cfg_object_params_adrc {
+	unsigned short	adrc_flag;
+	unsigned short	compression_th;
+	unsigned short	compression_slope;
+	unsigned short	rms_time;
+	unsigned short	attack_const_lsw;
+	unsigned short	attack_const_msw;
+	unsigned short	release_const_lsw;
+	unsigned short	release_const_msw;
+	unsigned short	adrc_delay;
+};
 
 /*
  * Command Structure to configure post processing parameters(Spectrum Analizer)
@@ -776,7 +803,7 @@ typedef struct {
 } __attribute__((packed)) audpp_cmd_cfg_object_params_spectram;
 
 /*
- * Command Structure to configure post processing parameters (QConcert) 
+ * Command Structure to configure post processing parameters (QConcert)
  */
 
 #define AUDPP_CMD_CFG_OBJECT_PARAMS_QCONCERT_LEN		\
@@ -801,15 +828,28 @@ typedef struct {
 typedef struct {
 	audpp_cmd_cfg_object_params_common 	common;
 	signed short				enable_flag;
-	signed short				output_mode;
+	signed short				op_mode;
 	signed short				gain;
 	signed short				expansion;
 	signed short				delay;
 	unsigned short				stages_per_mode;
+	unsigned short				reverb_enable;
+	unsigned short				decay_msw;
+	unsigned short				decay_lsw;
+	unsigned short				decay_time_ratio_msw;
+	unsigned short				decay_time_ratio_lsw;
+	unsigned short				reflection_delay_time;
+	unsigned short				late_reverb_gain;
+	unsigned short				late_reverb_delay;
+	unsigned short                          delay_buff_size_msw;
+	unsigned short                          delay_buff_size_lsw;
+	unsigned short                          partition_num;
+	unsigned short                          delay_buff_start_msw;
+	unsigned short                          delay_buff_start_lsw;
 } __attribute__((packed)) audpp_cmd_cfg_object_params_qconcert;
 
 /*
- * Command Structure to configure post processing parameters (Side Chain) 
+ * Command Structure to configure post processing parameters (Side Chain)
  */
 
 #define AUDPP_CMD_CFG_OBJECT_PARAMS_SIDECHAIN_LEN		\

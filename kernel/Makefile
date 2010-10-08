@@ -27,10 +27,10 @@ ifeq ($(CONFIG_ARM),y)
 # build abort. Version 4.3.1 of the compiler does not create this warning.
 # So, remove the -Werror until the compiler can be updated for all build
 # platforms to v4.3.1
-#CFLAGS_REMOVE_workqueue.o = -Werror
-#CFLAGS_REMOVE_srcu.o = -Werror
-#CFLAGS_REMOVE_cred.o = -Werror
-#CFLAGS_REMOVE_kexec.o = -Werror
+CFLAGS_REMOVE_workqueue.o = -Werror
+CFLAGS_REMOVE_srcu.o = -Werror
+CFLAGS_REMOVE_cred.o = -Werror
+CFLAGS_REMOVE_kexec.o = -Werror
 endif
 
 obj-$(CONFIG_FREEZER) += freezer.o
