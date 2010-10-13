@@ -166,11 +166,6 @@ static struct platform_device *devices[] __initdata = {
 
 extern struct sys_timer msm_timer;
 
-static void __init eve_init_irq(void)
-{
-	msm_init_irq();
-}
-
 static struct msm_acpu_clock_platform_data eve_clock_data = {
 	.acpu_switch_time_us = 50,
 	.max_speed_delta_khz = 256000,
@@ -195,7 +190,7 @@ static void __init eve_fixup(struct machine_desc *desc, struct tag *tags,
 	mi->nr_banks = 1;
 	mi->bank[0].start = PHYS_OFFSET;
 	mi->bank[0].node = PHYS_TO_NID(PHYS_OFFSET);
-	mi->bank[0].size = (224*1024*1024);
+	mi->bank[0].size = MSM_LINUX_SIZE;
 }
 
 static void __init eve_map_io(void)
@@ -208,7 +203,7 @@ MACHINE_START(EVE, "eve-maldn-google-32")
 	.boot_params	= 0x10000100,
 	.fixup		= eve_fixup,
 	.map_io		= eve_map_io,
-	.init_irq	= eve_init_irq,
+	.init_irq	= msm_init_irq,
 	.init_machine	= eve_init,
 	.timer		= &msm_timer,
 MACHINE_END
