@@ -68,26 +68,36 @@
 #include "proc_comm.h"  // LGE_CHANGE [jinwoonam@lge.com] for proc_comm
 #include <mach/system.h>
 
-#ifdef CONFIG_MSM_STACKED_MEMORY
-#define MSM_SMI_BASE		0x100000
-#define MSM_SMI_SIZE		0x800000
+/* SMI */
+#define MSM_SMI_BASE            0x00100000
+#define MSM_SMI_SIZE            0x00800000
 
-#define MSM_PMEM_GPU0_BASE	MSM_SMI_BASE
-#define MSM_PMEM_GPU0_SIZE	0x800000
-#endif
+#define MSM_PMEM_GPU0_BASE      MSM_SMI_BASE
+#define MSM_PMEM_GPU0_SIZE      (7*SZ_1M)
 
-#define MSM_PMEM_MDP_SIZE	0x800000
-#define MSM_PMEM_CAMERA_SIZE	0xa00000
-//#define MSM_PMEM_ADSP_SIZE	0xf00000
-#define MSM_PMEM_ADSP_SIZE	0x800000
-#define MSM_PMEM_GPU1_SIZE	0x800000
-#define MSM_FB_SIZE		0x800000
+#define MSM_FB_BASE             (MSM_PMEM_GPU0_BASE+MSM_PMEM_GPU0_SIZE)
+#define MSM_FB_SIZE             (1*SZ_1M)
 
-#ifdef CONFIG_ANDROID_RAM_CONSOLE
-#define MSM_EBI2_BASE			0x10000000
-#define EVE_RAM_CONSOLE_BASE	(MSM_EBI2_BASE + 223 * SZ_1M)
-#define	EVE_RAM_CONSOLE_SIZE	(128 * SZ_1K)
-#endif
+/* EBI */
+#define MSM_EBI_BASE            0x10000000
+
+#define MSM_LINUX_BASE          MSM_EBI_BASE
+#define MSM_LINUX_SIZE          (223*SZ_1M - MSM_PMEM_MDP_SIZE-MSM_PMEM_ADSP_SIZE-MSM_PMEM_CAMERA_SIZE-MSM_PMEM_GPU1_SIZE)
+
+#define MSM_PMEM_MDP_BASE       (MSM_LINUX_BASE + MSM_LINUX_SIZE)
+#define MSM_PMEM_MDP_SIZE       (8*SZ_1M)
+
+#define MSM_PMEM_ADSP_BASE      (MSM_PMEM_MDP_BASE + MSM_PMEM_MDP_SIZE)
+#define MSM_PMEM_ADSP_SIZE      (13*SZ_1M)
+
+#define MSM_PMEM_CAMERA_BASE    (MSM_PMEM_ADSP_BASE + MSM_PMEM_ADSP_SIZE)
+#define MSM_PMEM_CAMERA_SIZE    (11*SZ_1M)
+
+#define MSM_PMEM_GPU1_BASE      (MSM_PMEM_CAMERA_BASE + MSM_PMEM_CAMERA_SIZE)
+#define MSM_PMEM_GPU1_SIZE      (8*SZ_1M)
+
+#define MSM_RAM_CONSOLE_BASE    (MSM_PMEM_GPU1_SIZE+MSM_PMEM_GPU1_BASE)
+#define MSM_RAM_CONSOLE_SIZE    (128 * SZ_1K)
 
 /* for MMC detect */
 #ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION
@@ -432,34 +442,30 @@ static struct android_pmem_platform_data android_pmem_pdata = {
 	.name = "pmem",
 	.allocator_type = PMEM_ALLOCATORTYPE_BUDDYBESTFIT,
 	.cached = 1,
+    .start = MSM_PMEM_MDP_BASE,
+    .size = MSM_PMEM_MDP_SIZE,
+};
+
+struct android_pmem_platform_data android_pmem_gpu1_pdata = {
+       .name = "pmem_gpu1",
+       .allocator_type = PMEM_ALLOCATORTYPE_ALLORNOTHING,
+       .cached = 0,
 };
 
 static struct android_pmem_platform_data android_pmem_camera_pdata = {
 	.name = "pmem_camera",
 	.allocator_type = PMEM_ALLOCATORTYPE_BUDDYBESTFIT,
-	.cached = 0,
+	.cached = 1,
+    .start = MSM_PMEM_CAMERA_BASE,
+    .size = MSM_PMEM_CAMERA_SIZE,
 };
 
 static struct android_pmem_platform_data android_pmem_adsp_pdata = {
 	.name = "pmem_adsp",
 	.allocator_type = PMEM_ALLOCATORTYPE_BUDDYBESTFIT,
 	.cached = 0,
-};
-
-#ifdef CONFIG_MSM_STACKED_MEMORY
-static struct android_pmem_platform_data android_pmem_gpu0_pdata = {
-	.name = "pmem_gpu0",
-	.start = MSM_PMEM_GPU0_BASE,
-	.size = MSM_PMEM_GPU0_SIZE,
-	.allocator_type = PMEM_ALLOCATORTYPE_ALLORNOTHING,
-	.cached = 0,
-};
-#endif
-
-static struct android_pmem_platform_data android_pmem_gpu1_pdata = {
-	.name = "pmem_gpu1",
-	.allocator_type = PMEM_ALLOCATORTYPE_ALLORNOTHING,
-	.cached = 0,
+    .start = MSM_PMEM_ADSP_BASE,
+    .size = MSM_PMEM_ADSP_SIZE,
 };
 
 static struct platform_device android_pmem_device = {
@@ -470,7 +476,7 @@ static struct platform_device android_pmem_device = {
 
 static struct platform_device android_pmem_camera_device = {
 	.name = "android_pmem",
-	.id = 4,
+	.id = 2,
 	.dev = { .platform_data = &android_pmem_camera_pdata },
 };
 
@@ -480,19 +486,6 @@ static struct platform_device android_pmem_adsp_device = {
 	.dev = { .platform_data = &android_pmem_adsp_pdata },
 };
 
-#ifdef CONFIG_MSM_STACKED_MEMORY
-static struct platform_device android_pmem_gpu0_device = {
-	.name = "android_pmem",
-	.id = 2,
-	.dev = { .platform_data = &android_pmem_gpu0_pdata },
-};
-#endif
-
-static struct platform_device android_pmem_gpu1_device = {
-	.name = "android_pmem",
-	.id = 3,
-	.dev = { .platform_data = &android_pmem_gpu1_pdata },
-};
 
 static struct platform_device eve_battery_device = {
 	.name = "lge_battery",
@@ -519,8 +512,8 @@ static char *msm_fb_vreg[] = {
 static struct resource ram_console_resource[] = {
 	{
 		.name = "ram_console",
-		.start = EVE_RAM_CONSOLE_BASE,
-		.end = EVE_RAM_CONSOLE_BASE + EVE_RAM_CONSOLE_SIZE - 1,
+		.start = MSM_RAM_CONSOLE_BASE,
+		.end = MSM_RAM_CONSOLE_BASE + MSM_RAM_CONSOLE_SIZE - 1,
 		.flags  = IORESOURCE_MEM,
 	}
 };
@@ -532,6 +525,42 @@ static struct platform_device ram_console_device = {
 	.resource       = ram_console_resource,
 };
 #endif
+
+/* giorgio130 - 3d patch */
+static struct resource resources_hw3d[] = {
+	{
+		.start	= 0xA0000000,
+		.end	= 0xA00fffff,
+		.flags	= IORESOURCE_MEM,
+		.name	= "regs",
+	},
+	{
+		.flags	= IORESOURCE_MEM,
+                .start  = MSM_PMEM_GPU0_BASE,
+                .end    = MSM_PMEM_GPU0_BASE+MSM_PMEM_GPU0_SIZE-1,
+		.name	= "smi",
+	},
+	{
+		.flags	= IORESOURCE_MEM,
+                .start  = MSM_PMEM_GPU1_BASE,
+                .end    = MSM_PMEM_GPU1_BASE+MSM_PMEM_GPU1_SIZE-1,
+		.name	= "ebi",
+	},
+	{
+		.start	= INT_GRAPHICS,
+		.end	= INT_GRAPHICS,
+		.flags	= IORESOURCE_IRQ,
+		.name	= "gfx",
+	},
+};
+
+static struct platform_device hw3d_device = {
+	.name		= "msm_hw3d",
+	.id		= 0,
+	.num_resources	= ARRAY_SIZE(resources_hw3d),
+	.resource	= resources_hw3d,
+};
+/* end patch */
 
 #define MSM_FB_VREG_OP(name, op)                                        \
         do {vreg = vreg_get(0, name);                                   \
@@ -619,6 +648,8 @@ static struct mddi_platform_data mddi_pdata = {
 
 static struct resource msm_fb_resources[] = {
 	{
+        .start  = MSM_FB_BASE,
+        .end    = MSM_FB_BASE + MSM_FB_SIZE - 1,
 		.flags  = IORESOURCE_DMA,
 	}
 };
@@ -946,10 +977,6 @@ static struct platform_device *devices[] __initdata = {
 	&android_pmem_device,
 	&android_pmem_adsp_device,
 	&eve_battery_device,
-#ifdef CONFIG_MSM_STACKED_MEMORY
-	&android_pmem_gpu0_device,
-#endif
-	&android_pmem_gpu1_device,
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 	&ram_console_device,
 #endif
@@ -985,6 +1012,7 @@ static struct platform_device *devices[] __initdata = {
 	&eve_camera_flashlight_device,
 	&eve_atcmd_device, //vlc
 	&pwrkey_device,
+    &hw3d_device
 };
 
 #define EVE_GPIO_PS_HOLD	(25)
@@ -1095,11 +1123,6 @@ static void __init msm_camera_add_device(void)
 {
 	msm_camera_register_device(NULL, 0, &msm_camera_device_data);
 	config_camera_off_gpios();
-}
-
-static void __init eve_init_irq(void)
-{
-	msm_init_irq();
 }
 
 static struct msm_acpu_clock_platform_data eve_clock_data = {
@@ -1469,57 +1492,21 @@ static void __init eve_fixup(struct machine_desc *desc, struct tag *tags,
 	mi->nr_banks = 1;
 	mi->bank[0].start = PHYS_OFFSET;
 	mi->bank[0].node = PHYS_TO_NID(PHYS_OFFSET);
-#if CONFIG_ANDROID_RAM_CONSOLE
-/* decrease system memory size for allocating ram_console buffer region
- * 224Mbyte -> 223Mbyte
- * 2009/05/26 cleaneye@lge.com */
-	mi->bank[0].size = (223*1024*1024);
-#else
-/* LGE_CHANGE [parksh03@lge.com] 2009-03-09, change the size of the system memory */
-	mi->bank[0].size = (224*1024*1024);
-#endif
+	mi->bank[0].size = (MSM_LINUX_SIZE);
 }
 
 static void __init msm_eve_allocate_memory_regions(void)
 {
-	void *addr;
+/*	void *addr;
 	unsigned long size;
 
-	size = MSM_PMEM_MDP_SIZE;
-	addr = alloc_bootmem(size);
-	android_pmem_pdata.start = __pa(addr);
-	android_pmem_pdata.size = size;
-	printk(KERN_INFO "allocating %lu bytes at %p (%lx physical)"
-	       "for pmem\n", size, addr, __pa(addr));
-
-	size = MSM_PMEM_CAMERA_SIZE;
-	addr = alloc_bootmem(size);
-	android_pmem_camera_pdata.start = __pa(addr);
-	android_pmem_camera_pdata.size = size;
-	printk(KERN_INFO "allocating %lu bytes at %p (%lx physical)"
-	       "for camera pmem\n", size, addr, __pa(addr));
-
-	size = MSM_PMEM_ADSP_SIZE;
-	addr = alloc_bootmem(size);
-	android_pmem_adsp_pdata.start = __pa(addr);
-	android_pmem_adsp_pdata.size = size;
-	printk(KERN_INFO "allocating %lu bytes at %p (%lx physical)"
-	       "for adsp pmem\n", size, addr, __pa(addr));
-
-	size = MSM_PMEM_GPU1_SIZE;
-	addr = alloc_bootmem_aligned(size, 0x100000);
-	android_pmem_gpu1_pdata.start = __pa(addr);
-	android_pmem_gpu1_pdata.size = size;
-	printk(KERN_INFO "allocating %lu bytes at %p (%lx physical)"
-	       "for gpu1 pmem\n", size, addr, __pa(addr));
-
-	size = MSM_FB_SIZE;
-	addr = alloc_bootmem(size);
-	msm_fb_resources[0].start = __pa(addr);
-	msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
-	printk(KERN_INFO "allocating %lu bytes at %p (%lx physical) for fb\n",
-			size, addr, __pa(addr));
-
+    size = MSM_PMEM_GPU1_SIZE;
+    addr = alloc_bootmem_aligned(size, 0x100000);
+    android_pmem_gpu1_pdata.start = __pa(addr);
+    android_pmem_gpu1_pdata.size = size;
+    printk(KERN_INFO "allocating %lu bytes at %p (%lx physical)"
+    "for gpu1 pmem\n", size, addr, __pa(addr));
+*/
 }
 
 static void __init eve_map_io(void)
@@ -1543,7 +1530,7 @@ MACHINE_START(EVE, "Eve")
 	.boot_params	= 0x10000100,
 	.fixup		= eve_fixup,
 	.map_io		= eve_map_io,
-	.init_irq	= eve_init_irq,
+	.init_irq	= msm_init_irq,
 	.init_machine	= eve_init,
 	.timer		= &msm_timer,
 MACHINE_END
