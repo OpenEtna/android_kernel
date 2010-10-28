@@ -402,26 +402,29 @@ static struct msm_hsusb_platform_data msm_hsusb_pdata = {
 };
 
 #define SND(desc, num) { .name = #desc, .id = num }
+/* original mapping from lg
+	SND(HANDSET, 0),
+    SND(HEADSET, 2),
+    SND(HEADSET_STEREO, 3),
+    SND(SPEAKER_MEDIA, 5),
+    SND(SPEAKER, 6),
+    SND(SPEAKER_RING, 7),
+    SND(HEADSET_AND_SPEAKER, 7),
+    SND(VOICE_RECORDER, 8),
+    SND(FM_RADIO_HEADSET_MEDIA, 9),
+    SND(FM_RADIO_SPEAKER_MEDIA, 10),
+    SND(BT, 12),
+    SND(CURRENT, 25),
+*/
 static struct snd_endpoint snd_endpoints_list[] = {
 	SND(HANDSET, 0),
-	SND(HEADSET, 2),
-	SND(HEADSET_STEREO, 3),
-	SND(SPEAKER_MEDIA, 5),
-	SND(SPEAKER, 6),
-	SND(SPEAKER_RING, 7),
+	SND(HEADSET, 3), //use HEADSET_STEREO's id
+	SND(SPEAKER, 5), //use SPEAKER_MEDIA's id
 	SND(HEADSET_AND_SPEAKER, 7),
-	SND(VOICE_RECORDER, 8),
-	SND(FM_RADIO_HEADSET_MEDIA, 9),
-	SND(FM_RADIO_SPEAKER_MEDIA, 10),
+	SND(FM_HEADSET, 9),
+	SND(FM_SPEAKER, 10),
 	SND(BT, 12),
-
-#if defined(CONFIG_MACH_EVE)
 	SND(CURRENT, 25),
-#else
-	SND(IN_S_SADC_OUT_HANDSET, 16),
-	SND(IN_S_SADC_OUT_SPEAKER_PHONE, 25),
-	SND(CURRENT, 27),
-#endif /* CONFIG_MACH_EVE */
 };
 #undef SND
 
