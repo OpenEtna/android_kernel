@@ -1394,7 +1394,7 @@ static void __init sapphire_fixup(struct machine_desc *desc, struct tag *tags,
 #ifdef CONFIG_HOLES_IN_ZONE
 			mi->bank[0].size = 0x6d00000;
 #else
-			mi->bank[0].size = 0x6c00000
+			mi->bank[0].size = 0x6c00000;
 #endif
 			mi->bank[1].start = 0x18000000;
 			mi->bank[1].size = 0x5800000;
@@ -1405,7 +1405,11 @@ static void __init sapphire_fixup(struct machine_desc *desc, struct tag *tags,
 			break;
 		}
 	} else if (smi_sz == 64) {
-                mi->bank[0].size = SMI64_MSM_LINUX_SIZE;        //(101*1024*1024);
+		mi->nr_banks = 2;
+		mi->bank[0].size = SMI64_MSM_LINUX_SIZE;	//(101*1024*1024);
+		mi->bank[1].start = SMI64_MSM_LINUX2_BASE;
+		mi->bank[1].size = SMI64_MSM_LINUX2_SIZE;
+		mi->bank[1].node = PHYS_TO_NID(SMI64_MSM_LINUX2_BASE);
 	} else {
 		printk(KERN_ERR "can not get smi size\n");
 
