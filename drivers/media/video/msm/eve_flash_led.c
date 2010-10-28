@@ -1,3 +1,6 @@
+
+/* TODO: this should be split in one a leds-gpio device and led triggers for the movie mode */
+
 /* -*- mode: c; c-basic-offset: 8; -*-
  * vim: noexpandtab sw=8 ts=8 sts=0:
  */
@@ -5,6 +8,7 @@
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/delay.h>
+#include <linux/leds.h>
 #include <mach/gpio.h>
 
 #undef DEBUG
@@ -15,7 +19,7 @@
 #define DBG(fmt, args...) do {} while(0)
 #endif
 
-#define FEATURE_DEVICE_FILE_INTERFACE 0
+#define FEATURE_DEVICE_FILE_INTERFACE 1
 #define FEATURE_MOVIE_MODE_STROBE 0
 #define FEATURE_STROBE_PREFLASH 1
 
@@ -232,6 +236,33 @@ int eve_flash_set_led_state(int led_state)
 }
 EXPORT_SYMBOL(eve_flash_set_led_state);
 
+#ifdef CONFIG_LEDS_CLASS
+/* brightness is a value between 0 (OFF) and 255 */
+static void led_brightness_set(struct led_classdev *led_cdev,
+				enum led_brightness value) {
+
+	if( value )
+		eve_flash_led_movie_mode_on(EVE_FLASH_MOVIE_CURRENT);
+	else
+		eve_flash_led_movie_mode_off();
+}
+/*
+static int led_blink_set(struct led_classdev *led_cdev,
+	unsigned long *delay_on, unsigned long *delay_off) {
+
+	if( *delay_on == 0 && *delay_off == 0) {
+		*delay_on =
+}
+*/
+static struct led_classdev led_cdev = {
+	.name = "flashlight",
+	//.blink_set = led_blink_set,
+	.brightness_set = led_brightness_set,
+	.brightness = LED_OFF,
+	.flags = LED_CORE_SUSPENDRESUME,
+};
+#endif
+
 static int eve_flash_led_probe(struct platform_device *pdev)
 {
 	int err;
@@ -253,12 +284,18 @@ static int eve_flash_led_probe(struct platform_device *pdev)
 	}
 
 	setup_timer(&strobe_timer, eve_flash_led_strobe_timer, (unsigned long)NULL);
-
+#ifdef CONFIG_LEDS_CLASS
+	led_classdev_register(&pdev->dev, &led_cdev);
+#endif
 	return 0;
 }
 
 static int eve_flash_led_remove(struct platform_device *pdev)
 {
+#ifdef CONFIG_LEDS_CLASS
+	led_classdev_unregister(&led_cdev);
+#endif
+
 #if FEATURE_DEVICE_FILE_INTERFACE
 	device_remove_file(&pdev->dev, &dev_attr_movie_mode_on);
 #endif
