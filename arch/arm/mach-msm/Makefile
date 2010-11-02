@@ -34,7 +34,8 @@ obj-$(CONFIG_MSM_SSBI) += ssbi.o
 obj-$(CONFIG_HTC_ACOUSTIC) += htc_acoustic.o
 obj-$(CONFIG_HTC_ACOUSTIC_QSD) += htc_acoustic_qsd.o
 
-obj-$(CONFIG_MACH_TROUT) += board-trout.o devices-msm7x00.o
+
+obj-$(CONFIG_MACH_TROUT) += board-trout.o
 obj-$(CONFIG_MACH_TROUT) += board-trout-gpio.o
 obj-$(CONFIG_MACH_TROUT) += board-trout-keypad.o board-trout-panel.o
 obj-$(CONFIG_MACH_TROUT) += htc_akm_cal.o htc_wifi_nvs.o
@@ -63,6 +64,7 @@ obj-$(CONFIG_MACH_SWORDFISH) += board-swordfish.o
 obj-$(CONFIG_MACH_SWORDFISH) += board-swordfish-keypad.o fish_battery.o
 obj-$(CONFIG_MACH_SWORDFISH) += board-swordfish-panel.o
 obj-$(CONFIG_MACH_SWORDFISH) += board-swordfish-mmc.o
+obj-$(CONFIG_ARCH_MSM7X00A) += devices-msm7x00.o
 obj-$(CONFIG_MACH_MSM7X30_SURF) += board-surf7x30.o
 obj-$(CONFIG_ARCH_MSM7X30) += board-msm7x30.o devices-msm7x30.o
 obj-$(CONFIG_ARCH_QSD8X50) += board-qsd8x50.o devices-qsd8x50.o
