@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2008 Google, Inc.
  * Copyright (C) 2008 HTC Corporation
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -16,6 +17,7 @@
  *
  */
 
+#include <mach/debug_audio_mm.h>
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/miscdevice.h>
@@ -26,7 +28,7 @@
 
 #include <linux/delay.h>
 
-#include <linux/msm_audio.h>
+#include <linux/msm_audio_aac.h>
 
 #include <asm/atomic.h>
 #include <asm/ioctls.h>
@@ -40,24 +42,12 @@
 #include <mach/qdsp5/qdsp5audreccmdi.h>
 #include <mach/qdsp5/qdsp5audrecmsg.h>
 
-/* for queue ids - should be relative to module number*/
-#include "adsp.h"
-
-//UNIVERSALSURF
-#ifdef CONFIG_MAX9877		// For AMP PM
-#include <linux/i2c/max9877.h>
-#endif
-
 /* FRAME_NUM must be a power of two */
 #define FRAME_NUM		(8)
 #define FRAME_SIZE		(2052 * 2)
 #define MONO_DATA_SIZE		(2048)
 #define STEREO_DATA_SIZE	(MONO_DATA_SIZE * 2)
 #define DMASZ 			(FRAME_SIZE * FRAME_NUM)
-
-#define AGC_ENABLE		0x0001
-#define NS_ENABLE		0x0002
-#define TX_IIR_ENABLE		0x0004
 
 struct buffer {
 	void *data;
@@ -85,6 +75,10 @@ struct audio_in {
 	uint32_t channel_mode;
 	uint32_t buffer_size; /* 2048 for mono, 4096 for stereo */
 	uint32_t type; /* 0 for PCM ,1 for AAC */
+	uint32_t bit_rate; /* bit rate for AAC */
+	uint32_t record_quality; /* record quality (bits/sample/channel)
+				    for AAC*/
+	uint32_t buffer_cfg_ioctl; /* to allow any one of buffer set ioctl */
 	uint32_t dsp_cnt;
 	uint32_t in_head; /* next buffer dsp will write */
 	uint32_t in_tail; /* next buffer read() will read */
@@ -179,13 +173,8 @@ static int audio_in_enable(struct audio_in *audio)
 	if (audio->enabled)
 		return 0;
 
-#if 0	//def CONFIG_MAX9877		// For AMP PM
-	max9877_gpio_recording_start(1);		// for recording
-#endif
-
 	cfg.tx_rate = audio->samp_rate;
-//	cfg.rx_rate = RPC_AUD_DEF_SAMPLE_RATE_NONE;
-	cfg.rx_rate = RPC_AUD_DEF_SAMPLE_RATE_48000;
+	cfg.rx_rate = RPC_AUD_DEF_SAMPLE_RATE_NONE;
 	cfg.def_method = RPC_AUD_DEF_METHOD_RECORD;
 	if (audio->type == AUDREC_CMD_TYPE_0_INDEX_WAV)
 		cfg.codec = RPC_AUD_DEF_CODEC_PCM;
@@ -198,11 +187,11 @@ static int audio_in_enable(struct audio_in *audio)
 		return rc;
 
 	if (msm_adsp_enable(audio->audpre)) {
-		pr_err("audrec: msm_adsp_enable(audpre) failed\n");
+		MM_ERR("msm_adsp_enable(audpre) failed\n");
 		return -ENODEV;
 	}
 	if (msm_adsp_enable(audio->audrec)) {
-		pr_err("audrec: msm_adsp_enable(audrec) failed\n");
+		MM_ERR("msm_adsp_enable(audrec) failed\n");
 		return -ENODEV;
 	}
 
@@ -225,10 +214,6 @@ static int audio_in_disable(struct audio_in *audio)
 		msm_adsp_disable(audio->audrec);
 		msm_adsp_disable(audio->audpre);
 		audmgr_disable(&audio->audmgr);
-
-#if 0 	//def CONFIG_MAX9877		// For AMP PM
-		max9877_gpio_recording_start(0);		// for recording
-#endif
 	}
 	return 0;
 }
@@ -242,12 +227,16 @@ static void audpre_dsp_event(void *data, unsigned id, size_t len,
 
 	switch (id) {
 	case AUDPREPROC_MSG_CMD_CFG_DONE_MSG:
-		pr_info("audpre: type %d, status_flag %d\n", msg[0], msg[1]);
+		MM_INFO("type %d, status_flag %d\n", msg[0], msg[1]);
 		break;
 	case AUDPREPROC_MSG_ERROR_MSG_ID:
-		pr_info("audpre: err_index %d\n", msg[0]);
+		MM_INFO("err_index %d\n", msg[0]);
+		break;
+	case ADSP_MESSAGE_ID:
+		MM_DBG("Received ADSP event: module enable(audpreproctask)\n");
+		break;
 	default:
-		pr_err("audpre: unknown event %d\n", id);
+		MM_ERR("unknown event %d\n", id);
 	}
 }
 
@@ -299,22 +288,21 @@ static void audrec_dsp_event(void *data, unsigned id, size_t len,
 	case AUDREC_MSG_CMD_CFG_DONE_MSG:
 		if (msg[0] & AUDREC_MSG_CFG_DONE_TYPE_0_UPDATE) {
 			if (msg[0] & AUDREC_MSG_CFG_DONE_TYPE_0_ENA) {
-				pr_info("audpre: CFG ENABLED\n");
+				MM_INFO("CFG ENABLED\n");
 				audio_in_encoder_config(audio);
 			} else {
-				pr_info("audrec: CFG SLEEP\n");
+				MM_INFO("CFG SLEEP\n");
 				audio->running = 0;
 				audio->tx_agc_enable = 0;
 				audio->ns_enable = 0;
 				audio->iir_enable = 0;
 			}
 		} else {
-			pr_info("audrec: CMD_CFG_DONE %x\n", msg[0]);
+			MM_INFO("CMD_CFG_DONE %x\n", msg[0]);
 		}
 		break;
 	case AUDREC_MSG_CMD_AREC_PARAM_CFG_DONE_MSG: {
-		pr_info("audrec: PARAM CFG DONE\n");
-		printk("audrec: PARAM CFG DONE.......................\n");
+		MM_INFO("PARAM CFG DONE\n");
 		audio->running = 1;
 		audio_dsp_set_tx_agc(audio);
 		audio_dsp_set_ns(audio);
@@ -322,14 +310,18 @@ static void audrec_dsp_event(void *data, unsigned id, size_t len,
 		break;
 	}
 	case AUDREC_MSG_FATAL_ERR_MSG:
-		pr_err("audrec: ERROR %x\n", msg[0]);
+		MM_ERR("ERROR %x\n", msg[0]);
 		break;
 	case AUDREC_MSG_PACKET_READY_MSG:
 /* REC_DBG("type %x, count %d", msg[0], (msg[1] | (msg[2] << 16))); */
 		audio_in_get_dsp_frames(audio);
 		break;
+	case ADSP_MESSAGE_ID:
+		MM_DBG("Received ADSP event: module \
+				enable/disable(audrectask)\n");
+		break;
 	default:
-		pr_err("audrec: unknown event %d\n", id);
+		MM_ERR("unknown event %d\n", id);
 	}
 }
 
@@ -349,6 +341,19 @@ struct msm_adsp_ops audrec_adsp_ops = {
 #define audio_send_queue_rec(audio, cmd, len) \
 	msm_adsp_write(audio->audrec, \
 	QDSP_uPAudRecCmdQueue, cmd, len)
+
+/* Convert Bit Rate to Record Quality field of DSP */
+static unsigned int bitrate_to_record_quality(unsigned int sample_rate,
+    unsigned int channel, unsigned int bit_rate) {
+	unsigned int temp;
+
+	temp = sample_rate * channel;
+	MM_DBG(" sample rate *  channel = %d \n", temp);
+	/* To represent in Q12 fixed format */
+	temp = (bit_rate * 4096) / temp;
+	MM_DBG(" Record Quality = 0x%8x \n", temp);
+	return temp;
+}
 
 static int audio_dsp_set_tx_agc(struct audio_in *audio)
 {
@@ -383,7 +388,6 @@ static int audio_dsp_set_tx_agc(struct audio_in *audio)
 			(1 << AUDPREPROC_CMD_PARAM_MASK_LEAK_UP) |
 			(1 << AUDPREPROC_CMD_PARAM_MASK_LEAK_DOWN) |
 			(1 << AUDPREPROC_CMD_PARAM_MASK_AIG_ATTACKK);
-		printk("PreProc tx_agc_enabled.....\n");
 	} else {
 		audio->tx_agc_cfg.tx_agc_param_mask =
 			(1 << AUDPREPROC_CMD_TX_AGC_PARAM_MASK_TX_AGC_ENA_FLAG);
@@ -420,7 +424,6 @@ static int audio_dsp_set_ns(struct audio_in *audio)
 			AUDPREPROC_CMD_EC_MODE_NEW_NS_ENA |
 			AUDPREPROC_CMD_EC_MODE_NEW_HB_ENA |
 			AUDPREPROC_CMD_EC_MODE_NEW_VA_ENA;
-		printk("PreProc Tx_ns_enabled.....\n");
 	} else {
 		audio->ns_cfg.ec_mode_new =
 			AUDPREPROC_CMD_EC_MODE_NEW_NLMS_DIS |
@@ -436,7 +439,6 @@ static int audio_dsp_set_ns(struct audio_in *audio)
 			AUDPREPROC_CMD_EC_MODE_NEW_NLPP_DIS |
 			AUDPREPROC_CMD_EC_MODE_NEW_FNE_DIS |
 			AUDPREPROC_CMD_EC_MODE_NEW_PRENLMS_DIS;
-		printk("PreProc Tx_ns_disabled.....\n");
 	}
 	cmd = audio->ns_cfg;
 
@@ -445,7 +447,6 @@ static int audio_dsp_set_ns(struct audio_in *audio)
 
 static int audio_enable_ns(struct audio_in *audio, int enable)
 {
-	printk("PreProc Tx_ns_enable=%d, enable=%d.\n", audio->ns_enable, enable);
 	if (audio->ns_enable != enable) {
 		audio->ns_enable = enable;
 		if (audio->running)
@@ -463,11 +464,8 @@ static int audio_dsp_set_iir(struct audio_in *audio)
 	audio->iir_cfg.cmd_id = AUDPREPROC_CMD_CFG_IIR_TUNING_FILTER_PARAMS;
 
 	if (audio->iir_enable)
-	{
 		/* cmd.active_flag is 0xFFFF from sample code but 0x0001 here */
 		audio->iir_cfg.active_flag = AUDPREPROC_CMD_IIR_ACTIVE_FLAG_ENA;
-		printk("PreProc Tx_iir_enabled.....\n");
-	}
 	else
 		audio->iir_cfg.active_flag = AUDPREPROC_CMD_IIR_ACTIVE_FLAG_DIS;
 
@@ -513,10 +511,10 @@ static int audio_in_encoder_config(struct audio_in *audio)
 	cmd.samp_rate_index = audio->samp_rate_index;
 	cmd.stereo_mode = audio->channel_mode; /* 0 for mono, 1 for stereo */
 
-	/* FIXME have no idea why cmd.rec_quality is fixed 
-	 * as 0x1C00 from sample code
+	/* cmd.rec_quality is based on user set bit rate / sample rate /
+	 * channel
 	 */
-	cmd.rec_quality = 0x1C00;
+	cmd.rec_quality = audio->record_quality;
 
 	/* prepare buffer pointers:
 	 * Mono: 1024 samples + 4 halfword header
@@ -602,6 +600,14 @@ static long audio_in_ioctl(struct file *file,
 		}
 	case AUDIO_SET_CONFIG: {
 		struct msm_audio_config cfg;
+		/* The below code is to make mutual exclusive between
+		 * AUDIO_SET_CONFIG and AUDIO_SET_STREAM_CONFIG.
+		 * Allow any one IOCTL.
+		 */
+		if (audio->buffer_cfg_ioctl == AUDIO_SET_STREAM_CONFIG) {
+			rc = -EINVAL;
+			break;
+		}
 		if (copy_from_user(&cfg, (void *) arg, sizeof(cfg))) {
 			rc = -EFAULT;
 			break;
@@ -631,6 +637,7 @@ static long audio_in_ioctl(struct file *file,
 				audio->channel_mode ? STEREO_DATA_SIZE
 							: MONO_DATA_SIZE;
 		audio->type = cfg.type;
+		audio->buffer_cfg_ioctl = AUDIO_SET_CONFIG;
 		rc = 0;
 		break;
 	}
@@ -654,6 +661,90 @@ static long audio_in_ioctl(struct file *file,
 			rc = -EFAULT;
 		else
 			rc = 0;
+		break;
+	}
+	case AUDIO_GET_STREAM_CONFIG: {
+		struct msm_audio_stream_config cfg;
+		cfg.buffer_size = audio->buffer_size;
+		cfg.buffer_count = FRAME_NUM;
+		if (copy_to_user((void *)arg, &cfg, sizeof(cfg)))
+			rc = -EFAULT;
+		else
+			rc = 0;
+		break;
+	}
+	case AUDIO_SET_STREAM_CONFIG: {
+		struct msm_audio_stream_config cfg;
+		/* The below code is to make mutual exclusive between
+		 * AUDIO_SET_CONFIG and AUDIO_SET_STREAM_CONFIG.
+		 * Allow any one IOCTL.
+		 */
+		if (audio->buffer_cfg_ioctl == AUDIO_SET_CONFIG) {
+			rc = -EINVAL;
+			break;
+		}
+		if (copy_from_user(&cfg, (void *)arg, sizeof(cfg))) {
+			rc = -EFAULT;
+			break;
+		} else
+			rc = 0;
+		audio->buffer_size = cfg.buffer_size;
+		/* The IOCTL is only of AAC, set the encoder as AAC */
+		audio->type = 1;
+		audio->buffer_cfg_ioctl = AUDIO_SET_STREAM_CONFIG;
+		break;
+	}
+	case AUDIO_GET_AAC_ENC_CONFIG: {
+		struct msm_audio_aac_enc_config cfg;
+		if (audio->channel_mode == AUDREC_CMD_STEREO_MODE_MONO)
+			cfg.channels = 1;
+		else
+			cfg.channels = 2;
+		cfg.sample_rate = convert_samp_index(audio->samp_rate);
+		cfg.bit_rate = audio->bit_rate;
+		cfg.stream_format = AUDIO_AAC_FORMAT_RAW;
+		if (copy_to_user((void *)arg, &cfg, sizeof(cfg)))
+			rc = -EFAULT;
+		else
+			rc = 0;
+		break;
+	}
+	case AUDIO_SET_AAC_ENC_CONFIG: {
+		struct msm_audio_aac_enc_config cfg;
+		unsigned int record_quality;
+		if (copy_from_user(&cfg, (void *)arg, sizeof(cfg))) {
+			rc = -EFAULT;
+			break;
+		}
+		if (cfg.stream_format != AUDIO_AAC_FORMAT_RAW) {
+			MM_ERR("unsupported AAC format\n");
+			rc = -EINVAL;
+			break;
+		}
+		record_quality = bitrate_to_record_quality(cfg.sample_rate,
+					cfg.channels, cfg.bit_rate);
+		/* Range of Record Quality Supported by DSP, Q12 format */
+		if ((record_quality < 0x800) || (record_quality > 0x4000)) {
+			MM_ERR("Unsupported bit rate \n");
+			rc = -EINVAL;
+			break;
+		}
+		if (cfg.channels == 1) {
+			cfg.channels = AUDREC_CMD_STEREO_MODE_MONO;
+		} else if (cfg.channels == 2) {
+			cfg.channels = AUDREC_CMD_STEREO_MODE_STEREO;
+		} else {
+			rc = -EINVAL;
+			break;
+		}
+		audio->samp_rate = convert_samp_rate(cfg.sample_rate);
+		audio->samp_rate_index =
+		  convert_dsp_samp_index(cfg.sample_rate);
+		audio->channel_mode = cfg.channels;
+		audio->bit_rate = cfg.bit_rate;
+		audio->record_quality = record_quality;
+		MM_DBG(" Record Quality = 0x%8x \n", audio->record_quality);
+		rc = 0;
 		break;
 	}
 	default:
@@ -682,8 +773,8 @@ static ssize_t audio_in_read(struct file *file,
 		if (rc < 0)
 			break;
 
-		if (audio->stopped) {
-			rc = -EBUSY;
+		if (audio->stopped && !audio->in_count) {
+			rc = 0;/* End of File */
 			break;
 		}
 
@@ -708,7 +799,7 @@ static ssize_t audio_in_read(struct file *file,
 			count -= size;
 			buf += size;
 		} else {
-			pr_err("audio_in: short read\n");
+			MM_ERR("short read\n");
 			break;
 		}
 		if (audio->type == AUDREC_CMD_TYPE_0_INDEX_AAC)
@@ -766,9 +857,12 @@ static int audio_in_open(struct inode *inode, struct file *file)
 	audio->channel_mode = AUDREC_CMD_STEREO_MODE_MONO;
 	audio->buffer_size = MONO_DATA_SIZE;
 	audio->type = AUDREC_CMD_TYPE_0_INDEX_WAV;
-//	audio->tx_agc_cfg.cmd_id = AUDPREPROC_CMD_CFG_AGC_PARAMS;
-//	audio->ns_cfg.cmd_id = AUDPREPROC_CMD_CFG_NS_PARAMS;
-//	audio->iir_cfg.cmd_id = AUDPREPROC_CMD_CFG_IIR_TUNING_FILTER_PARAMS;
+
+	/* For AAC, bit rate hard coded, default settings is
+	 * sample rate (11025) x channel count (1) x recording quality (1.75)
+	 * = 19293 bps  */
+	audio->bit_rate = 19293;
+	audio->record_quality = 0x1c00;
 
 	rc = audmgr_open(&audio->audmgr);
 	if (rc)
@@ -784,6 +878,7 @@ static int audio_in_open(struct inode *inode, struct file *file)
 
 	audio->dsp_cnt = 0;
 	audio->stopped = 0;
+	audio->buffer_cfg_ioctl = 0; /* No valid ioctl set */
 
 	audio_flush(audio);
 
@@ -809,7 +904,6 @@ static long audpre_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			rc = -EFAULT;
 			break;
 		}
-		printk("PreProc Tx_enable_mask= 0x%x..\n", enable_mask);
 
 		enable = (enable_mask & AGC_ENABLE) ? 1 : 0;
 		audio_enable_tx_agc(audio, enable);
@@ -829,7 +923,6 @@ static long audpre_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		if (copy_from_user(&audio->ns_cfg, (void *) arg,
 						sizeof(audio->ns_cfg)))
 			rc = -EFAULT;
-		printk("Audio PreProc Tx_NS dens_limit_ns=%d..........\n", audio->ns_cfg.dens_limit_ns);
 		break;
 
 	case AUDIO_SET_TX_IIR:
@@ -887,8 +980,7 @@ static int __init audio_in_init(void)
 	the_audio_in.data = dma_alloc_coherent(NULL, DMASZ,
 					       &the_audio_in.phys, GFP_KERNEL);
 	if (!the_audio_in.data) {
-		printk(KERN_ERR "%s: Unable to allocate DMA buffer\n",
-		       __func__);
+		MM_ERR("Unable to allocate DMA buffer\n");
 		return -ENOMEM;
 	}
 
