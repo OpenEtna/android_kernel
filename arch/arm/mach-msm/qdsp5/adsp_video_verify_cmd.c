@@ -105,8 +105,7 @@ static int verify_vdec_pkt_cmd(struct msm_adsp_module *module,
 	
 	switch (frame_header_pkt[0]) {
 	case 0xB201: /* h.264 vld in dsp */
-		num_addr = 16;
-		skip = 0;
+		num_addr = skip = 8;
 		start_pos = 5;
 		break;
 	case 0x8201: /* h.264 vld in arm */
