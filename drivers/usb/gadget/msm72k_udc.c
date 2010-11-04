@@ -1254,7 +1254,9 @@ static void usb_do_work(struct work_struct *w)
 					ui->driver->disconnect(&ui->gadget);
 				}
 
+#ifndef CONFIG_ARCH_MSM7X00A
 				usb_phy_reset(ui);
+#endif
 
 				/* power down phy, clock down usb */
 				spin_lock_irqsave(&ui->lock, iflags);
