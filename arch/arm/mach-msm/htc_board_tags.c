@@ -85,6 +85,55 @@ char *board_serialno(void)
 	return board_sn;
 }
 
+EXPORT_SYMBOL(board_serialno);
+
+#define ATAG_SMI 0x4d534D71
+/* setup calls mach->fixup, then parse_tags, parse_cmdline
+ * We need to setup meminfo in mach->fixup, so this function
+ * will need to traverse each tag to find smi tag.
+ */
+int __init parse_tag_smi(const struct tag *tags)
+{
+  int smi_sz = 0, find = 0;
+  struct tag *t = (struct tag *)tags;
+
+  for (; t->hdr.size; t = tag_next(t)) {
+    if (t->hdr.tag == ATAG_SMI) {
+      printk(KERN_DEBUG "find the smi tag\n");
+      find = 1;
+      break;
+    }
+  }
+  if (!find)
+    return -1;
+
+  printk(KERN_DEBUG "parse_tag_smi: smi size = %d\n", t->u.mem.size);
+  smi_sz = t->u.mem.size;
+  return smi_sz;
+}
+__tagtable(ATAG_SMI, parse_tag_smi);
+
+#define ATAG_HWID 0x4d534D72
+int __init parse_tag_hwid(const struct tag *tags)
+{
+  int hwid = 0, find = 0;
+  struct tag *t = (struct tag *)tags;
+
+  for (; t->hdr.size; t = tag_next(t)) {
+    if (t->hdr.tag == ATAG_HWID) {
+      printk(KERN_DEBUG "find the hwid tag\n");
+      find = 1;
+      break;
+    }
+  }
+
+  if (find)
+    hwid = t->u.revision.rev;
+  printk(KERN_DEBUG "parse_tag_hwid: hwid = 0x%x\n", hwid);
+  return hwid;
+}
+__tagtable(ATAG_HWID, parse_tag_hwid);
+
 #define ATAG_SKUID 0x4d534D73
 int __init parse_tag_skuid(const struct tag *tags)
 {

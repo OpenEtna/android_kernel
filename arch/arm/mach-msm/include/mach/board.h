@@ -255,6 +255,7 @@ struct t_usb_status_notifier{
 static inline void msm_hsusb_set_vbus_state(int online) {}
 #endif
 
+char *board_serialno(void);
 int __init parse_tag_skuid(const struct tag *tags);
 int __init parse_tag_engineerid(const struct tag *tags);
 int __init parse_tag_memsize(const struct tag *tags);

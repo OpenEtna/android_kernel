@@ -688,7 +688,7 @@ static uint32_t flashlight_gpio_table_rev_CX[] = {
 };
 
 
-static int config_mahimahi_flashlight_gpios(void)
+static void config_mahimahi_flashlight_gpios(void)
 {
 	if (is_cdma_version(system_rev)) {
 		config_gpio_table(flashlight_gpio_table_rev_CX,
@@ -697,7 +697,6 @@ static int config_mahimahi_flashlight_gpios(void)
 		config_gpio_table(flashlight_gpio_table,
 			ARRAY_SIZE(flashlight_gpio_table));
 	}
-	return 0;
 }
 
 static struct flashlight_platform_data mahimahi_flashlight_data = {
@@ -943,27 +942,6 @@ static int __init parse_tag_bdaddr(const struct tag *tag)
 
 __tagtable(ATAG_BDADDR, parse_tag_bdaddr);
 
-static int __init board_serialno_setup(char *serialno)
-{
-#ifdef CONFIG_USB_ANDROID_RNDIS
-	int i;
-	char *src = serialno;
-
-	/* create a fake MAC address from our serial number.
-	 * first byte is 0x02 to signify locally administered.
-	 */
-	rndis_pdata.ethaddr[0] = 0x02;
-	for (i = 0; *src; i++) {
-		/* XOR the USB serial across the remaining bytes */
-		rndis_pdata.ethaddr[i % (ETH_ALEN - 1) + 1] ^= *src++;
-	}
-#endif
-
-	android_usb_pdata.serial_number = serialno;
-	return 1;
-}
-__setup("androidboot.serialno=", board_serialno_setup);
-
 static void config_gpio_table(uint32_t *table, int len)
 {
 	int n;
@@ -1061,6 +1039,8 @@ static void __init mahimahi_init(void)
 	struct kobject *properties_kobj;
 
 	printk("mahimahi_init() revision=%d\n", system_rev);
+
+  android_usb_pdata.serial_number = board_serialno();
 
 	if (is_cdma_version(system_rev))
 		smd_set_channel_list(smd_cdma_default_channels,
