@@ -46,6 +46,9 @@ dev_t msm_rpcrouter_devno;
 static struct cdev rpcrouter_cdev;
 static struct device *rpcrouter_device;
 
+#define RPC_LOG(x, ... ) if( ept->dst_prog == 0x8c000030 ) printk("%s(%x:%x): " x,__func__,ept->dst_prog, ept->dst_vers, ## __VA_ARGS__ )
+#define RPC_HEX(x, ...) if( ept->dst_prog == 0x8c000030 ) print_hex_dump_bytes(x,DUMP_PREFIX_NONE, ## __VA_ARGS__ )
+
 static int rpcrouter_open(struct inode *inode, struct file *filp)
 {
 	int rc;
@@ -60,6 +63,8 @@ static int rpcrouter_open(struct inode *inode, struct file *filp)
 		return -ENOMEM;
 
 	filp->private_data = ept;
+	RPC_LOG("opened\n");
+
 	return 0;
 }
 
@@ -79,6 +84,7 @@ static int rpcrouter_release(struct inode *inode, struct file *filp)
 	if (rpcrouter_release_cnt++ % 2)
 		msleep(1);
 
+	RPC_LOG("closed\n");
 	return msm_rpcrouter_destroy_local_endpoint(ept);
 }
 
@@ -96,13 +102,15 @@ static ssize_t rpcrouter_read(struct file *filp, char __user *buf,
 		return rc;
 
 	count = rc;
-
+	RPC_LOG("read %d bytes:\n",rc);
 	while (frag != NULL) {		
 		if (copy_to_user(buf, frag->data, frag->length)) {
 			printk(KERN_ERR
 			       "rpcrouter: could not copy all read data to user!\n");
 			rc = -EFAULT;
 		}
+		RPC_LOG("read fragment with length %d:\n", frag->length);
+		RPC_HEX("rpcrouter_read ",frag->data, frag->length);
 		buf += frag->length;
 		next = frag->next;
 		kfree(frag);
@@ -137,6 +145,9 @@ static ssize_t rpcrouter_write(struct file *filp, const char __user *buf,
 	rc = msm_rpc_write(ept, k_buffer, count);
 	if (rc < 0)
 		goto write_out_free;
+
+	RPC_LOG("wrote %d bytes:\n",rc);
+	RPC_HEX("rpcrouter_write ", k_buffer,count);
 
 	rc = count;
 write_out_free:
@@ -225,6 +236,7 @@ static long rpcrouter_ioctl(struct file *filp, unsigned int cmd,
 		break;
 	}
 
+	RPC_LOG("ioctl %d returning %d\n",cmd,rc);
 	return rc;
 }
 
