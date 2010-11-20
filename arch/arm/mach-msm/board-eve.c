@@ -419,7 +419,7 @@ static struct msm_hsusb_platform_data msm_hsusb_pdata = {
 static struct snd_endpoint snd_endpoints_list[] = {
 	SND(HANDSET, 0),
 	SND(HEADSET, 3), //use HEADSET_STEREO's id
-	SND(SPEAKER, 5), //use SPEAKER_MEDIA's id
+	SND(SPEAKER, 6), //using SPEAKER_MEDIA's id would produce bug issue 262
 	SND(HEADSET_AND_SPEAKER, 7),
 	SND(FM_HEADSET, 9),
 	SND(FM_SPEAKER, 10),
