@@ -94,20 +94,18 @@ static struct android_pmem_platform_data android_pmem_pdata = {
 	.cached = 1,
 };
 
-static struct android_pmem_platform_data android_pmem_gpu0_pdata = {
-	.name = "pmem_gpu0",
-	.start = MSM_PMEM_GPU0_BASE,
-	.size = MSM_PMEM_GPU0_SIZE,
-	.no_allocator = 1,
-	.cached = 0,
+static struct android_pmem_platform_data android_pmem_camera_pdata = {
+    .name = "pmem_camera",
+    .cached = 1,
+    .start = MSM_PMEM_CAMERA_BASE,
+    .size = MSM_PMEM_CAMERA_SIZE,
 };
 
-static struct android_pmem_platform_data android_pmem_gpu1_pdata = {
-	.name = "pmem_gpu1",
-	.start = MSM_PMEM_GPU1_BASE,
-	.size = MSM_PMEM_GPU1_SIZE,
-	.no_allocator = 1,
-	.cached = 0,
+static struct android_pmem_platform_data android_pmem_adsp_pdata = {
+    .name = "pmem_adsp",
+    .cached = 0,
+    .start = MSM_PMEM_ADSP_BASE,
+    .size = MSM_PMEM_ADSP_SIZE,
 };
 
 static struct platform_device android_pmem_device = {
@@ -116,16 +114,16 @@ static struct platform_device android_pmem_device = {
 	.dev = { .platform_data = &android_pmem_pdata },
 };
 
-static struct platform_device android_pmem_gpu0_device = {
-	.name = "android_pmem",
-	.id = 2,
-	.dev = { .platform_data = &android_pmem_gpu0_pdata },
+static struct platform_device android_pmem_camera_device = {
+    .name = "android_pmem",
+    .id = 2,
+    .dev = { .platform_data = &android_pmem_camera_pdata },
 };
 
-static struct platform_device android_pmem_gpu1_device = {
-	.name = "android_pmem",
-	.id = 3,
-	.dev = { .platform_data = &android_pmem_gpu1_pdata },
+static struct platform_device android_pmem_adsp_device = {
+    .name = "android_pmem",
+    .id = 1,
+    .dev = { .platform_data = &android_pmem_adsp_pdata },
 };
 
 /* usb */
@@ -197,18 +195,21 @@ static struct platform_device *devices[] __initdata = {
 	&msm_device_uart3,
 	&msm_device_smd,
 	&msm_device_nand,
+
 	&msm_device_hsusb,
-	//&usb_mass_storage_device,
+	&usb_mass_storage_device,
 	&android_usb_device,
-	//&msm_device_i2c,
+
+	&msm_device_i2c,
+	&msm_device_touchscreen,
 
 	&eve_qwerty_device,
 
 	&android_pmem_device,
-	//&android_pmem_adsp_device,
-	//&android_pmem_camera_device,
-	//&fish_battery_device,
-        &hw3d_device,
+	&android_pmem_adsp_device,
+	&android_pmem_camera_device,
+
+	&hw3d_device,
 };
 
 extern struct sys_timer msm_timer;
