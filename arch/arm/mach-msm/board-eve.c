@@ -50,6 +50,42 @@
 #include "board-eve.h"
 #include "proc_comm.h"
 
+/* giorgio130 - 3d patch */
+static struct resource resources_hw3d[] = {
+	{
+		.start	= 0xA0000000,
+		.end	= 0xA00fffff,
+		.flags	= IORESOURCE_MEM,
+		.name	= "regs",
+	},
+	{
+		.flags	= IORESOURCE_MEM,
+                .start  = MSM_PMEM_GPU0_BASE,
+                .end    = MSM_PMEM_GPU0_BASE+MSM_PMEM_GPU0_SIZE-1,
+		.name	= "smi",
+	},
+	{
+		.flags	= IORESOURCE_MEM,
+                .start  = MSM_PMEM_GPU1_BASE,
+                .end    = MSM_PMEM_GPU1_BASE+MSM_PMEM_GPU1_SIZE-1,
+		.name	= "ebi",
+	},
+	{
+		.start	= INT_GRAPHICS,
+		.end	= INT_GRAPHICS,
+		.flags	= IORESOURCE_IRQ,
+		.name	= "gfx",
+	},
+};
+
+static struct platform_device hw3d_device = {
+	.name		= "msm_hw3d",
+	.id		= 0,
+	.num_resources	= ARRAY_SIZE(resources_hw3d),
+	.resource	= resources_hw3d,
+};
+/* end patch */
+
 static struct android_pmem_platform_data android_pmem_pdata = {
 	.name = "pmem",
 	.start = MSM_PMEM_MDP_BASE,
@@ -161,10 +197,9 @@ static struct platform_device *devices[] __initdata = {
 
 	&android_pmem_device,
 	//&android_pmem_adsp_device,
-	&android_pmem_gpu0_device,
-	&android_pmem_gpu1_device,
 	//&android_pmem_camera_device,
 	//&fish_battery_device,
+        &hw3d_device,
 };
 
 extern struct sys_timer msm_timer;
