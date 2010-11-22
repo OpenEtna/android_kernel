@@ -43,6 +43,7 @@
 #include <linux/mtd/nand.h>
 #include <linux/mtd/partitions.h>
 #include <linux/i2c.h>
+#include <linux/i2c-gpio.h>
 #include <linux/android_pmem.h>
 #include <linux/usb/android_composite.h>
 
@@ -191,6 +192,28 @@ static struct platform_device eve_qwerty_device = {
     .id = -1,
 };
 
+/* i2c devices */
+/* Home & Back button */
+static struct i2c_gpio_platform_data touch_i2c_pdata = {
+        .sda_pin = GPIO_TOUCH_I2C_SDA,
+        .sda_is_open_drain = 0,
+        .scl_pin = GPIO_TOUCH_I2C_SCL,
+        .scl_is_open_drain = 0,
+        .udelay = 2,
+};
+
+static struct platform_device eve_touch_i2c_device = {
+        .name = "i2c-gpio",
+        .id = I2C_BUS_NUM_TOUCH,
+        .dev.platform_data = &touch_i2c_pdata,
+};
+
+static struct i2c_board_info i2c_board_touch = {
+	I2C_BOARD_INFO("touch_so240001", 0x2C),
+	.irq = MSM_GPIO_TO_INT(GPIO_TOUCH_IRQ),
+};
+
+/* list of all devices from above or devices-msm7x00.c */
 static struct platform_device *devices[] __initdata = {
 	&msm_device_uart3,
 	&msm_device_smd,
@@ -203,6 +226,7 @@ static struct platform_device *devices[] __initdata = {
 	&msm_device_i2c,
 	&msm_device_touchscreen,
 
+	&eve_touch_i2c_device,
 	&eve_qwerty_device,
 
 	&android_pmem_device,
@@ -226,6 +250,10 @@ static void __init eve_init(void)
 {
 	msm_device_hsusb.dev.platform_data = &msm_hsusb_pdata;
 	msm_acpu_clock_init(&eve_clock_data);
+
+	/* register drivers for the i2c busses */
+	/* each pair of SCL and SDA lines is one bus */
+	i2c_register_board_info(I2C_BUS_NUM_TOUCH, &i2c_board_touch, 1);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 
