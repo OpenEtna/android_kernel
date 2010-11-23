@@ -37,8 +37,8 @@ extern int is_proxi_open(void);
 #define MAX_FAILURE_COUNT 10
 #define GPIO_COMPASS_RESET	91
 
-#define DEBUG 2
-#define AKMD_DEBUG 2
+#define DEBUG 0
+#define AKMD_DEBUG 0
 #if AKMD_DEBUG
 #define ADBG(fmt, args...) printk(fmt, ##args)
 #else
