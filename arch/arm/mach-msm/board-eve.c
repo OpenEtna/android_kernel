@@ -151,6 +151,7 @@ static struct platform_device usb_mass_storage_device = {
 
 static char *usb_functions[] = { "usb_mass_storage" };
 static char *usb_functions_adb[] = { "usb_mass_storage", "adb" };
+static char *usb_functions_adb_diag[] = { "usb_mass_storage", "adb", "diag" };
 
 static struct android_usb_product usb_products[] = {
 	{
@@ -163,6 +164,11 @@ static struct android_usb_product usb_products[] = {
 		.num_functions	= ARRAY_SIZE(usb_functions_adb),
 		.functions	= usb_functions_adb,
 	},
+    {
+        .product_id = 0x0c07,
+        .num_functions  = ARRAY_SIZE(usb_functions_adb_diag),
+        .functions  = usb_functions_adb_diag,
+    },
 };
 
 static struct android_usb_platform_data android_usb_pdata = {
