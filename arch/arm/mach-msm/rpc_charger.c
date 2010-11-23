@@ -34,7 +34,7 @@
 #endif
 #define D_FUNC D
 
-#define lprintk(x,args...) printk( args)
+#define lprintk(x,args...) D(args)
 
 static struct msm_rpc_endpoint *chg_ep;
 
