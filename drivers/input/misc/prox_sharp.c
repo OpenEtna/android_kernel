@@ -37,12 +37,6 @@ static struct psensor_dev {
 
 static atomic_t opened = ATOMIC_INIT(-1);
 
-int is_proxi_open(void)
-{
-	return gpio_get_value(psdev.gpio);
-}
-EXPORT_SYMBOL(is_proxi_open);
-
 /*
  * Sharp Proximity Sensor Interface
  * */
@@ -102,7 +96,7 @@ static int prox_vreg_set(int onoff)
 static int sharp_psensor_init(struct i2c_client *client)
 {
 	int ret;
-	
+
 	ret = prox_i2c_write(client, GAIN_REG, 0x08, PROX_I2C_INT_NO_CLEAR);
 	if(ret)
 		return ret;
@@ -128,13 +122,13 @@ static int gp2ap002_resume(struct i2c_client *client)
 {
 	int ret;
 	struct psensor_dev *pdev = i2c_get_clientdata(client);
-	
+
 	//this is a race condition
 	if(atomic_read(&opened) > -1) {
 		ret = prox_vreg_set(1);
 		if(ret)
 			return ret;
-	
+
 		udelay(100);
 
 		ret = sharp_psensor_init(pdev->client);
@@ -155,8 +149,8 @@ static int device_open(struct inode *inode, struct file *file) {
     udelay(100);
 
 	printk("proximity device_open\n");
-    ret = sharp_psensor_init(psdev.client);	
-	
+    ret = sharp_psensor_init(psdev.client);
+
 	if(ret) {
 		prox_vreg_set(0);
 		atomic_dec(&opened);
@@ -167,7 +161,7 @@ static int device_open(struct inode *inode, struct file *file) {
 static int device_release(struct inode *inode, struct file *file) {
 
 	prox_vreg_set(0);
-	
+
 	atomic_dec(&opened);
 	return 0;
 }
@@ -180,7 +174,7 @@ static ssize_t device_read(struct file *filp,	/* see include/linux/fs.h   */
 
 	if( length == 0 ) return 0;
 
-	p = (char)is_proxi_open();
+	p = (char)gpio_get_value(psdev.gpio);;
 	put_user(p, buffer);
 	return 1;
 }
