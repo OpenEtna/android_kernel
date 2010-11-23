@@ -360,7 +360,7 @@ static void __init eve_map_io(void)
 	msm_clock_init(msm_clocks_7x01a, msm_num_clocks_7x01a);
 }
 
-MACHINE_START(EVE, "eve-maldn-google-32")
+MACHINE_START(EVE, "eve")
 	.boot_params	= 0x10000100,
 	.fixup		= eve_fixup,
 	.map_io		= eve_map_io,
