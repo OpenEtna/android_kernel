@@ -86,6 +86,47 @@ static struct platform_device hw3d_device = {
 	.resource	= resources_hw3d,
 };
 
+/* sound */
+#define SND(desc, num) { .name = #desc, .id = num }
+/* original mapping from lg
+    SND(HANDSET, 0),
+    SND(HEADSET, 2),
+    SND(HEADSET_STEREO, 3),
+    SND(SPEAKER_MEDIA, 5),
+    SND(SPEAKER, 6),
+    SND(SPEAKER_RING, 7),
+    SND(HEADSET_AND_SPEAKER, 7),
+    SND(VOICE_RECORDER, 8),
+    SND(FM_RADIO_HEADSET_MEDIA, 9),
+    SND(FM_RADIO_SPEAKER_MEDIA, 10),
+    SND(BT, 12),
+    SND(CURRENT, 25),
+*/
+static struct snd_endpoint snd_endpoints_list[] = {
+    SND(HANDSET, 0),
+    SND(HEADSET, 3), //use HEADSET_STEREO's id
+    SND(SPEAKER, 6), //using SPEAKER_MEDIA's id would produce bug issue 262
+    SND(HEADSET_AND_SPEAKER, 7),
+    SND(FM_HEADSET, 9),
+    SND(FM_SPEAKER, 10),
+    SND(BT, 12),
+    SND(CURRENT, 25),
+};
+#undef SND
+
+static struct msm_snd_endpoints eve_snd_endpoints = {
+    .endpoints = snd_endpoints_list,
+    .num = sizeof(snd_endpoints_list) / sizeof(struct snd_endpoint)
+};
+
+static struct platform_device eve_snd = {
+    .name = "msm_snd",
+    .id = -1,
+    .dev    = {
+        .platform_data = &eve_snd_endpoints
+    },
+};
+
 /* pmem */
 static struct android_pmem_platform_data android_pmem_pdata = {
 	.name = "pmem",
@@ -318,6 +359,7 @@ static struct platform_device *devices[] __initdata = {
 	&android_pmem_adsp_device,
 	&android_pmem_camera_device,
 	&hw3d_device,
+	&eve_snd,
 };
 
 extern struct sys_timer msm_timer;

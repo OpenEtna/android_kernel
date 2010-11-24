@@ -128,8 +128,8 @@ struct adsp_info {
 #define RPC_ADSP_RTOS_MODEM_TO_APP_PROC 2
 
 #if CONFIG_MSM_AMSS_VERSION >= 6350
-#define RPC_ADSP_RTOS_ATOM_VERS MSM_RPC_VERS(1,0)
-#define RPC_ADSP_RTOS_MTOA_VERS MSM_RPC_VERS(2,1) /* must be actual vers */
+#define RPC_ADSP_RTOS_ATOM_VERS MSM_RPC_VERS(1,1)
+#define RPC_ADSP_RTOS_MTOA_VERS MSM_RPC_VERS(3,1) /* must be actual vers */
 #define MSM_ADSP_DRIVER_NAME "rs3000000a:00010000"
 #elif (CONFIG_MSM_AMSS_VERSION == 6220) || (CONFIG_MSM_AMSS_VERSION == 6225)
 #define RPC_ADSP_RTOS_ATOM_VERS MSM_RPC_VERS(0x71d1094b, 0)
@@ -208,12 +208,18 @@ struct adsp_rtos_mp_mtoa_type {
 };
 
 /* ADSP RTOS MP Communications - Modem to APP's Init Info  */
-#define IMG_MAX         8
-#define ENTRIES_MAX     64
+#define IMG_MAX         6
+#define ENTRIES_MAX     48
 
 struct queue_to_offset_type {
 	uint32_t	queue;
 	uint32_t	offset;
+};
+
+struct mod_to_queue_offsets {
+    uint32_t        module;
+    uint32_t        q_type;
+    uint32_t        q_max_len;
 };
 
 struct adsp_rtos_mp_mtoa_init_info_type {
@@ -225,6 +231,9 @@ struct adsp_rtos_mp_mtoa_init_info_type {
 
 	uint32_t	module_table_size;
 	uint32_t	module_entries[ENTRIES_MAX];
+	uint32_t    mod_to_q_entries;
+	struct mod_to_queue_offsets mod_to_q_tbl[ENTRIES_MAX];
+
 	/*
 	 * queue_offsets[] is to store only queue_offsets
 	 */
