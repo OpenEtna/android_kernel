@@ -346,7 +346,7 @@ static ssize_t touchled_enable_store(
 	{
 //		del_timer(&s_touchtimer);
 
-		rc = pm_set_led_intensity(PM_TOUCH_LED, 4); //LCD_DRV_N connected to SLIDE_KPD_DRV_N
+		rc = pm_set_led_intensity(PM_TOUCH_LED, 1); //LCD_DRV_N connected to SLIDE_KPD_DRV_N
 
 //		s_touchtimer.expires = jiffies + MS_TO_JIFFIES(ledtimeout_value);
 //		add_timer(&s_touchtimer);			
@@ -355,7 +355,7 @@ static ssize_t touchled_enable_store(
 	{
 //		del_timer(&s_touchtimer);
 
-		rc = pm_set_led_intensity(PM_TOUCH_LED, s_touchled); //LCD_DRV_N connected to SLIDE_KPD_DRV_N
+		rc = pm_set_led_intensity(PM_TOUCH_LED, 0); //LCD_DRV_N connected to SLIDE_KPD_DRV_N
 	}
 	return size;
 }
