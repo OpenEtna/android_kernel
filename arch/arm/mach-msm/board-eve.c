@@ -214,7 +214,7 @@ static struct i2c_gpio_platform_data touch_i2c_pdata = {
         .udelay = 2,
 };
 
-static struct platform_device eve_touch_i2c_device = {
+static struct platform_device eve_touch_i2c_bus = {
         .name = "i2c-gpio",
         .id = I2C_BUS_NUM_TOUCH,
         .dev.platform_data = &touch_i2c_pdata,
@@ -239,13 +239,12 @@ static struct platform_device *devices[] __initdata = {
 	&msm_device_i2c,
 	&msm_device_touchscreen,
 
-	&eve_touch_i2c_device,
+	&eve_touch_i2c_bus,
 	&eve_qwerty_device,
 
 	&android_pmem_device,
 	&android_pmem_adsp_device,
 	&android_pmem_camera_device,
-
 	&hw3d_device,
 };
 
