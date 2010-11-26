@@ -5126,6 +5126,7 @@ wl_iw_set_wpaauth(
 			val |= iw->pwsec;
 		}
 
+#ifndef CONFIG_MACH_EVE
 		if (iw->privacy_invoked && !val) {
 			WL_WSEC(("%s: %s: 'Privacy invoked' TRUE but clearing wsec, assuming "
 				"we're a WPS enrollee\n", dev->name, __FUNCTION__));
@@ -5139,12 +5140,12 @@ wl_iw_set_wpaauth(
 				return error;
 			}
 		}
+#endif
 
 		if ((error = dev_wlc_intvar_set(dev, "wsec", val))) {
 			WL_ERROR(("Failed to set 'wsec'iovar\n"));
 			return error;
 		}
-
 		break;
 
 	case IW_AUTH_KEY_MGMT:
@@ -5242,6 +5243,7 @@ wl_iw_set_wpaauth(
 		
 		break;
 	case IW_AUTH_PRIVACY_INVOKED: {
+#ifndef CONFIG_MACH_EVE
 		int wsec;
 
 		if (paramval == 0) {
@@ -5268,6 +5270,7 @@ wl_iw_set_wpaauth(
 				}
 			}
 		}
+#endif
 		break;
 	}
 #endif
