@@ -246,6 +246,26 @@ static struct i2c_board_info prox_i2c_bdinfo = {
         .irq = GPIO_PROX_IRQ, /* pass the gpio, not the irq */
 };
 
+/* compass */
+static struct i2c_gpio_platform_data compass_i2c_pdata = {
+        .sda_pin = GPIO_COMPASS_I2C_SDA,
+        .sda_is_open_drain = 0,
+        .scl_pin = GPIO_COMPASS_I2C_SCL,
+        .scl_is_open_drain = 0,
+        .udelay = 2,
+};
+
+static struct platform_device eve_compass_i2c_bus = {
+        .name = "i2c-gpio",
+        .id = I2C_BUS_NUM_COMPASS,
+        .dev.platform_data = &compass_i2c_pdata,
+};
+
+static struct i2c_board_info compass_i2c_bdinfo = {
+        I2C_BOARD_INFO("akm8973", 0x38 >> 1),
+        .irq = MSM_GPIO_TO_INT(GPIO_COMPASS_IRQ),
+};
+
 /* Home & Back button */
 static struct i2c_gpio_platform_data touch_i2c_pdata = {
         .sda_pin = GPIO_TOUCH_I2C_SDA,
@@ -280,6 +300,7 @@ static struct platform_device *devices[] __initdata = {
 	&msm_device_i2c,
 	&msm_device_touchscreen,
 
+	&eve_compass_i2c_bus,
 	&eve_prox_i2c_bus,
 	&eve_accel_i2c_bus,
 
@@ -312,6 +333,12 @@ static void __init eve_init(void)
 	i2c_register_board_info(I2C_BUS_NUM_MOTION, &accel_i2c_bdinfo, 1);
 	i2c_register_board_info(I2C_BUS_NUM_TOUCH, &i2c_board_touch, 1);
 	i2c_register_board_info(I2C_BUS_NUM_PROX, &prox_i2c_bdinfo, 1);
+	i2c_register_board_info(I2C_BUS_NUM_COMPASS, &compass_i2c_bdinfo, 1);
+
+	gpio_request(GPIO_COMPASS_RESET, "compass_rst");
+	gpio_direction_output(GPIO_COMPASS_RESET, 1);
+	gpio_request(GPIO_COMPASS_IRQ, "compass_int");
+	gpio_direction_input(GPIO_COMPASS_IRQ);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 
