@@ -30,9 +30,10 @@
 #define SYNAPTICS_I2C_TOUCH_NAME "touch_so240001"
 
 //LGE_CHANGE_S [bluerti@lge.com]
-extern int msm_touch_option;
-extern int msm_touch_timer_value;
-
+static int msm_touch_timer_value = 800;
+static int msm_touch_option = 2;
+static int slideon_timer_value = 1000;
+static int invalid_touch_event_time = 100;
 #define TOUCH_IGNORE_EVENT      1
 #define TOUCH_INVERT_EVENT      2
 
@@ -49,10 +50,8 @@ static int is_menukey_pressed = 0;
 int is_slideon_event = 0;
 static int is_menutimer_initialized = 0;
 static int is_slideon_timer_initialized = 0;
-extern int slideon_timer_value;
 
 //LGE_CHANGE [blue.park@lge.com]
-extern int invalid_touch_event_time;
 unsigned long home_touch_time = 0;
 unsigned long back_touch_time = 0;
 
