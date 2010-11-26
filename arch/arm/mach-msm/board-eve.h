@@ -35,4 +35,8 @@
 #define MSM_RAM_CONSOLE_BASE      (MSM_PMEM_GPU1_SIZE+MSM_PMEM_GPU1_BASE)
 #define MSM_RAM_CONSOLE_SIZE      (128 * SZ_1K)
 
+/* panel */
+#define GPIO_LCD_RESET_N			100
+#define GPIO_LCD_VSYNC_O			97
+
 #endif //__ARCH_ARM_MACH_MSM_BOARD_EVE_H

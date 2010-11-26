@@ -35,7 +35,10 @@
 #include <mach/board.h>
 #include <mach/msm_iomap.h>
 #include <mach/msm_hsusb.h>
+#include <mach/msm_fb.h>
+#include <mach/vreg.h>
 #include <mach/camera.h>
+#include <mach/msm_rpcrouter.h>
 
 #include <linux/mtd/nand.h>
 #include <linux/mtd/partitions.h>
