@@ -192,6 +192,12 @@ static struct platform_device eve_qwerty_device = {
     .id = -1,
 };
 
+/* battery and charger info */
+static struct platform_device eve_battery_device = {
+    .name = "lge_battery",
+    .id   = -1,
+};
+
 /* i2c devices */
 /* Home & Back button */
 static struct i2c_gpio_platform_data touch_i2c_pdata = {
@@ -222,6 +228,7 @@ static struct platform_device *devices[] __initdata = {
 	&msm_device_hsusb,
 	&usb_mass_storage_device,
 	&android_usb_device,
+	&eve_battery_device,
 
 	&msm_device_i2c,
 	&msm_device_touchscreen,
