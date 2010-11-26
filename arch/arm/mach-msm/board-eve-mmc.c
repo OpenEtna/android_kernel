@@ -177,7 +177,7 @@ void __init eve_init_mmc(void)
 	}
 
 	gpio_request(BCM4325_GPIO_WL_RESET, "wlan_cd");
-	gpio_request(BCM4325_GPIO_WL_RESET, "wlan_regon");
+	gpio_request(BCM4325_GPIO_WL_REGON, "wlan_regon");
 	gpio_direction_output(BCM4325_GPIO_WL_REGON, 0);
 	gpio_direction_output(BCM4325_GPIO_WL_RESET, 0);
 	mdelay(150);
