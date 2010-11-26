@@ -205,6 +205,27 @@ static struct platform_device eve_battery_device = {
 };
 
 /* i2c devices */
+/* proximity */
+static struct i2c_gpio_platform_data prox_i2c_pdata = {
+        .sda_pin = GPIO_PROX_I2C_SDA,
+        .sda_is_open_drain = 0,
+        .scl_pin = GPIO_PROX_I2C_SCL,
+        .scl_is_open_drain = 0,
+        .udelay = 2,
+};
+
+static struct platform_device eve_prox_i2c_bus = {
+        .name = "i2c-gpio",
+        .id = I2C_BUS_NUM_PROX,
+        .dev.platform_data = &prox_i2c_pdata,
+};
+
+static struct i2c_board_info prox_i2c_bdinfo = {
+        I2C_BOARD_INFO("gp2ap002", 0x44),
+        .type = "gp2ap002",
+        .irq = GPIO_PROX_IRQ, /* pass the gpio, not the irq */
+};
+
 /* Home & Back button */
 static struct i2c_gpio_platform_data touch_i2c_pdata = {
         .sda_pin = GPIO_TOUCH_I2C_SDA,
@@ -239,6 +260,8 @@ static struct platform_device *devices[] __initdata = {
 	&msm_device_i2c,
 	&msm_device_touchscreen,
 
+	&eve_prox_i2c_bus,
+
 	&eve_touch_i2c_bus,
 	&eve_qwerty_device,
 
@@ -266,6 +289,7 @@ static void __init eve_init(void)
 	/* register drivers for the i2c busses */
 	/* each pair of SCL and SDA lines is one bus */
 	i2c_register_board_info(I2C_BUS_NUM_TOUCH, &i2c_board_touch, 1);
+	i2c_register_board_info(I2C_BUS_NUM_PROX, &prox_i2c_bdinfo, 1);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 

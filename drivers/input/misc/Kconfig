@@ -423,4 +423,14 @@ config LIGHTSENSOR_MICROP
         help
           HTC LIGHTSENSOR Microp support.
 
+config SHARP_PROXIMITY
+	tristate "Sharp Proximity Sensor"
+	default n
+	help
+	  Say Y here if you want support for the Proximity Sensor
+	  device.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called SHARP.
+
 endif

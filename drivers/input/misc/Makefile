@@ -46,3 +46,4 @@ ifeq ($(CONFIG_MICROP_COMMON),y)
 else
   obj-$(CONFIG_LIGHTSENSOR_MICROP)	+= cm3602_lightsensor_microp.o
 endif
+obj-$(CONFIG_SHARP_PROXIMITY)       += prox_sharp.o
