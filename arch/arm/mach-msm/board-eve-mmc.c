@@ -49,16 +49,6 @@ int eve_wifi_reset(int on)
     return 0;
 }
 
-static void config_gpio_table(uint32_t *table, int len)
-{
-    int n;
-    unsigned id;
-    for(n = 0; n < len; n++) {
-        id = table[n];
-        msm_proc_comm(PCOM_RPC_GPIO_TLMM_CONFIG_EX, &id, 0);
-    }
-}
-
 static uint32_t wifi_on_gpio_table[] = {
     PCOM_GPIO_CFG(51, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_8MA), /* DAT3 */
     PCOM_GPIO_CFG(52, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_8MA), /* DAT2 */
