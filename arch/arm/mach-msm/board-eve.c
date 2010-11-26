@@ -233,7 +233,7 @@ static struct platform_device android_usb_device = {
 	},
 };
 /* mmc */
-static void __init eve_init_mmc(void);
+void eve_init_mmc(void);
 
 /* for Handset */
 static struct platform_device pwrkey_device = {
