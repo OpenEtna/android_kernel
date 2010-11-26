@@ -1,6 +1,6 @@
-/* drivers/input/touchscreen/msm_ts.c
+/* drivers/input/touchscreen/msm_touch.c
  *
- * Copyright (C) 2008 Google, Inc.
+ * Copyright (c) 2008-2009, Code Aurora Forum. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -11,334 +11,749 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * TODO:
- *      - Add a timer to simulate a pen_up in case there's a timeout.
  */
 
-#include <linux/delay.h>
-#include <linux/device.h>
-#include <linux/init.h>
-#include <linux/input.h>
-#include <linux/interrupt.h>
-#include <linux/io.h>
+#include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/platform_device.h>
 #include <linux/slab.h>
+#include <linux/interrupt.h>
+#include <linux/input.h>
+#include <linux/platform_device.h>
+#include <linux/jiffies.h>
+#include <linux/io.h>
 
 #include <mach/msm_ts.h>
 
-#define TSSC_CTL			0x100
-#define 	TSSC_CTL_PENUP_IRQ	(1 << 12)
-#define 	TSSC_CTL_DATA_FLAG	(1 << 11)
-#define 	TSSC_CTL_DEBOUNCE_EN	(1 << 6)
-#define 	TSSC_CTL_EN_AVERAGE	(1 << 5)
-#define 	TSSC_CTL_MODE_MASTER	(3 << 3)
-#define 	TSSC_CTL_ENABLE		(1 << 0)
-#define TSSC_OPN			0x104
-#define 	TSSC_OPN_NOOP		0x00
-#define 	TSSC_OPN_4WIRE_X	0x01
-#define 	TSSC_OPN_4WIRE_Y	0x02
-#define 	TSSC_OPN_4WIRE_Z1	0x03
-#define 	TSSC_OPN_4WIRE_Z2	0x04
-#define TSSC_SAMPLING_INT		0x108
-#define TSSC_STATUS			0x10c
-#define TSSC_AVG_12			0x110
-#define TSSC_AVG_34			0x114
-#define TSSC_SAMPLE(op,samp)		((0x118 + ((op & 0x3) * 0x20)) + \
-					 ((samp & 0x7) * 0x4))
-#define TSSC_TEST_1			0x198
-#define TSSC_TEST_2			0x19c
+/* the data to be read from registers */
+/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+#if defined(CONFIG_MACH_EVE)
+#define TS_X_MAX        2752/*690*/     /*1024 */
+#define TS_X_MIN        1324/*330*/     /*1024 */
+#define TS_Y_MAX        3314    /*1024 */
+#define TS_Y_MIN        748     /*1024 */
+#else
+#define TS_X_MAX        690
+#define TS_X_MIN        330
+#define TS_Y_MAX        820
+#define TS_Y_MIN        160
+#endif
+/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+#define TS_X_OFFSET     20              /*15 */
+#define TS_Y_OFFSET     15
+/* HW register map */
+#define TSSC_CTL_REG      0x100
+#define TSSC_SI_REG       0x108
+#define TSSC_OPN_REG      0x104
+#define TSSC_STATUS_REG   0x10C
+#define TSSC_AVG12_REG    0x110
 
-struct msm_ts {
-	struct msm_ts_platform_data	*pdata;
-	struct input_dev		*input_dev;
-	void __iomem			*tssc_base;
-	uint32_t			ts_down:1;
-	struct ts_virt_key		*vkey_down;
+/* status bits */
+#define TSSC_STS_OPN_SHIFT      0x6
+#define TSSC_STS_OPN_BMSK       0x1C0
+#define TSSC_STS_NUMSAMP_SHFT   0x1
+#define TSSC_STS_NUMSAMP_BMSK   0x3E
+
+/* CTL bits */
+#define TSSC_CTL_EN             (0x1 << 0)
+#define TSSC_CTL_SW_RESET       (0x1 << 2)
+#define TSSC_CTL_MASTER_MODE    (0x3 << 3)
+#define TSSC_CTL_AVG_EN         (0x1 << 5)
+#define TSSC_CTL_DEB_EN         (0x1 << 6)
+#define TSSC_CTL_DEB_12_MS      (0x2 << 7)      /* 1.2 ms */
+#define TSSC_CTL_DEB_16_MS      (0x3 << 7)      /* 1.6 ms */
+#define TSSC_CTL_DEB_2_MS       (0x4 << 7)      /* 2 ms */
+#define TSSC_CTL_DEB_3_MS       (0x5 << 7)      /* 3 ms */
+#define TSSC_CTL_DEB_4_MS       (0x6 << 7)      /* 4 ms */
+#define TSSC_CTL_DEB_6_MS       (0x7 << 7)      /* 6 ms */
+#define TSSC_CTL_INTR_FLAG1     (0x1 << 10)
+#define TSSC_CTL_DATA           (0x1 << 11)
+#define TSSC_CTL_SSBI_CTRL_EN   (0x1 << 13)
+
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
+//TSSC_CTL_DEB_12_MS
+/* control reg's default state */
+#define TSSC_CTL_STATE    ( \
+                TSSC_CTL_DEB_4_MS| \
+                TSSC_CTL_DEB_EN | \
+                TSSC_CTL_AVG_EN | \
+                TSSC_CTL_MASTER_MODE | \
+                TSSC_CTL_EN)
+
+/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+#define FEATURE_TSSC_D1_FILTER  1
+#define TBSIZE                  2
+
+#define TSSC_SI_STATE           0x05
+
+#define TSSC_AVG34_REG          0x114
+#define TSHK_ADC_4WIRE_X_OP     0x01
+#define TSHK_ADC_4WIRE_Y_OP     0x02
+#define TSHK_ADC_4WIRE_Z1_OP    0x03
+#define TSHK_ADC_4WIRE_Z2_OP    0x04
+/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+
+/* LGE_CHANGE_S [munyoung@lge.com] change default sampling rate for tssc */
+#ifdef CONFIG_MACH_EVE
+#define TSSC_DEFAULT_SAMPLING_INTERVAL  10
+#endif
+/* LGE_CHANGE_E */
+
+/* LGE_CHANGE [munyoung@lge.com] change number of operation due to z axis */
+//#define TSSC_NUMBER_OF_OPERATIONS 2
+#define TSSC_NUMBER_OF_OPERATIONS 4
+/* LGE_CHANGE_S [diyu@lge.com] 2009-04-15*/
+#if defined(CONFIG_MACH_EVE)
+// princlee change 120msec -> 60msec, and send downEvent Every 3 ea.
+/* LGE_CHANGE_S [luckyjun77@lge.com] 2009-10-17, touch tunning*/
+//#define TS_PENUP_TIMEOUT_MS 40 /*150: This value is slow to move*/ /*100: This value is to shake touch */     /*150 */
+#define TS_PENUP_TIMEOUT_MS 28
+/* LGE_CHANGE_E [luckyjun77@lge.com] 2009-10-17*/
+#else
+#define TS_PENUP_TIMEOUT_MS 20
+#endif
+/* LGE_CHANGE_E [diyu@lge.com] 2009-04-15*/
+
+#define TS_DRIVER_NAME "msm_touchscreen"
+
+/* LGE_CHANGE_S [diyu@lge.com] 2009-04-15*/
+#if 1
+/* LGE_CHANGE_S [luckyjun77@lge.com] 2009-10-14*/
+enum touch_prereject_count {
+        TOUCH_REJECTCOUNT0 = 0,
+        TOUCH_REJECTCOUNT1,
+        TOUCH_REJECTCOUNT2,
+        TOUCH_REJECTCOUNT3,
+        TOUCH_REJECTCOUNT4,
+        TOUCH_REJECTCOUNT5,
+        TOUCH_REJECTCOUNT6,
+        TOUCH_REJECTCOUNT7,
+};
+/* LGE_CHANGE_E [luckyjun77@lge.com] 2009-10-14*/
+#endif
+
+#if defined(CONFIG_MACH_EVE)
+#define X_MAX   690             /*1024 */
+#define Y_MAX   820             /*1024 */
+#define P_MAX   256
+#else
+#define X_MAX   790             /*1024 */
+#define Y_MAX   825             /*1024 */
+#define P_MAX   256
+#endif
+
+struct ts {
+        struct input_dev *input;
+        struct timer_list timer;
+        int irq;
+        unsigned int x_max;
+        unsigned int y_max;
+        //LGE_CHANGE_S by cleaneye@lge.com, For performance, 2009.8.26
+        unsigned int count;
+        int x_lastpt;
+        int y_lastpt;
+        //LGE_CHANGE_E by cleaneye@lge.com
+};
+//LGE_CHANGE_S by cleaneye@lge.com,  2009.8.26
+#define X_DISTANCE  20
+#define Y_DISTANCE  21
+//LGE_CHANGE_E by cleaneye@lge.com
+/* LGE_CHANGE_S, [munyoung@lge.com] touch tuning */
+static int s_sampling_int = TSSC_DEFAULT_SAMPLING_INTERVAL;
+static int s_penup_time = TS_PENUP_TIMEOUT_MS;
+/* LGE_CHANGE_E */
+
+/* LGE_CHANGE_S, [luckyjun77@lge.com] 2009-10-17, touch tuning */
+static int PreRejectTouchCount = 0;
+static int ReRejectTouchCount = 0;
+
+#define DISTANCE_VALUE  40
+static int preRejectValue = TOUCH_REJECTCOUNT0;
+//static int postRejectValue = TOUCH_REJECTCOUNT0;
+static int distanceValue = DISTANCE_VALUE;
+/* LGE_CHANGE_E, [luckyjun77@lge.com]  2009-10-17*/
+/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+//static int SkipToggle = 0;
+static int TouchWindowPress = 1;        //  touch  1 : press,  0: release
+/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+
+static void __iomem *virt;
+#define TSSC_REG(reg) (virt + TSSC_##reg##_REG)
+
+/* LGE_CHANGE [cleaneye@lge.com] 2009-02-24, for debug */
+#if defined(CONFIG_MACH_EVE)
+//#define DEBUG
+#if defined(DEBUG)
+#define DBG(fmt, args...) printk(fmt, ##args)
+#else
+#define DBG(fmt, args...)       do {} while(0);
+#endif
+#endif /* CONFIG_MACH_EVE */
+
+#ifdef FEATURE_TSSC_D1_FILTER
+typedef struct {
+        int x;
+        int y;
+} point;
+
+//static int xbuf[2] = { 0 };
+//static int ybuf[2] = { 0 };
+
+//static point res;
+#endif
+
+/* LGE_CHANGE_S [bluerti@lge.com] 2009-09-01 */
+struct timer_list lg_enhanced_touch;
+extern void lg_block_touch_event_func(int value);
+extern int msm_touch_timer_value;
+extern int msm_touch_option;
+
+static void lg_enhanced_touch_timer(unsigned long arg)
+{
+        lg_block_touch_event_func(0);   // Free Touch Event
+}
+
+/* LGE_CHANGE_E [bluerti@lge.com] 2009-09-01 */
+
+/* LGE_CHANGE_S, [munyoung@lge.com] touch tunning */
+#ifdef CONFIG_MACH_EVE
+static ssize_t penup_time_show(struct device *dev,
+                               struct device_attribute *attr, char *buf)
+{
+        return sprintf(buf, "%d\n", s_penup_time);
+}
+
+static ssize_t penup_time_store(struct device *dev,
+                                struct device_attribute *attr, const char *buf,
+                                size_t size)
+{
+        int value;
+
+        sscanf(buf, "%d", &value);
+        s_penup_time = value;
+
+        return size;
+}
+
+static ssize_t sampling_int_show(struct device *dev,
+                                 struct device_attribute *attr, char *buf)
+{
+        return sprintf(buf, "%d\n", s_sampling_int);
+}
+
+static ssize_t sampling_int_store(struct device *dev,
+                                  struct device_attribute *attr,
+                                  const char *buf, size_t size)
+{
+        int value;
+
+        sscanf(buf, "%d", &value);
+        if (value < 1)
+                value = 1;
+        if (value > 31)
+                value = 31;
+
+        s_sampling_int = value;
+
+        return size;
+}
+
+static DEVICE_ATTR(sampling_int, S_IRUGO | S_IWUSR, sampling_int_show,
+                   sampling_int_store);
+static DEVICE_ATTR(penup_time, S_IRUGO | S_IWUSR, penup_time_show,
+                   penup_time_store);
+#endif
+/* LGE_CHANGE_E */
+
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
+#ifdef FEATURE_TSSC_D1_FILTER
+#if 0
+static int dist(point * p1, point * p2)
+{
+        return abs(p1->x - p2->x) + abs(p1->y - p2->y);
+}
+
+static point **sort(point * p1, point * p2, point * p3)
+{
+        static point *sorted[2];
+        int d_1_2, d_1_3, d_2_3;
+
+        d_1_2 = dist(p1, p2);
+        d_1_3 = dist(p1, p3);
+        d_2_3 = dist(p2, p3);
+
+        if (d_1_2 < d_1_3) {
+                if (d_1_2 < d_2_3) {
+                        sorted[0] = p1;
+                        sorted[1] = p2;
+                } else {
+                        sorted[0] = p2;
+                        sorted[1] = p3;
+                }
+        } else {
+                if (d_1_3 < d_2_3) {
+                        sorted[0] = p1;
+                        sorted[1] = p3;
+                } else {
+                        sorted[0] = p2;
+                        sorted[1] = p3;
+                }
+        }
+        return sorted;
+}
+
+static point pbwa(point points[])
+{
+        point result;
+        point **sorted = sort(&points[0], &points[1], &points[2]);
+        result.x = (sorted[0]->x * 3 + sorted[1]->x) >> 2;
+        result.y = (sorted[0]->y * 3 + sorted[1]->y) >> 2;
+        return result;
+}
+#endif
+#endif
+
+/* LGE_CHANGE_S, [munyoung@lge.com] */
+static void block_touch_key(void)
+{
+        // LGE_CHANGE_S [bluerti@lge.com] 2009-09-01
+        if (msm_touch_timer_value) {
+                if (msm_touch_option != 0)
+                        lg_block_touch_event_func(1);   //Block touch event
+
+                mod_timer(&lg_enhanced_touch,
+                          jiffies + (msm_touch_timer_value * HZ / 1000));
+        } else
+                lg_block_touch_event_func(0);   // Free Touch Event
+
+        // LGE_CHANGE_S [bluerti@lge.com] 2009-09-01
+}
+
+/* LGE_CHANGE_E */
+
+//LGE_CHANGE_S by cleaneye@lge.com for performance,  2009.8.26
+static int ts_check_region(struct ts *ts, int x, int y, int pressure)
+{
+        int update_event = false;
+        int x_axis, y_axis;
+        int x_diff, y_diff;
+        x_axis = x;
+        y_axis = y;
+
+        if (ts->count == 0) {
+                ts->x_lastpt = x_axis;
+                ts->y_lastpt = y_axis;
+
+                update_event = true;
+                TouchWindowPress = 1;
+                ts->count = ts->count + 1;
+        }
+
+        x_diff = x_axis - ts->x_lastpt;
+        if (x_diff < 0)
+                x_diff = x_diff * -1;
+        y_diff = y_axis - ts->y_lastpt;
+        if (y_diff < 0)
+                y_diff = y_diff * -1;
+
+        /* LGE_CHANGE_S, [luckyjun77@lge.com] 2009-10-17, touch tuning */
+        //if( (x_diff < X_DISTANCE) && (y_diff < Y_DISTANCE) ){    //original code
+        if ((x_diff < distanceValue) && (y_diff < distanceValue)) {
+        /* LGE_CHANGE_E, [luckyjun77@lge.com] 2009-10-17*/
+                x_axis = ts->x_lastpt;
+                y_axis = ts->y_lastpt;
+        } else {
+                ts->x_lastpt = x_axis;
+                ts->y_lastpt = y_axis;
+
+                x = x_axis;
+                y = y_axis;
+
+                update_event = true;
+                TouchWindowPress = 1;
+        }
+
+        return update_event;
+}
+
+//LGE_CHANGE_E by cleaneye@lge.com
+
+static void ts_update_pen_state(struct ts *ts, int x, int y, int pressure)
+{
+        if (pressure) {
+                /* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+                if (ts_check_region(ts, x, y, pressure) == false)
+                        return;
+                /* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+                input_report_abs(ts->input, ABS_X, x);
+                input_report_abs(ts->input, ABS_Y, y);
+                input_report_abs(ts->input, ABS_PRESSURE, pressure);
+                input_report_key(ts->input, BTN_TOUCH, !!pressure);
+                /* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
+                input_sync(ts->input);
+        } else {
+                input_report_abs(ts->input, ABS_PRESSURE, 0);
+                input_report_key(ts->input, BTN_TOUCH, 0);
+                /* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+                input_sync(ts->input);
+                ts->count = 0;
+                /* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+        }
+
+        /* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake: no sync */
+        //input_sync(ts->input);
+}
+
+static void ts_timer(unsigned long arg)
+{
+        struct ts *ts = (struct ts *)arg;
+
+        ts_update_pen_state(ts, 0, 0, 0);
+        /* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+        ts->count = 0;
+        TouchWindowPress = 0;
+        ReRejectTouchCount = 0;
+        PreRejectTouchCount = 0;
+        /* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+}
+
+/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
+int is_touch_pressed(void)
+{
+        DBG("\n%s TouchWindowPress %d\n", __FUNCTION__, TouchWindowPress);
+        return TouchWindowPress;
+}
+
+/* LGE_CHANGE_S, [munyoung@lge.com] setup operation for z axis */
+static int ts_set_op(void)
+{
+        uint32_t tmp;
+
+        /* LGE_CHANGE_S, [luckyjun77@lge.com] 2009-10-17, touch tuning */
+#if 0                           //original code
+        /* op1 - measure X, 8 sample, 12bit resolution */
+        tmp = (TSHK_ADC_4WIRE_X_OP << 16) | (2 << 8) | (2 << 0);
+        /* op2 - measure Y, 8 sample, 12bit resolution */
+        tmp |= (TSHK_ADC_4WIRE_Y_OP << 20) | (2 << 10) | (2 << 2);
+        /* op3 - measure Z1, 8 sample, 8bit resolution */
+        tmp |= (TSHK_ADC_4WIRE_Z1_OP << 24) | (2 << 12) | (0 << 4);
+        /* op4 - measure Z2, 8 sample, 8bit resolution */
+        tmp |= (TSHK_ADC_4WIRE_Z2_OP << 28) | (2 << 12) | (0 << 4);
+#else //added by jykim
+        /* op1 - measure X, 4 sample, 12bit resolution */
+        tmp = (TSHK_ADC_4WIRE_X_OP << 16) | (1 << 8) | (2 << 0);
+        /* op2 - measure Y, 4 sample, 12bit resolution */
+        tmp |= (TSHK_ADC_4WIRE_Y_OP << 20) | (1 << 10) | (2 << 2);
+        /* op3 - measure Z1, 4 sample, 8bit resolution */
+        tmp |= (TSHK_ADC_4WIRE_Z1_OP << 24) | (1 << 12) | (0 << 4);
+        /* op4 - measure Z2, 4 sample, 8bit resolution */
+        tmp |= (TSHK_ADC_4WIRE_Z2_OP << 28) | (1 << 12) | (0 << 4);
+#endif
+        /* LGE_CHANGE_E, [luckyjun77@lge.com] 2009-10-17*/
+
+        writel(tmp, TSSC_REG(OPN));
+
+        return 0;
+}
+
+/* LGE_CHANGE_E */
+
+static irqreturn_t ts_interrupt(int irq, void *dev_id)
+{
+        /* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
+        //u32 avgs, x, y, lx, ly;
+        u32 avgs, x, y, lx = 0, ly = 0;
+        u32 num_op, num_samp;
+        u32 status;
+        /* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
+        u32 avgs34, z1, z2, lz;
+
+        struct ts *ts = dev_id;
+
+        status = readl(TSSC_REG(STATUS));
+        avgs = readl(TSSC_REG(AVG12));
+        x = avgs & 0xFFFF;
+        y = avgs >> 16;
+
+        /* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+        avgs34 = readl(TSSC_REG(AVG34));
+        z1 = avgs34 & 0xFFFF;
+        z2 = avgs34 >> 16;
+        /* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+
+        /* For pen down make sure that the data just read is still valid.
+         * The DATA bit will still be set if the ARM9 hasn't clobbered
+         * the TSSC. If it's not set, then it doesn't need to be cleared
+         * here, so just return.
+         */
+        if (!(readl(TSSC_REG(CTL)) & TSSC_CTL_DATA))
+                goto out;
+
+        /* Data has been read, OK to clear the data flag */
+        writel(TSSC_CTL_STATE, TSSC_REG(CTL));
+
+        /* LGE_CHANGE [munyoung@lge.com] setup op for z axis */
+        ts_set_op();
+        /* LGE_CHAGE [munyoung@lge.com] change sampling interval(20ms) */
+        writel(s_sampling_int, TSSC_REG(SI));
+
+        /* Valid samples are indicated by the sample number in the status
+         * register being the number of expected samples and the number of
+         * samples collected being zero (this check is due to ADC contention).
+         */
+        num_op = (status & TSSC_STS_OPN_BMSK) >> TSSC_STS_OPN_SHIFT;
+        num_samp = (status & TSSC_STS_NUMSAMP_BMSK) >> TSSC_STS_NUMSAMP_SHFT;
+
+        if ((num_op == TSSC_NUMBER_OF_OPERATIONS) && (num_samp == 0)) {
+                /* TSSC can do Z axis measurment, but driver doesn't support
+                 * this yet.
+                 */
+
+                /*
+                 * REMOVE THIS:
+                 * These x, y co-ordinates adjustments will be removed once
+                 * Android framework adds calibration framework.
+                 */
+/* LGE_CHANGE [cleaneye@lge.com] 2009-02-24, invert y axis */
+#if defined(CONFIG_MACH_EVE)
+                lx = TS_X_MIN + TS_X_MAX - x;
+                ly = TS_Y_MIN + TS_Y_MAX - y;
+                lz = 255 * z1 / z2;
+                //ly = y; //REV.A
+
+                /* LGE_CHANGE_S, [luckyjun77@lge.com] 2009-10-17, touch tunning*/
+                //if( PreRejectTouchCount > 4/**/ ){
+                if (PreRejectTouchCount > preRejectValue /**/) {
+                /* LGE_CHANGE_E, [luckyjun77@lge.com] 2009-10-17*/
+                        ts_update_pen_state(ts, lx, ly, lz);
+                } else {
+                        PreRejectTouchCount++;
+                }
+                /* kick pen up timer - to make sure it expires again(!) */
+                /* LGE_CHANGE_S, [luckyjun77@lge.com] 2009-10-23,
+                 * move the mod timer to the 'if' statement outside
+                 */
+                //mod_timer(&ts->timer,
+                //      jiffies + msecs_to_jiffies(s_penup_time));
+                /* LGE_CHANGE_E, [luckyjun77@lge.com] 2009-10-23*/
+                block_touch_key();
+        }
+        else {
+#ifdef DEBUG
+                printk(KERN_INFO "Ignored interrupt: {%3d, %3d},"
+                       " op = %3d samp = %3d\n", x, y, num_op, num_samp);
+#endif
+        }
+        /* LGE_CHANGE_S, [luckyjun77@lge.com] 2009-10-23,
+         * always update the penup timer when the pen is down
+         */
+        mod_timer(&ts->timer, jiffies + msecs_to_jiffies(s_penup_time));
+        /* LGE_CHANGE_E, [luckyjun77@lge.com] 2009-10-23*/
+
+#else /* qualcomm or google */
+#ifdef CONFIG_ANDROID_TOUCHSCREEN_MSM_HACKS
+                //lx = ts->x_max - x;
+                //ly = ts->y_max - y;
+                lx = TS_X_MAX - x;
+                ly = TS_Y_MAX - y;
+#else
+                lx = x;
+                ly = y;
+#endif
+                ts_update_pen_state(ts, lx, ly, 255);
+                /* kick pen up timer - to make sure it expires again(!) */
+                mod_timer(&ts->timer,
+                          jiffies + msecs_to_jiffies(TS_PENUP_TIMEOUT_MS));
+
+        } else
+                printk(KERN_INFO "Ignored interrupt: {%3d, %3d},"
+                       " op = %3d samp = %3d\n", x, y, num_op, num_samp);
+
+#endif /* CONFIG_MACH_EVE */
+out:
+        return IRQ_HANDLED;
+}
+
+static int __devinit ts_probe(struct platform_device *pdev)
+{
+        int result;
+        struct input_dev *input_dev;
+        struct resource *res, *ioarea;
+        struct ts *ts;
+        unsigned int x_max, y_max, pressure_max;
+        struct msm_ts_platform_data *pdata = pdev->dev.platform_data;
+        /* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+        //struct touchbutton *touchbutton;
+        //u32 test_status;
+        /* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+
+        /* The primary initialization of the TS Hardware
+         * is taken care of by the ADC code on the modem side
+         */
+
+        /* LGE_CHANGE_S, [munyoung@lge.com] touch tunning */
+#ifdef CONFIG_MACH_EVE
+        result = device_create_file(&pdev->dev, &dev_attr_sampling_int);
+        if (result) {
+                printk(KERN_ERR "%s: device_create_file failed\n", __func__);
+                return result;
+        }
+
+        result = device_create_file(&pdev->dev, &dev_attr_penup_time);
+        if (result) {
+                printk(KERN_ERR "%s: device_create_file failed\n", __func__);
+                device_remove_file(&pdev->dev, &dev_attr_sampling_int);
+                return result;
+        }
+#endif
+        /* LGE_CHANGE_E */
+
+        ts = kzalloc(sizeof(struct ts), GFP_KERNEL);
+        input_dev = input_allocate_device();
+        if (!input_dev || !ts) {
+                result = -ENOMEM;
+                goto fail_alloc_mem;
+        }
+
+        res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+        if (!res) {
+                dev_err(&pdev->dev, "Cannot get IORESOURCE_MEM\n");
+                result = -ENOENT;
+                goto fail_alloc_mem;
+        }
+
+        ts->irq = platform_get_irq(pdev, 0);
+        if (!ts->irq) {
+                dev_err(&pdev->dev, "Could not get IORESOURCE_IRQ\n");
+                result = -ENODEV;
+                goto fail_alloc_mem;
+        }
+
+        ioarea = request_mem_region(res->start, resource_size(res), pdev->name);
+        if (!ioarea) {
+                dev_err(&pdev->dev, "Could not allocate io region\n");
+                result = -EBUSY;
+                goto fail_alloc_mem;
+        }
+
+        virt = ioremap(res->start, resource_size(res));
+        if (!virt) {
+                dev_err(&pdev->dev, "Could not ioremap region\n");
+                result = -ENOMEM;
+                goto fail_ioremap;
+        }
+
+        input_dev->name = TS_DRIVER_NAME;
+        input_dev->phys = "msm_touch/input0";
+        input_dev->id.bustype = BUS_HOST;
+        input_dev->id.vendor = 0x0001;
+        input_dev->id.product = 0x0002;
+        input_dev->id.version = 0x0100;
+        input_dev->dev.parent = &pdev->dev;
+
+        /* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
+        //input_dev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
+        input_dev->evbit[0] =
+            BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS) | BIT_MASK(EV_REP);;
+        input_dev->absbit[0] = BIT(ABS_X) | BIT(ABS_Y) | BIT(ABS_PRESSURE);
+        input_dev->absbit[BIT_WORD(ABS_MISC)] = BIT_MASK(ABS_MISC);
+        input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
+
+        if (pdata) {
+                x_max = pdata->x_max ? : X_MAX;
+                y_max = pdata->y_max ? : Y_MAX;
+                pressure_max = pdata->pressure_max ? : P_MAX;
+        } else {
+                x_max = X_MAX;
+                y_max = Y_MAX;
+                pressure_max = P_MAX;
+        }
+
+        ts->x_max = x_max;
+        ts->y_max = y_max;
+
+/*LGE_CHANGE_S diyu@lge.com. To calibration touch screen */
+#if defined(CONFIG_MACH_EVE)
+        input_set_abs_params(input_dev, ABS_X, TS_X_MIN, TS_X_MAX, 0, 0);
+        input_set_abs_params(input_dev, ABS_Y, TS_Y_MIN, TS_Y_MAX, 0, 0);
+        input_set_abs_params(input_dev, ABS_PRESSURE, 0, pressure_max, 0, 0);
+#else /*original */
+        input_set_abs_params(input_dev, ABS_X, 0, x_max, 0, 0);
+        input_set_abs_params(input_dev, ABS_Y, 0, y_max, 0, 0);
+        input_set_abs_params(input_dev, ABS_PRESSURE, 0, pressure_max, 0, 0);
+#endif
+/*LGE_CHANGE_E diyu@lge.com. To calibration touch screen */
+        result = input_register_device(input_dev);
+        if (result)
+                goto fail_ip_reg;
+
+        ts->input = input_dev;
+
+        setup_timer(&ts->timer, ts_timer, (unsigned long)ts);
+        // LGE_CHANGE [bluerti@lge.com] 2009-09-01
+        setup_timer(&lg_enhanced_touch, lg_enhanced_touch_timer, 0);
+        result = request_irq(ts->irq, ts_interrupt, IRQF_TRIGGER_RISING,
+                             "touchscreen", ts);
+        if (result)
+                goto fail_req_irq;
+
+        platform_set_drvdata(pdev, ts);
+
+        return 0;
+
+fail_req_irq:
+        input_unregister_device(input_dev);
+        input_dev = NULL;
+fail_ip_reg:
+        iounmap(virt);
+fail_ioremap:
+        release_mem_region(res->start, resource_size(res));
+fail_alloc_mem:
+        input_free_device(input_dev);
+        kfree(ts);
+        return result;
+}
+
+static int __devexit ts_remove(struct platform_device *pdev)
+{
+        struct resource *res;
+        struct ts *ts = platform_get_drvdata(pdev);
+
+        free_irq(ts->irq, ts);
+        del_timer_sync(&ts->timer);
+
+        input_unregister_device(ts->input);
+        iounmap(virt);
+        res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+        release_mem_region(res->start, resource_size(res));
+        platform_set_drvdata(pdev, NULL);
+        kfree(ts);
+
+        return 0;
+}
+
+static struct platform_driver ts_driver = {
+        .probe = ts_probe,
+        .remove = __devexit_p(ts_remove),
+        .driver = {
+                .name = TS_DRIVER_NAME,
+                .owner = THIS_MODULE,
+        },
 };
 
-static uint32_t msm_tsdebug;
-module_param_named(tsdebug, msm_tsdebug, uint, 0664);
-
-#define tssc_readl(t, a)	(readl(((t)->tssc_base) + (a)))
-#define tssc_writel(t, v, a)	do {writel(v, ((t)->tssc_base) + (a));} while(0)
-
-static void setup_next_sample(struct msm_ts *ts)
+static int __init ts_init(void)
 {
-	uint32_t tmp;
-
-	/* 1.2ms debounce time */
-	tmp = ((2 << 7) | TSSC_CTL_DEBOUNCE_EN | TSSC_CTL_EN_AVERAGE |
-	       TSSC_CTL_MODE_MASTER | TSSC_CTL_ENABLE);
-	tssc_writel(ts, tmp, TSSC_CTL);
+        return platform_driver_register(&ts_driver);
 }
 
-static struct ts_virt_key *find_virt_key(struct msm_ts *ts,
-					 struct msm_ts_virtual_keys *vkeys,
-					 uint32_t val)
+module_init(ts_init);
+
+static void __exit ts_exit(void)
 {
-	int i;
-
-	if (!vkeys)
-		return NULL;
-
-	for (i = 0; i < vkeys->num_keys; ++i)
-		if ((val >= vkeys->keys[i].min) && (val <= vkeys->keys[i].max))
-			return &vkeys->keys[i];
-	return NULL;
+        platform_driver_unregister(&ts_driver);
 }
 
+module_exit(ts_exit);
 
-static irqreturn_t msm_ts_irq(int irq, void *dev_id)
-{
-	struct msm_ts *ts = dev_id;
-	struct msm_ts_platform_data *pdata = ts->pdata;
-
-	uint32_t tssc_avg12, tssc_avg34, tssc_status, tssc_ctl;
-	int x, y, z1, z2;
-	int was_down;
-	int down;
-
-	tssc_ctl = tssc_readl(ts, TSSC_CTL);
-	tssc_status = tssc_readl(ts, TSSC_STATUS);
-	tssc_avg12 = tssc_readl(ts, TSSC_AVG_12);
-	tssc_avg34 = tssc_readl(ts, TSSC_AVG_34);
-
-	setup_next_sample(ts);
-
-	x = tssc_avg12 & 0xffff;
-	y = tssc_avg12 >> 16;
-	z1 = tssc_avg34 & 0xffff;
-	z2 = tssc_avg34 >> 16;
-
-	/* invert the inputs if necessary */
-	if (pdata->inv_x) x = pdata->inv_x - x;
-	if (pdata->inv_y) y = pdata->inv_y - y;
-	if (x < 0) x = 0;
-	if (y < 0) y = 0;
-
-	down = !(tssc_ctl & TSSC_CTL_PENUP_IRQ);
-	was_down = ts->ts_down;
-	ts->ts_down = down;
-
-	/* no valid data */
-	if (down && !(tssc_ctl & TSSC_CTL_DATA_FLAG))
-		return IRQ_HANDLED;
-
-	if (msm_tsdebug & 2)
-		printk("%s: down=%d, x=%d, y=%d, z1=%d, z2=%d, status %x\n",
-		       __func__, down, x, y, z1, z2, tssc_status);
-
-	if (!was_down && down) {
-		struct ts_virt_key *vkey = NULL;
-
-		if (pdata->vkeys_y && (y > pdata->virt_y_start))
-			vkey = find_virt_key(ts, pdata->vkeys_y, x);
-		if (!vkey && ts->pdata->vkeys_x && (x > pdata->virt_x_start))
-			vkey = find_virt_key(ts, pdata->vkeys_x, y);
-
-		if (vkey) {
-			WARN_ON(ts->vkey_down != NULL);
-			if(msm_tsdebug)
-				printk("%s: virtual key down %d\n", __func__,
-				       vkey->key);
-			ts->vkey_down = vkey;
-			input_report_key(ts->input_dev, vkey->key, 1);
-			input_sync(ts->input_dev);
-			return IRQ_HANDLED;
-		}
-	} else if (ts->vkey_down != NULL) {
-		if (!down) {
-			if(msm_tsdebug)
-				printk("%s: virtual key up %d\n", __func__,
-				       ts->vkey_down->key);
-			input_report_key(ts->input_dev, ts->vkey_down->key, 0);
-			input_sync(ts->input_dev);
-			ts->vkey_down = NULL;
-		}
-		return IRQ_HANDLED;
-	}
-
-	if (down) {
-		input_report_abs(ts->input_dev, ABS_X, x);
-		input_report_abs(ts->input_dev, ABS_Y, y);
-		input_report_abs(ts->input_dev, ABS_PRESSURE, z1);
-	}
-	input_report_key(ts->input_dev, BTN_TOUCH, down);
-	input_sync(ts->input_dev);
-
-	return IRQ_HANDLED;
-}
-
-static void dump_tssc_regs(struct msm_ts *ts)
-{
-#define __dump_tssc_reg(r) \
-		do { printk(#r " %x\n", tssc_readl(ts, (r))); } while(0)
-
-	__dump_tssc_reg(TSSC_CTL);
-	__dump_tssc_reg(TSSC_OPN);
-	__dump_tssc_reg(TSSC_SAMPLING_INT);
-	__dump_tssc_reg(TSSC_STATUS);
-	__dump_tssc_reg(TSSC_AVG_12);
-	__dump_tssc_reg(TSSC_AVG_34);
-#undef __dump_tssc_reg
-}
-
-static int __devinit msm_ts_hw_init(struct msm_ts *ts)
-{
-	uint32_t tmp;
-
-	/* Enable the register clock to tssc so we can configure it. */
-	tssc_writel(ts, TSSC_CTL_ENABLE, TSSC_CTL);
-
-	/* op1 - measure X, 1 sample, 12bit resolution */
-	tmp = (TSSC_OPN_4WIRE_X << 16) | (2 << 8) | (2 << 0);
-	/* op2 - measure Y, 1 sample, 12bit resolution */
-	tmp |= (TSSC_OPN_4WIRE_Y << 20) | (2 << 10) | (2 << 2);
-	/* op3 - measure Z1, 1 sample, 8bit resolution */
-	tmp |= (TSSC_OPN_4WIRE_Z1 << 24) | (2 << 12) | (0 << 4);
-
-	/* XXX: we don't actually need to measure Z2 (thus 0 samples) when
-	 * doing voltage-driven measurement */
-	/* op4 - measure Z2, 0 samples, 8bit resolution */
-	tmp |= (TSSC_OPN_4WIRE_Z2 << 28) | (0 << 14) | (0 << 6);
-	tssc_writel(ts, tmp, TSSC_OPN);
-
-	/* 16ms sampling interval */
-	tssc_writel(ts, 16, TSSC_SAMPLING_INT);
-
-	setup_next_sample(ts);
-
-	return 0;
-}
-
-static int __devinit msm_ts_probe(struct platform_device *pdev)
-{
-	struct msm_ts_platform_data *pdata = pdev->dev.platform_data;
-	struct msm_ts *ts;
-	struct resource *tssc_res;
-	struct resource *irq1_res;
-	struct resource *irq2_res;
-	int err = 0;
-	int i;
-
-	tssc_res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "tssc");
-	irq1_res = platform_get_resource_byname(pdev, IORESOURCE_IRQ, "tssc1");
-	irq2_res = platform_get_resource_byname(pdev, IORESOURCE_IRQ, "tssc2");
-
-	if (!tssc_res || !irq1_res || !irq2_res) {
-		pr_err("%s: required resources not defined\n", __func__);
-		return -ENODEV;
-	}
-
-	if (pdata == NULL) {
-		pr_err("%s: missing platform_data\n", __func__);
-		return -ENODEV;
-	}
-
-	ts = kzalloc(sizeof(struct msm_ts), GFP_KERNEL);
-	if (ts == NULL) {
-		pr_err("%s: No memory for struct msm_ts\n", __func__);
-		return -ENOMEM;
-	}
-	ts->pdata = pdata;
-
-	ts->tssc_base = ioremap(tssc_res->start, resource_size(tssc_res));
-	if (ts->tssc_base == NULL) {
-		pr_err("%s: Can't ioremap region (0x%08x - 0x%08x)\n", __func__,
-		       (uint32_t)tssc_res->start, (uint32_t)tssc_res->end);
-		err = -ENOMEM;
-		goto err_ioremap_tssc;
-	}
-
-	ts->input_dev = input_allocate_device();
-	if (ts->input_dev == NULL) {
-		pr_err("failed to allocate touchscreen input device\n");
-		err = -ENOMEM;
-		goto err_alloc_input_dev;
-	}
-	ts->input_dev->name = "msm-touchscreen";
-	input_set_drvdata(ts->input_dev, ts);
-
-	input_set_capability(ts->input_dev, EV_KEY, BTN_TOUCH);
-	set_bit(EV_ABS, ts->input_dev->evbit);
-
-	input_set_abs_params(ts->input_dev, ABS_X, pdata->min_x, pdata->max_x,
-			     0, 0);
-	input_set_abs_params(ts->input_dev, ABS_Y, pdata->min_y, pdata->max_y,
-			     0, 0);
-	input_set_abs_params(ts->input_dev, ABS_PRESSURE, pdata->min_press,
-			     pdata->max_press, 0, 0);
-
-	for (i = 0; pdata->vkeys_x && (i < pdata->vkeys_x->num_keys); ++i)
-		input_set_capability(ts->input_dev, EV_KEY,
-				     pdata->vkeys_x->keys[i].key);
-	for (i = 0; pdata->vkeys_y && (i < pdata->vkeys_y->num_keys); ++i)
-		input_set_capability(ts->input_dev, EV_KEY,
-				     pdata->vkeys_y->keys[i].key);
-
-	err = input_register_device(ts->input_dev);
-	if (err != 0) {
-		pr_err("%s: failed to register input device\n", __func__);
-		goto err_input_dev_reg;
-	}
-
-	msm_ts_hw_init(ts);
-
-	err = request_irq(irq1_res->start, msm_ts_irq,
-			  (irq1_res->flags & ~IORESOURCE_IRQ) | IRQF_DISABLED,
-			  "msm_touchscreen", ts);
-	if (err != 0) {
-		pr_err("%s: Cannot register irq1 (%d)\n", __func__, err);
-		goto err_request_irq1;
-	}
-
-	err = request_irq(irq2_res->start, msm_ts_irq,
-			  (irq2_res->flags & ~IORESOURCE_IRQ) | IRQF_DISABLED,
-			  "msm_touchscreen", ts);
-	if (err != 0) {
-		pr_err("%s: Cannot register irq2 (%d)\n", __func__, err);
-		goto err_request_irq2;
-	}
-
-	platform_set_drvdata(pdev, ts);
-
-	pr_info("%s: tssc_base=%p irq1=%d irq2=%d\n", __func__,
-		ts->tssc_base, (int)irq1_res->start, (int)irq2_res->start);
-	return 0;
-
-err_request_irq2:
-	free_irq(irq1_res->start, ts);
-
-err_request_irq1:
-	/* disable the tssc */
-	tssc_writel(ts, TSSC_CTL_ENABLE, TSSC_CTL);
-
-err_input_dev_reg:
-	input_set_drvdata(ts->input_dev, NULL);
-	input_free_device(ts->input_dev);
-
-err_alloc_input_dev:
-	iounmap(ts->tssc_base);
-
-err_ioremap_tssc:
-	kfree(ts);
-	return err;
-}
-
-static struct platform_driver msm_touchscreen_driver = {
-	.driver = {
-		.name = "msm_touchscreen",
-		.owner = THIS_MODULE,
-	},
-	.probe = msm_ts_probe,
-};
-
-static int __init msm_ts_init(void)
-{
-	return platform_driver_register(&msm_touchscreen_driver);
-}
-device_initcall(msm_ts_init);
-
-MODULE_DESCRIPTION("Qualcomm MSM/QSD Touchscreen controller driver");
-MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("MSM Touch Screen driver");
+MODULE_LICENSE("GPL v2");
+MODULE_ALIAS("platform:msm_touchscreen");
