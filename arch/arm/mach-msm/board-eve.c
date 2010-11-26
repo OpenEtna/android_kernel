@@ -205,6 +205,26 @@ static struct platform_device eve_battery_device = {
 };
 
 /* i2c devices */
+/* motion sensor */
+static struct i2c_gpio_platform_data accel_i2c_pdata = {
+        .sda_pin = GPIO_MOTION_I2C_SDA,
+        .sda_is_open_drain = 0,
+        .scl_pin = GPIO_MOTION_I2C_SCL,
+        .scl_is_open_drain = 0,
+        .udelay = 2,
+};
+
+static struct platform_device eve_accel_i2c_bus = {
+        .name = "i2c-gpio",
+        .id = I2C_BUS_NUM_MOTION,
+        .dev.platform_data = &accel_i2c_pdata,
+};
+
+static struct i2c_board_info accel_i2c_bdinfo = {
+        I2C_BOARD_INFO("bma150", 0x38),
+        .type = "bma150",
+        .irq = MSM_GPIO_TO_INT(GPIO_MOTION_IRQ),
+};
 /* proximity */
 static struct i2c_gpio_platform_data prox_i2c_pdata = {
         .sda_pin = GPIO_PROX_I2C_SDA,
@@ -261,6 +281,7 @@ static struct platform_device *devices[] __initdata = {
 	&msm_device_touchscreen,
 
 	&eve_prox_i2c_bus,
+	&eve_accel_i2c_bus,
 
 	&eve_touch_i2c_bus,
 	&eve_qwerty_device,
@@ -288,6 +309,7 @@ static void __init eve_init(void)
 
 	/* register drivers for the i2c busses */
 	/* each pair of SCL and SDA lines is one bus */
+	i2c_register_board_info(I2C_BUS_NUM_MOTION, &accel_i2c_bdinfo, 1);
 	i2c_register_board_info(I2C_BUS_NUM_TOUCH, &i2c_board_touch, 1);
 	i2c_register_board_info(I2C_BUS_NUM_PROX, &prox_i2c_bdinfo, 1);
 

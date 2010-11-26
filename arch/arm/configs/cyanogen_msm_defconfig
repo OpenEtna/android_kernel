@@ -1168,6 +1168,12 @@ CONFIG_I2C_MSM=y
 # Other I2C/SMBus bus drivers
 #
 # CONFIG_I2C_STUB is not set
+
+#
+# Miscellaneous I2C Chip support
+#
+# CONFIG_SENSORS_MT9T013 is not set
+CONFIG_BOSCH_SMB380=y
 # CONFIG_I2C_DEBUG_CORE is not set
 # CONFIG_I2C_DEBUG_ALGO is not set
 # CONFIG_I2C_DEBUG_BUS is not set
