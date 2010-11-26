@@ -251,6 +251,12 @@ static struct platform_device eve_battery_device = {
     .id   = -1,
 };
 
+/* vibrator */
+static struct platform_device android_vibrator_device = {
+    .name   = "android-vibrator",
+    .id = -1,
+};
+
 /* i2c devices */
 /* motion sensor */
 static struct i2c_gpio_platform_data accel_i2c_pdata = {
@@ -374,6 +380,8 @@ static struct platform_device *devices[] __initdata = {
 	&eve_qwerty_device,
 	&pwrkey_device,
 
+	&android_vibrator_device,
+
 	&android_pmem_device,
 	&android_pmem_adsp_device,
 	&android_pmem_camera_device,
@@ -423,9 +431,19 @@ static void __init eve_fixup(struct machine_desc *desc, struct tag *tags,
 	mi->bank[0].size = MSM_LINUX_SIZE;
 }
 
+static struct map_desc eve_io_desc[] __initdata = {
+	{
+		.virtual = (unsigned long) MSM_WEB_BASE,
+		.pfn = __phys_to_pfn(MSM_WEB_PHYS),
+		.length = MSM_WEB_SIZE,
+		.type = MT_DEVICE_NONSHARED,
+	},
+};
+
 static void __init eve_map_io(void)
 {
 	msm_map_common_io();
+	iotable_init(eve_io_desc, ARRAY_SIZE(eve_io_desc));
 	msm_clock_init(msm_clocks_7x01a, msm_num_clocks_7x01a);
 }
 

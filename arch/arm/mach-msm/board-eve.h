@@ -85,6 +85,10 @@
 #define GPIO_PP2106M2_RESET		36
 #define GPIO_PP2106M2_IRQ		39
 
+#define MSM_WEB_BASE          0xE100C000
+#define MSM_WEB_PHYS          0xA9D00000
+#define MSM_WEB_SIZE          SZ_4K
+
 /* panel */
 #define GPIO_LCD_RESET_N            100
 #define GPIO_LCD_VSYNC_O            97
