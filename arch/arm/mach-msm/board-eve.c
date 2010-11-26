@@ -192,6 +192,12 @@ static struct platform_device android_usb_device = {
 	},
 };
 
+/* for Handset */
+static struct platform_device pwrkey_device = {
+	.name   = "msm-handset",
+	.id     = -1,
+};
+
 /* qwerty keyboard */
 static struct platform_device eve_qwerty_device = {
     .name   = "eve_qwerty",
@@ -306,6 +312,7 @@ static struct platform_device *devices[] __initdata = {
 
 	&eve_touch_i2c_bus,
 	&eve_qwerty_device,
+	&pwrkey_device,
 
 	&android_pmem_device,
 	&android_pmem_adsp_device,
