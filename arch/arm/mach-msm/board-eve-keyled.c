@@ -322,14 +322,14 @@ static struct platform_driver eve_keyled_driver = {
 	.probe		= android_keyled_probe,
 	.remove		= android_keyled_remove,
 	.driver		= {
-		.name		= "eve-keyled",
+		.name		= "android-keyled",
 		.owner		= THIS_MODULE,
 	},
 };
 
 /* backlight of keyboard, home&back, shift */
 static struct platform_device eve_keyled_device = {
-    .name   = "eve-keyled",
+    .name   = "android-keyled",
     .id = -1,
     .dev = {
         .platform_data = 0,
