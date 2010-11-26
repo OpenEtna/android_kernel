@@ -27,6 +27,7 @@
 #include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/io.h>
+#include <linux/termios.h>
 
 #include <mach/msm_smd.h>
 #include <mach/msm_iomap.h>
@@ -610,6 +611,73 @@ static int smd_alloc_v1(struct smd_channel *ch)
 	return 0;
 }
 
+#define MSM_TRIG_A2M_INT(n) (writel(1, MSM_CSR_BASE + 0x400 + (n) * 4))
+#define SMD_APPS_MODEM 0
+#define SMD_APPS_QDSP_I 1
+static inline void notify_other_smd(uint32_t ch_type)
+{
+    if (ch_type == SMD_APPS_MODEM)
+        MSM_TRIG_A2M_INT(0);
+    else if (ch_type == SMD_APPS_QDSP_I)
+        MSM_TRIG_A2M_INT(8);
+}
+
+int smd_tiocmget(smd_channel_t *ch)
+{
+    return  (ch->recv->fDSR ? TIOCM_DSR : 0) |
+        (ch->recv->fCTS ? TIOCM_CTS : 0) |
+        (ch->recv->fCD ? TIOCM_CD : 0) |
+        (ch->recv->fRI ? TIOCM_RI : 0) |
+        (ch->send->fCTS ? TIOCM_RTS : 0) |
+        (ch->send->fDSR ? TIOCM_DTR : 0);
+}
+EXPORT_SYMBOL(smd_tiocmget);
+
+int smd_tiocmset(smd_channel_t *ch, unsigned int set, unsigned int clear)
+{
+    unsigned long flags;
+
+    spin_lock_irqsave(&smd_lock, flags);
+    if (set & TIOCM_DTR)
+        ch->send->fDSR = 1;
+
+    if (set & TIOCM_RTS)
+        ch->send->fCTS = 1;
+
+    if (clear & TIOCM_DTR)
+        ch->send->fDSR = 0;
+
+    if (clear & TIOCM_RTS)
+        ch->send->fCTS = 0;
+
+    ch->send->fSTATE = 1;
+    barrier();
+    notify_other_smd(ch->type);
+    spin_unlock_irqrestore(&smd_lock, flags);
+
+    return 0;
+}
+EXPORT_SYMBOL(smd_tiocmset);
+
+static int smd_packet_read_from_cb(smd_channel_t *ch, void *data, int len)
+{
+    int r;
+
+    if (len < 0)
+        return -EINVAL;
+
+    if (len > ch->current_packet)
+        len = ch->current_packet;
+
+    r = ch_read(ch, data, len);
+    if (r > 0)
+        notify_other_smd(ch->type);
+
+    ch->current_packet -= r;
+    update_packet_state(ch);
+
+    return r;
+}
 
 static int smd_alloc_channel(const char *name, uint32_t cid, uint32_t type)
 {
@@ -641,12 +709,14 @@ static int smd_alloc_channel(const char *name, uint32_t cid, uint32_t type)
 		ch->read_avail = smd_packet_read_avail;
 		ch->write_avail = smd_packet_write_avail;
 		ch->update_state = update_packet_state;
+		ch->read_from_cb = smd_packet_read_from_cb;
 	} else {
 		ch->read = smd_stream_read;
 		ch->write = smd_stream_write;
 		ch->read_avail = smd_stream_read_avail;
 		ch->write_avail = smd_stream_write_avail;
 		ch->update_state = update_stream_state;
+		ch->read_from_cb = smd_stream_read;
 	}
 
 	if ((type & 0xff) == 0)
@@ -937,6 +1007,12 @@ int smsm_change_state(enum smsm_state_item item,
 
 	return 0;
 }
+
+int smd_read_from_cb(smd_channel_t *ch, void *data, int len)
+{
+    return ch->read_from_cb(ch, data, len);
+}
+EXPORT_SYMBOL(smd_read_from_cb);
 
 uint32_t smsm_get_state(enum smsm_state_item item)
 {

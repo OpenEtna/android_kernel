@@ -303,6 +303,7 @@ struct smd_channel {
 	int (*write)(struct smd_channel *ch, const void *data, int len);
 	int (*read_avail)(struct smd_channel *ch);
 	int (*write_avail)(struct smd_channel *ch);
+	int (*read_from_cb)(struct smd_channel *ch, void *data, int len);
 
 	void (*update_state)(struct smd_channel *ch);
 	unsigned last_state;
