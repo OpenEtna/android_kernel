@@ -232,6 +232,8 @@ static struct platform_device android_usb_device = {
 		.platform_data = &android_usb_pdata,
 	},
 };
+/* mmc */
+static void __init eve_init_mmc(void);
 
 /* for Handset */
 static struct platform_device pwrkey_device = {
@@ -417,6 +419,7 @@ static void __init eve_init(void)
 	gpio_request(GPIO_COMPASS_IRQ, "compass_int");
 	gpio_direction_input(GPIO_COMPASS_IRQ);
 
+	eve_init_mmc();
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 
 	msm_hsusb_set_vbus_state(1);

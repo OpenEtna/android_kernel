@@ -94,4 +94,14 @@
 #define GPIO_LCD_RESET_N            100
 #define GPIO_LCD_VSYNC_O            97
 
+/* mmc */
+#define GPIO_MMC_CD_N 30
+
+/* wifi */
+#define BCM4325_GPIO_BT_RESET		93
+#define BCM4325_GPIO_WL_RESET		35
+#define BCM4325_GPIO_WL_WAKE		153
+#define BCM4325_GPIO_WL_REGON		21
+#define BCM4325_GPIO_WL_HOSTWAKEUP	94
+
 #endif //__ARCH_ARM_MACH_MSM_BOARD_EVE_H
