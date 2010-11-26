@@ -155,6 +155,13 @@ config HOLES_IN_ZONE
          Both the start and end of all zones must be aligned without
          this option.
 
+config MACH_EVE
+	depends on ARCH_MSM7X00A
+	default y
+	bool "eve"
+	help
+	  eve
+
 config MACH_HALIBUT
 	depends on ARCH_MSM
 	depends on ARCH_MSM7X00A
