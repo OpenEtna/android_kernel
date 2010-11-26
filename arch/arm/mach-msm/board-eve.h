@@ -1,4 +1,3 @@
-
 #ifndef __ARCH_ARM_MACH_MSM_BOARD_EVE_H
 #define __ARCH_ARM_MACH_MSM_BOARD_EVE_H
 

@@ -50,7 +50,7 @@
 #include "board-eve.h"
 #include "proc_comm.h"
 
-/* giorgio130 - 3d patch */
+/* hw3d */
 static struct resource resources_hw3d[] = {
 	{
 		.start	= 0xA0000000,
@@ -84,8 +84,8 @@ static struct platform_device hw3d_device = {
 	.num_resources	= ARRAY_SIZE(resources_hw3d),
 	.resource	= resources_hw3d,
 };
-/* end patch */
 
+/* pmem */
 static struct android_pmem_platform_data android_pmem_pdata = {
 	.name = "pmem",
 	.start = MSM_PMEM_MDP_BASE,
@@ -128,6 +128,7 @@ static struct platform_device android_pmem_gpu1_device = {
 	.dev = { .platform_data = &android_pmem_gpu1_pdata },
 };
 
+/* usb */
 static int eve_phy_init_seq[] = { 0x1D, 0x0D, 0x1D, 0x10, -1 };
 
 static struct msm_hsusb_platform_data msm_hsusb_pdata = {
