@@ -1,5 +1,3 @@
-/*++ ViBrator setting *///diyu@lge.com
-
 #include <linux/module.h>
 #include <linux/sched.h>
 #include <linux/fs.h>
@@ -8,7 +6,6 @@
 #include <linux/workqueue.h>
 
 #include <linux/platform_device.h>
-#include <mach/gpio_keypad.h>
 
 #include <mach/msm_rpcrouter.h>
 #include <mach/vreg.h>
@@ -278,7 +275,6 @@ static DEVICE_ATTR(shift, 0666, NULL, shiftled_enable_store);
 
 static int android_keyled_probe(struct platform_device *pdev)
 {
-	int rc;
 	int err;
 	KDBG( "android_keyled_probe \n");
 
