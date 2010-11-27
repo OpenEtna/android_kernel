@@ -250,11 +250,11 @@ static ssize_t touchled_enable_store(
 
 	if (s_touchled)
 	{
-		rc = pm_set_led_intensity(PM_TOUCH_LED, 4); //LCD_DRV_N connected to SLIDE_KPD_DRV_N
+		rc = pm_set_led_intensity(PM_TOUCH_LED, 1); //LCD_DRV_N connected to SLIDE_KPD_DRV_N
 	}
 	else
 	{
-		rc = pm_set_led_intensity(PM_TOUCH_LED, s_touchled); //LCD_DRV_N connected to SLIDE_KPD_DRV_N
+		rc = pm_set_led_intensity(PM_TOUCH_LED, 0); //LCD_DRV_N connected to SLIDE_KPD_DRV_N
 	}
 	return size;
 }
