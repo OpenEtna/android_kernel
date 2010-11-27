@@ -204,8 +204,8 @@ typedef struct {
 /* LGE_CHANGE_S [bluerti@lge.com] 2009-09-01 */
 struct timer_list lg_enhanced_touch;
 extern void lg_block_touch_event_func(int value);
-extern int msm_touch_timer_value;
-extern int msm_touch_option;
+static int msm_touch_option = 2;
+static int msm_touch_timer_value = 800;
 
 static void lg_enhanced_touch_timer(unsigned long arg)
 {
@@ -659,9 +659,9 @@ static int __devinit ts_probe(struct platform_device *pdev)
         input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
 
         if (pdata) {
-                x_max = pdata->x_max ? : X_MAX;
-                y_max = pdata->y_max ? : Y_MAX;
-                pressure_max = pdata->pressure_max ? : P_MAX;
+                x_max = pdata->max_x ? : X_MAX;
+                y_max = pdata->max_y ? : Y_MAX;
+                pressure_max = pdata->max_press ? : P_MAX;
         } else {
                 x_max = X_MAX;
                 y_max = Y_MAX;
