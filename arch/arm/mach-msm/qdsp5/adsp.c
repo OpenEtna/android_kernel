@@ -260,6 +260,10 @@ int msm_adsp_get(const char *name, struct msm_adsp_module **out,
 		rc = wait_event_timeout(adsp_info.init_info_wait,
 			adsp_info.init_info_state == ADSP_STATE_INIT_INFO,
 			5 * HZ);
+
+		msm_rpc_close(adsp_info.init_info_rpc_client);
+		adsp_info.init_info_rpc_client = 0;
+
 		if (!rc) {
 			pr_info("adsp: INIT_INFO failed\n");
 			return -ETIMEDOUT;
