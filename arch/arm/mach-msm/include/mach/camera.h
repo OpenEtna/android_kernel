@@ -94,6 +94,10 @@ struct msm_sensor_ctrl {
 	int (*s_release)(void);
 	int (*s_config)(void __user *);
 	int node;
+        /* LGE_CHANGE_S [zugwan@lge.com] 2009-10-28 */
+        int (*s_power_on)(void);
+        int (*s_power_off)(void);
+        /* LGE_CHANGE_E [zugwan@lge.com] 2009-10-28 */
 };
 
 /* this structure is used in kernel */

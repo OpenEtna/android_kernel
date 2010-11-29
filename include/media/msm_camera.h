@@ -92,6 +92,14 @@
 #define MSM_CAM_IOCTL_ENABLE_OUTPUT_IND \
 	_IOW(MSM_CAM_IOCTL_MAGIC, 25, uint32_t *)
 
+/* LGE_CHANGE_S [wonki.choi@lge.com] 2010-04-07 EVE Merge */
+#define MSM_CAM_IOCTL_AF_CTRL \
+	_IOR(MSM_CAM_IOCTL_MAGIC, 23, struct msm_ctrl_cmt_t *)
+#define MSM_CAM_IOCTL_AF_CTRL_DONE \
+	_IOW(MSM_CAM_IOCTL_MAGIC, 24, struct msm_ctrl_cmt_t *)
+
+/* LGE_CHANGE_E [wonki.choi@lge.com] 2010-04-07 */
+
 #define MAX_SENSOR_NUM  3
 #define MAX_SENSOR_NAME 32
 
@@ -432,7 +440,17 @@ struct msm_snapshot_pp_status {
 #define CFG_GET_EXP_FOR_LED		37
 #define CFG_UPDATE_AEC_FOR_LED		38
 #define CFG_SET_FRONT_CAMERA_MODE	39
-#define CFG_MAX        			40
+        /* LGE_CHANGE_S [zugwan@lge.com] 2009-05-19 */
+#define        CFG_SET_IMG_QUALITY      40
+#define        CFG_SET_SCENE_MODE       41
+#define        CFG_SET_EXPOSURE_VALUE   42
+#define        CFG_SET_FLASH_MODE       43
+#define        CFG_SET_MACRO            44
+#define        CFG_GET_JPG_IMAGE_SIZE   45
+#define        CFG_SET_FLICKER          46
+#define        CFG_SET_RECORDING_MODE   47
+        /* LGE_CHANGE_E [zugwan@lge.com] 2009-05-19 */
+#define CFG_MAX        			48
 
 #define MOVE_NEAR	0
 #define MOVE_FAR	1
@@ -444,7 +462,15 @@ struct msm_snapshot_pp_status {
 
 #define SENSOR_QTR_SIZE			0
 #define SENSOR_FULL_SIZE		1
-#define SENSOR_INVALID_SIZE		2
+        /* LGE_CHANGE_S [zugwan@lge.com] 2009-05-11, add picture size */
+#define        SENSOR_QVGA_SIZE         2
+#define        SENSOR_VGA_SIZE          3
+#define        SENSOR_QUADVGA_SIZE      4
+#define        SENSOR_UXGA_SIZE         5
+#define        SENSOR_QXGA_SIZE         6
+#define        SENSOR_QSXGA_SIZE        7
+        /* LGE_CHANGE_E [zugwan@lge.com] 2009-05-11, add picture size */
+#define SENSOR_INVALID_SIZE		8
 
 #define CAMERA_EFFECT_OFF		0
 #define CAMERA_EFFECT_MONO		1
@@ -458,7 +484,57 @@ struct msm_snapshot_pp_status {
 #define CAMERA_EFFECT_WHITEBOARD	9
 #define CAMERA_EFFECT_BLACKBOARD	10
 #define CAMERA_EFFECT_AQUA		11
-#define CAMERA_EFFECT_MAX		12
+#define        CAMERA_EFFECT_SKETCH     12
+#define        CAMERA_EFFECT_EMBOSS     13
+#define        CAMERA_EFFECT_RED        14
+#define        CAMERA_EFFECT_GREEN      15
+#define CAMERA_EFFECT_MAX		16
+
+enum camera_wb_t {
+        CAMERA_WB_AUTO,
+        CAMERA_WB_INCANDESCENT,
+        CAMERA_WB_FLUORESCENT,
+        CAMERA_WB_DAYLIGHT,
+        CAMERA_WB_CLOUDY_DAYLIGHT,
+        CAMERA_WB_MAX
+};
+
+enum camera_iso_t {
+        CAMERA_ISO_AUTO,
+        CAMERA_ISO_400,
+        CAMERA_ISO_200,
+        CAMERA_ISO_100,
+        CAMERA_ISO_MAX
+};
+
+enum camera_scene_mode_t {
+        CAMERA_SCENE_NORMAL,
+        CAMERA_SCENE_NIGHT,
+        CAMERA_SCENE_BACKLIGHT,
+        CAMERA_SCENE_LANDSCAPE,
+        CAMERA_SCENE_PORTRAIT,
+        CAMERA_SCENE_NIGHT_PORTRAIT,
+        CAMERA_SCENE_BEACH,
+        CAMERA_SCENE_PARTY,
+        CAMERA_SCENE_SPORT,
+        CAMERA_SCENE_MAX
+};
+
+enum camera_img_quality_t {
+        CAMERA_IMG_QUALITY_NORMAL,
+        CAMERA_IMG_QUALITY_FINE,
+        CAMERA_IMG_QUALITY_SUPER_FINE,
+        CAMERA_IMG_QUALITY_MAX
+};
+
+enum camera_flash_mode_t {
+        CAMERA_FLASH_AUTO,
+        CAMERA_FLASH_REDEYE_REMOVAL,
+        CAMERA_FLASH_OFF,
+        CAMERA_FLASH_ON,
+        CAMERA_FLASH_MAX
+};
+/* LGE_CHANGE_E [zugwan@lge.com] 2009-05-19 */
 
 struct sensor_pict_fps {
 	uint16_t prevfps;
@@ -559,6 +635,12 @@ enum contrast_mode{
 	CAMERA_CONTRAST_N2,
 };
 
+enum msm_camera_led_state_t {
+        MSM_LED_OFF,
+        MSM_LED_LOW,
+        MSM_LED_HIGH
+};
+
 struct sensor_cfg_data {
 	int cfgtype;
 	int mode;
@@ -567,6 +649,18 @@ struct sensor_cfg_data {
 
 	union {
 		int8_t effect;
+                /* LGE_CHANGE_S [zugwan@lge.com] 2009-05-19 */
+                int8_t wb;
+                int8_t iso;
+                int8_t img_quality;
+                int8_t scene_mode;
+                int8_t ev;
+                int8_t zoom;
+                int8_t flash;
+                uint32_t jpg_size;
+                int8_t flicker;
+                int8_t is_recording_mode;
+                /* LGE_CHANGE_E [zugwan@lge.com] 2009-05-19 */
 		uint8_t lens_shading;
 		uint16_t prevl_pf;
 		uint16_t prevp_pl;
