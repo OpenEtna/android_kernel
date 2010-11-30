@@ -262,6 +262,11 @@ static struct platform_device android_usb_device = {
 		.platform_data = &android_usb_pdata,
 	},
 };
+
+static struct platform_device eve_rfkill = {
+	.name = "eve_rfkill",
+	.id = -1,
+};
 /* mmc */
 void eve_init_mmc(void);
 
@@ -415,6 +420,7 @@ static struct i2c_board_info i2c_board_touch = {
 /* list of all devices from above or devices-msm7x00.c */
 static struct platform_device *devices[] __initdata = {
 	&msm_device_uart3,
+	&eve_rfkill,
 	&msm_device_smd,
 	&msm_device_nand,
 

@@ -63,6 +63,7 @@ obj-$(CONFIG_MACH_EVE) += board-eve-keypad.o board-eve-keyled.o
 obj-$(CONFIG_MACH_EVE) += board-eve-backlight.o board-eve-vibrator.o
 obj-$(CONFIG_MACH_EVE) += board-eve-mmc.o board-eve-wifi.o
 obj-$(CONFIG_MACH_EVE) += board-eve-camera.o
+obj-$(CONFIG_MACH_EVE) += board-eve-rfkill.o
 obj-$(CONFIG_MACH_EVE) += smd_ctl2.o modem_notifier.o rpc_server_lge.o
 obj-$(CONFIG_MACH_EVE) += rpc_charger.o rpc_server_handset.o
 obj-$(CONFIG_MACH_HALIBUT) += board-halibut.o devices-msm7x00.o
