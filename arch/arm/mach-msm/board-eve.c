@@ -456,8 +456,28 @@ static struct msm_acpu_clock_platform_data eve_clock_data = {
 	.wait_for_irq_khz = 128000000,
 };
 
+// Please call this function only once.
+static void eve_get_hw_rev(void) {
+	int lge_hw_rev = LGE_PCB_VER_UNKNOWN;
+
+	int fntype = CUSTOMER_CMD2_BATT_GET_HW_REV;
+
+    if (msm_proc_comm(PCOM_CUSTOMER_CMD2, &lge_hw_rev, &fntype)) {
+		lge_hw_rev = LGE_PCB_VER_UNKNOWN;
+		printk("[HW] %s() msm_proc_comm error\n", __func__);
+	}
+	if (-1 == lge_hw_rev) {
+		lge_hw_rev = LGE_PCB_VER_UNKNOWN;
+		printk("[HW] %s() Fail to get data at modem side\n", __func__);
+	}
+	printk("[HW] %s() HW version is %d\n", __func__, lge_hw_rev);
+	system_rev = (unsigned int)lge_hw_rev;
+}
+
 static void __init eve_init(void)
 {
+	eve_get_hw_rev();
+
 	msm_device_hsusb.dev.platform_data = &msm_hsusb_pdata;
 	msm_acpu_clock_init(&eve_clock_data);
 

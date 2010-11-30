@@ -110,4 +110,21 @@
 
 #define EVE_GPIO_WIFI_IRQ BCM4325_GPIO_WL_WAKE
 
+#define CUSTOMER_CMD2_BATT_GET_HW_REV	0x0010
+typedef enum {
+        LGE_PCB_VER_UNKNOWN = 0,
+        LGE_PCB_VER_A = 1,
+        LGE_PCB_VER_B,
+        LGE_PCB_VER_C,
+        LGE_PCB_VER_D,
+        LGE_PCB_VER_E,
+        LGE_PCB_VER_F,
+        LGE_PCB_VER_G,
+        LGE_PCB_VER_1_0,
+        LGE_PCB_VER_1_1,
+        LGE_PCB_VER_1_2,
+        LGE_PCB_VER_1_3,
+        LGE_PCB_VER_1_4,
+        LGE_PCB_VER_MAX
+} lg_hw_rev_type;
 #endif //__ARCH_ARM_MACH_MSM_BOARD_EVE_H
