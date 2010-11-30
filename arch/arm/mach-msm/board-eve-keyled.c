@@ -1,3 +1,4 @@
+#include <asm/mach-types.h>
 #include <linux/module.h>
 #include <linux/sched.h>
 #include <linux/fs.h>
@@ -335,7 +336,10 @@ static struct platform_device eve_keyled_device = {
 static int __init eve_keyled_init(void)
 {
 	int ret;
-	
+
+	if (!machine_is_eve())
+		return 0;
+
 	ret = platform_driver_register(&eve_keyled_driver);
 	platform_device_register(&eve_keyled_device);
 
