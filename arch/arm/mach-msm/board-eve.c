@@ -298,6 +298,29 @@ static struct platform_device eve_bl_i2c_adap_bus = {
         .id = I2C_BUS_NUM_BACKLIGHT,
         .dev.platform_data = &bl_i2c_adap_pdata,
 };
+/* camera */
+static struct i2c_gpio_platform_data eve_camera_i2c_adap_pdata =
+{
+    .sda_pin= GPIO_CAMERA_I2C_SDA,
+    .sda_is_open_drain = 0,
+    .scl_pin = GPIO_CAMERA_I2C_SCL,
+    .scl_is_open_drain = 0,
+    .udelay = 2,
+};
+
+static struct platform_device eve_camera_i2c_adap_bus =
+{
+    .name= "i2c-gpio",
+    .id = I2C_BUS_NUM_CAMERA,
+    .dev.platform_data = &eve_camera_i2c_adap_pdata,
+};
+
+static struct i2c_board_info eve_camera_i2c_device[] =
+{
+    { I2C_BOARD_INFO("mv9319", 0x50 >> 1) },
+    { I2C_BOARD_INFO("mv9319_firmware", 0x40 >> 1) },
+};
+
 /* proximity */
 static struct i2c_gpio_platform_data prox_i2c_pdata = {
         .sda_pin = GPIO_PROX_I2C_SDA,
@@ -374,6 +397,8 @@ static struct platform_device *devices[] __initdata = {
 	&msm_device_touchscreen,
 	&eve_bl_i2c_adap_bus,
 
+	&eve_camera_i2c_adap_bus,
+
 	&eve_compass_i2c_bus,
 	&eve_prox_i2c_bus,
 	&eve_accel_i2c_bus,
@@ -410,6 +435,7 @@ static void __init eve_init(void)
 	/* each pair of SCL and SDA lines is one bus */
 	i2c_register_board_info(I2C_BUS_NUM_MOTION, &accel_i2c_bdinfo, 1);
 	i2c_register_board_info(I2C_BUS_NUM_BACKLIGHT, &bl_i2c_device, 1);
+	i2c_register_board_info(I2C_BUS_NUM_CAMERA, eve_camera_i2c_device, 2);
 	i2c_register_board_info(I2C_BUS_NUM_TOUCH, &i2c_board_touch, 1);
 	i2c_register_board_info(I2C_BUS_NUM_PROX, &prox_i2c_bdinfo, 1);
 	i2c_register_board_info(I2C_BUS_NUM_COMPASS, &compass_i2c_bdinfo, 1);

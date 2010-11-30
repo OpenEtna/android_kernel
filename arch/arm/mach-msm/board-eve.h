@@ -47,6 +47,10 @@
 #define GPIO_BL_I2C_SCL			84
 #define GPIO_BL_I2C_SDA			85
 
+/* Camera */
+#define GPIO_CAMERA_I2C_SDA		61
+#define GPIO_CAMERA_I2C_SCL		60
+
 /* Proximity Sensor */
 #define GPIO_PROX_I2C_SDA		89
 #define GPIO_PROX_I2C_SCL		90
