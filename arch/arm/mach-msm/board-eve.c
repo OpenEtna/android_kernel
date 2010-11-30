@@ -171,8 +171,38 @@ static struct platform_device android_pmem_adsp_device = {
 /* usb */
 static int eve_phy_init_seq[] = { 0x1D, 0x0D, 0x1D, 0x10, -1 };
 
+#define HSUSB_API_INIT_PHY_PROC 2
+#define HSUSB_API_PROG      0x30000064
+#define HSUSB_API_VERS MSM_RPC_VERS(1,1)
+
+static void internal_phy_reset(void)
+{
+    struct msm_rpc_endpoint *usb_ep;
+    int rc;
+    struct hsusb_phy_start_req {
+        struct rpc_request_hdr hdr;
+    } req;
+
+    printk(KERN_INFO "msm_hsusb_phy_reset\n");
+
+    usb_ep = msm_rpc_connect(HSUSB_API_PROG, HSUSB_API_VERS, 0);
+    if (IS_ERR(usb_ep)) {
+        printk(KERN_ERR "%s: init rpc failed! error: %ld\n",
+                __func__, PTR_ERR(usb_ep));
+        goto close;
+    }
+    rc = msm_rpc_call(usb_ep, HSUSB_API_INIT_PHY_PROC,
+            &req, sizeof(req), 5 * HZ);
+    if (rc < 0)
+        printk(KERN_ERR "%s: rpc call failed! (%d)\n", __func__, rc);
+
+close:
+    msm_rpc_close(usb_ep);
+}
+
 static struct msm_hsusb_platform_data msm_hsusb_pdata = {
 	.phy_init_seq = eve_phy_init_seq,
+	.phy_reset = internal_phy_reset,
 };
 
 static struct usb_mass_storage_platform_data mass_storage_pdata = {
