@@ -169,8 +169,6 @@ static struct platform_device android_pmem_adsp_device = {
 };
 
 /* usb */
-static int eve_phy_init_seq[] = { 0x1D, 0x0D, 0x1D, 0x10, -1 };
-
 #define HSUSB_API_INIT_PHY_PROC 2
 #define HSUSB_API_PROG      0x30000064
 #define HSUSB_API_VERS MSM_RPC_VERS(1,1)
@@ -200,45 +198,98 @@ close:
     msm_rpc_close(usb_ep);
 }
 
+/* adjust eye diagram, disable vbusvalid interrupts */
+static void notify_usb_connected(int online) {
+	printk("%s: online = %d\n",__func__,online);
+}
+static int hsusb_phy_init_seq[] = { 0x40, 0x31, 0x1D, 0x0D, 0x1D, 0x10, -1 };
+
 static struct msm_hsusb_platform_data msm_hsusb_pdata = {
-	.phy_init_seq = eve_phy_init_seq,
-	.phy_reset = internal_phy_reset,
+    .phy_reset = internal_phy_reset,
+    .phy_init_seq = hsusb_phy_init_seq,
+    .usb_connected = notify_usb_connected,
 };
 
 static struct usb_mass_storage_platform_data mass_storage_pdata = {
-	.nluns = 1,
-	.vendor = "Qualcomm",
-	.product = "Halibut",
-	.release = 0x0100,
+    .nluns = 1,
+    .vendor = "HTC     ",
+    .product = "Android Phone   ",
+    .release = 0x0100,
 };
 
 static struct platform_device usb_mass_storage_device = {
-	.name = "usb_mass_storage",
-	.id = -1,
-	.dev = {
-		.platform_data = &mass_storage_pdata,
-	},
+    .name = "usb_mass_storage",
+    .id = -1,
+    .dev = {
+        .platform_data = &mass_storage_pdata,
+        },
 };
 
-static char *usb_functions[] = { "usb_mass_storage" };
-static char *usb_functions_adb[] = { "usb_mass_storage", "adb" };
-static char *usb_functions_adb_diag[] = { "usb_mass_storage", "adb", "diag" };
+#ifdef CONFIG_USB_ANDROID_RNDIS
+static struct usb_ether_platform_data rndis_pdata = {
+    /* ethaddr is filled by board_serialno_setup */
+    .vendorID   = 0x0bb4,
+    .vendorDescr    = "HTC",
+};
+
+static struct platform_device rndis_device = {
+    .name   = "rndis",
+    .id = -1,
+    .dev    = {
+        .platform_data = &rndis_pdata,
+    },
+};
+#endif
+
+static char *usb_functions_ums[] = {
+    "usb_mass_storage",
+};
+
+static char *usb_functions_ums_adb[] = {
+    "usb_mass_storage",
+    "adb",
+};
+
+static char *usb_functions_rndis[] = {
+    "rndis",
+};
+
+static char *usb_functions_rndis_adb[] = {
+    "rndis",
+    "adb",
+};
+
+static char *usb_functions_all[] = {
+#ifdef CONFIG_USB_ANDROID_RNDIS
+    "rndis",
+#endif
+    "usb_mass_storage",
+    "adb",
+#ifdef CONFIG_USB_ANDROID_ACM
+    "acm",
+#endif
+};
 
 static struct android_usb_product usb_products[] = {
-	{
-		.product_id	= 0x0c01,
-		.num_functions	= ARRAY_SIZE(usb_functions),
-		.functions	= usb_functions,
-	},
-	{
-		.product_id	= 0x0c02,
-		.num_functions	= ARRAY_SIZE(usb_functions_adb),
-		.functions	= usb_functions_adb,
-	},
     {
-        .product_id = 0x0c07,
-        .num_functions  = ARRAY_SIZE(usb_functions_adb_diag),
-        .functions  = usb_functions_adb_diag,
+        .product_id = 0x0c01,
+        .num_functions  = ARRAY_SIZE(usb_functions_ums),
+        .functions  = usb_functions_ums,
+    },
+    {
+        .product_id = 0x0c02,
+        .num_functions  = ARRAY_SIZE(usb_functions_ums_adb),
+        .functions  = usb_functions_ums_adb,
+    },
+    {
+        .product_id = 0x0ffe,
+        .num_functions  = ARRAY_SIZE(usb_functions_rndis),
+        .functions  = usb_functions_rndis,
+    },
+    {
+        .product_id = 0x0ffc,
+        .num_functions  = ARRAY_SIZE(usb_functions_rndis_adb),
+        .functions  = usb_functions_rndis_adb,
     },
 };
 
@@ -251,8 +302,8 @@ static struct android_usb_platform_data android_usb_pdata = {
 	.manufacturer_name = "LG",
 	.num_products = ARRAY_SIZE(usb_products),
 	.products = usb_products,
-	.num_functions = ARRAY_SIZE(usb_functions_adb),
-	.functions = usb_functions_adb,
+	.num_functions = ARRAY_SIZE(usb_functions_all),
+	.functions = usb_functions_all,
 };
 
 static struct platform_device android_usb_device = {
@@ -427,6 +478,7 @@ static struct platform_device *devices[] __initdata = {
 	&msm_device_hsusb,
 	&usb_mass_storage_device,
 	&android_usb_device,
+	&rndis_device,
 	&eve_battery_device,
 
 	&msm_device_i2c,
