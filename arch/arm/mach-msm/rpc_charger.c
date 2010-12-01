@@ -331,9 +331,6 @@ int msm_chg_get_lge_batt_info(lge_battery_info_type * batt_info)
 		uint32_t present;
 	} rep;
 
-	if (!chg_ep)
-		msm_chg_rpc_connect();
-
 	if (IS_ERR(chg_ep)) {
 		lprintk(D_BATT, "%s: msm_chg_lge_batt_info rpc failed before"
 				"call, rc = %ld\n", __func__, PTR_ERR(chg_ep));
@@ -1332,6 +1329,7 @@ static int __init lge_battery_init(void)
 {
 	lprintk(D_BATT, "%s() start !!  \n", __func__ );
 
+	msm_chg_rpc_connect();
 	return platform_driver_register(&lge_battery_driver);
 }
 
