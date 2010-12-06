@@ -110,10 +110,11 @@ int eve_wifi_power(int on)
     return 0;
 }
 
-static uint32_t msm_sdcc_setup_power(int on)
+static uint32_t eve_sdslot_switchvdd(struct device *dev, unsigned int vdd)
 {
 	int rc;
-	if (!on) {
+	printk("%s(vdd = %d)\n",__func__,vdd);
+	if (vdd == 0) {
 		rc = vreg_disable(vreg_mmc);
 		if (rc)
 			printk(KERN_ERR "%s: return val: %d \n",
@@ -148,13 +149,14 @@ static unsigned int wlan_transalate_vdd(int vdd) {
 static struct mmc_platform_data eve_sdcc_wlan_data = {
 	.ocr_mask   = MMC_VDD_30_31,
 	.status     = eve_sdcc_wlan_slot_status,
-	.built_in 	= 1,
+	.built_in	= 1,
 	.register_status_notify = eve_wifi_status_register,
 };
 
 static struct mmc_platform_data eve_sdcc_data = {
-	.ocr_mask   = MMC_VDD_30_31,
-	.status         = eve_sdcc_slot_status,
+	.ocr_mask		= MMC_VDD_30_31,
+	.status			= eve_sdcc_slot_status,
+	.translate_vdd	= eve_sdslot_switchvdd,
 };
 
 void __init eve_init_mmc(void)
@@ -174,8 +176,6 @@ void __init eve_init_mmc(void)
 
 	config_gpio_table(sdcard_on_gpio_table,
                   ARRAY_SIZE(sdcard_on_gpio_table));
-
-	msm_sdcc_setup_power(1);
 
 	msm_add_sdcc(1, &eve_sdcc_wlan_data, 0, 0);
 	msm_add_sdcc(2, &eve_sdcc_data, 0, 0);
