@@ -47,3 +47,5 @@ else
   obj-$(CONFIG_LIGHTSENSOR_MICROP)	+= cm3602_lightsensor_microp.o
 endif
 obj-$(CONFIG_SHARP_PROXIMITY)       += prox_sharp.o
+obj-$(CONFIG_SENSORS_AKM8973)    += akm8973.o
+obj-$(CONFIG_BOSCH_SMB380)      += smb380.o bma150.o
