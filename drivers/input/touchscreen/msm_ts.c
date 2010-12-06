@@ -21,7 +21,7 @@
 #include <linux/platform_device.h>
 #include <linux/jiffies.h>
 #include <linux/io.h>
-
+#include <linux/earlysuspend.h>
 #include <mach/msm_ts.h>
 
 /* the data to be read from registers */
@@ -56,9 +56,9 @@
 /* CTL bits */
 #define TSSC_CTL_EN             (0x1 << 0)
 #define TSSC_CTL_SW_RESET       (0x1 << 2)
-#define TSSC_CTL_MASTER_MODE    (0x3 << 3)
-#define TSSC_CTL_AVG_EN         (0x1 << 5)
-#define TSSC_CTL_DEB_EN         (0x1 << 6)
+#define TSSC_CTL_MASTER_MODE    (0x3 << 3)		/* enable master mode (?) */
+#define TSSC_CTL_AVG_EN         (0x1 << 5)		/* enable averagnig over multiple samples */
+#define TSSC_CTL_DEB_EN         (0x1 << 6)		/* enable debounce, times are below */
 #define TSSC_CTL_DEB_12_MS      (0x2 << 7)      /* 1.2 ms */
 #define TSSC_CTL_DEB_16_MS      (0x3 << 7)      /* 1.6 ms */
 #define TSSC_CTL_DEB_2_MS       (0x4 << 7)      /* 2 ms */
@@ -66,7 +66,7 @@
 #define TSSC_CTL_DEB_4_MS       (0x6 << 7)      /* 4 ms */
 #define TSSC_CTL_DEB_6_MS       (0x7 << 7)      /* 6 ms */
 #define TSSC_CTL_INTR_FLAG1     (0x1 << 10)
-#define TSSC_CTL_DATA           (0x1 << 11)
+#define TSSC_CTL_DATA           (0x1 << 11)		/* has new data arrived ? */
 #define TSSC_CTL_SSBI_CTRL_EN   (0x1 << 13)
 
 /* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
@@ -151,7 +151,7 @@ struct ts {
 	unsigned int count;
 	int x_lastpt;
 	int y_lastpt;
-	//LGE_CHANGE_E by cleaneye@lge.com
+	struct early_suspend early_suspend;
 };
 //LGE_CHANGE_S by cleaneye@lge.com,  2009.8.26
 #define X_DISTANCE  20
@@ -469,16 +469,15 @@ static irqreturn_t ts_interrupt(int irq, void *dev_id)
 
 	struct ts *ts = dev_id;
 
+	printk("%s: entered\n", __func__);
 	status = readl(TSSC_REG(STATUS));
 	avgs = readl(TSSC_REG(AVG12));
 	x = avgs & 0xFFFF;
 	y = avgs >> 16;
 
-	/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
 	avgs34 = readl(TSSC_REG(AVG34));
 	z1 = avgs34 & 0xFFFF;
 	z2 = avgs34 >> 16;
-	/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
 
 	/* For pen down make sure that the data just read is still valid.
 	 * The DATA bit will still be set if the ARM9 hasn't clobbered
@@ -572,6 +571,26 @@ static irqreturn_t ts_interrupt(int irq, void *dev_id)
 out:
 	return IRQ_HANDLED;
 }
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void ts_early_suspend(struct early_suspend *h)
+{
+	struct ts *ts = container_of(h, struct ts, early_suspend);
+	printk("%s - entered\n", __func__);
+
+	//this does nothing, interrupts still occur
+	//writel(TSSC_CTL_STATE & ~TSSC_CTL_EN, TSSC_REG(CTL));
+	disable_irq(ts->irq);
+}
+
+static void ts_late_resume(struct early_suspend *h)
+{
+	struct ts *ts = container_of(h, struct ts, early_suspend);
+	printk("%s - entered\n", __func__);
+	//see ts_early_suspend() for a comment
+	//writel(TSSC_CTL_STATE, TSSC_REG(CTL));
+	enable_irq(ts->irq);
+}
+#endif
 
 static int __devinit ts_probe(struct platform_device *pdev)
 {
@@ -687,6 +706,7 @@ static int __devinit ts_probe(struct platform_device *pdev)
 		goto fail_ip_reg;
 
 	ts->input = input_dev;
+	platform_set_drvdata(pdev, ts);
 
 	setup_timer(&ts->timer, ts_timer, (unsigned long)ts);
 	// LGE_CHANGE [bluerti@lge.com] 2009-09-01
@@ -696,7 +716,13 @@ static int __devinit ts_probe(struct platform_device *pdev)
 	if (result)
 		goto fail_req_irq;
 
-	platform_set_drvdata(pdev, ts);
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	ts->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
+	ts->early_suspend.suspend = ts_early_suspend;
+	ts->early_suspend.resume = ts_late_resume;
+	register_early_suspend(&ts->early_suspend);
+#endif
+
 
 	return 0;
 
