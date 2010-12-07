@@ -79,8 +79,8 @@ static int prox_vreg_set(int onoff)
 	vreg_proximity = vreg_get(0, "gp6");
 	if (onoff)
 	{
-		vreg_enable(vreg_proximity);
 		rc = vreg_set_level(vreg_proximity, 2800);
+		vreg_enable(vreg_proximity);
 	}
 	else
 	{
@@ -98,18 +98,29 @@ static int sharp_psensor_init(struct i2c_client *client)
 	int ret;
 
 	ret = prox_i2c_write(client, GAIN_REG, 0x08, PROX_I2C_INT_NO_CLEAR);
-	if(ret)
+	if(ret) {
+		printk("%s: prox_i2c_write(GAIN_REG) returned %d\n", __func__, ret);
 		return ret;
+	}
 	ret = prox_i2c_write(client, HYS_REG, HYS_MODE_A,  PROX_I2C_INT_NO_CLEAR);
-	if(ret)
+	if(ret) {
+		printk("%s: prox_i2c_write(HYS_REG) returned %d\n", __func__, ret);
 		return ret;
+	}
 	ret = prox_i2c_write(client, CYCLE_REG, 0x04, PROX_I2C_INT_NO_CLEAR);
-	if(ret)
+	if(ret) {
+		printk("%s: prox_i2c_write(CYCLE_REG) returned %d\n", __func__, ret);
 		return ret;
+	}
 	ret = prox_i2c_write(client, OPMOD_REG, OPMODE_NORMAL_MODE, PROX_I2C_INT_NO_CLEAR);
-	if(ret)
+	if(ret) {
+		printk("%s: prox_i2c_write(OPMOD_REG) returned %d\n", __func__, ret);
 		return ret;
+	}
 	ret = prox_i2c_write(client, CON_REG, CON_VOUT_ENABLE, PROX_I2C_INT_NO_CLEAR);
+	if(ret) {
+		printk("%s: prox_i2c_write(CON_REG) returned %d\n", __func__, ret);
+	}
 	return ret;
 }
 
@@ -120,19 +131,22 @@ static int gp2ap002_suspend(struct i2c_client *client, pm_message_t mesg)
 
 static int gp2ap002_resume(struct i2c_client *client)
 {
-	int ret;
+	int ret = 0;
 	struct psensor_dev *pdev = i2c_get_clientdata(client);
 
 	//this is a race condition
 	if(atomic_read(&opened) > -1) {
 		ret = prox_vreg_set(1);
-		if(ret)
+		if(ret) {
+			printk("%s: prox_vreg_set(1) returned %d\n", __func__, ret);
 			return ret;
+		}
 
-		udelay(100);
+		mdelay(100);
 
 		ret = sharp_psensor_init(pdev->client);
 	}
+
 	return ret;
 }
 
@@ -220,11 +234,11 @@ static struct i2c_driver i2c_gp2ap002_driver = {
 	.driver = {
 		.name = "gp2ap002"
 	},
-	.probe 	= gp2ap002_probe,
-	.remove = __devexit_p(gp2ap002_remove),
-	.id_table 	= gp2ap002_idtable,
+	.probe		= gp2ap002_probe,
+	.remove		= __devexit_p(gp2ap002_remove),
+	.id_table	= gp2ap002_idtable,
 	.suspend	= gp2ap002_suspend,
-	.resume 	= gp2ap002_resume,
+	.resume		= gp2ap002_resume,
 };
 
 static int gp2ap002_init(void)
