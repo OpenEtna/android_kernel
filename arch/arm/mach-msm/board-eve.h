@@ -134,15 +134,6 @@ typedef enum {
 #define GPIO_BT_REG_ON          21 //19
 #define GPIO_WL_RESET_N         35
 
-/* extended gpio api */
-
-#define GPIOF_IRQF_MASK         0x0000ffff /* use to specify edge detection without */
-#define GPIOF_IRQF_TRIGGER_NONE 0x00010000 /* IRQF_TRIGGER_NONE is 0 which also means "as already configured" */
-#define GPIOF_INPUT             0x00020000
-#define GPIOF_DRIVE_OUTPUT      0x00040000
-#define GPIOF_OUTPUT_LOW        0x00080000
-#define GPIOF_OUTPUT_HIGH       0x00100000
-
-#define GPIOIRQF_SHARED         0x00000001 /* the irq line is shared with other inputs */
-
 #endif //__ARCH_ARM_MACH_MSM_BOARD_EVE_H
+
+int eve_backlight_init(void);

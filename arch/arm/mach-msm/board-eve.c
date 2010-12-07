@@ -314,10 +314,12 @@ static struct platform_device android_usb_device = {
 	},
 };
 
+/* bluetooth */
 static struct platform_device eve_rfkill = {
 	.name = "eve_rfkill",
 	.id = -1,
 };
+
 /* mmc */
 void eve_init_mmc(void);
 
@@ -539,7 +541,11 @@ static void __init eve_init(void)
 	msm_device_hsusb.dev.platform_data = &msm_hsusb_pdata;
 	msm_acpu_clock_init(&eve_clock_data);
 
-	/* register drivers for the i2c busses */
+	/* the chip does not onky handle the backlight, but also
+	 * the power supply of the camera and vibrator */
+	eve_backlight_init();
+
+	/* register i2c devices */
 	/* each pair of SCL and SDA lines is one bus */
 	i2c_register_board_info(I2C_BUS_NUM_MOTION, &accel_i2c_bdinfo, 1);
 	i2c_register_board_info(I2C_BUS_NUM_BACKLIGHT, &bl_i2c_device, 1);
