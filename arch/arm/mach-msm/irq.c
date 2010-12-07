@@ -175,6 +175,14 @@ static uint8_t msm_irq_to_smsm[NR_MSM_IRQS + NR_SIRC_IRQS] = {
 #endif
 };
 
+struct smsm_interrupt_info_ext {
+    struct smsm_interrupt_info int_info;
+    uint32_t aArm_rpc_prog;
+    uint32_t aArm_rpc_proc;
+    char aArm_smd_port_name[20];
+    uint32_t aArm_gpio_info;
+};
+
 static void msm_irq_ack(unsigned int irq)
 {
 	void __iomem *reg = VIC_INT_CLEAR(__bank(irq));
@@ -526,8 +534,14 @@ void __init msm_init_irq(void)
 static int __init msm_init_irq_late(void)
 {
 	smsm_int_info = smem_alloc(INT_INFO_SMSM_ID, sizeof(*smsm_int_info));
-	if (!smsm_int_info)
-		pr_err("set_wakeup_mask NO INT_INFO (%d)\n", INT_INFO_SMSM_ID);
+	if (!smsm_int_info) {
+		struct smsm_interrupt_info_ext *smsm_int_info_ext = smem_alloc(INT_INFO_SMSM_ID, sizeof(*smsm_int_info_ext));
+		if(smsm_int_info_ext) {
+			smsm_int_info = &smsm_int_info_ext->int_info;
+		} else {
+			pr_err("set_wakeup_mask NO INT_INFO (%d)\n", INT_INFO_SMSM_ID);
+		}
+	}
 	return 0;
 }
 late_initcall(msm_init_irq_late);
