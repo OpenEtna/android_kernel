@@ -29,6 +29,7 @@
 #include <linux/debugfs.h>
 #include <linux/workqueue.h>
 #include <linux/clk.h>
+#include <linux/wakelock.h>
 
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
@@ -180,6 +181,8 @@ struct usb_info {
 	struct clk *pclk;
 	struct clk *otgclk;
 	struct clk *ebi1clk;
+
+	struct wake_lock wlock;
 
 	unsigned int ep0_dir;
 	u16 test_mode;
@@ -1215,6 +1218,7 @@ static void usb_do_work(struct work_struct *w)
 		case USB_STATE_IDLE:
 			if (flags & USB_FLAG_START) {
 				pr_info("msm72k_udc: IDLE -> ONLINE\n");
+				wake_lock(&ui->wlock);
 				clk_set_rate(ui->ebi1clk, 128000000);
 				udelay(10);
 				if (ui->coreclk)
@@ -1271,6 +1275,7 @@ static void usb_do_work(struct work_struct *w)
 				spin_unlock_irqrestore(&ui->lock, iflags);
 
 				ui->state = USB_STATE_OFFLINE;
+				wake_unlock(&ui->wlock);
 				usb_do_work_check_vbus(ui);
 				break;
 			}
@@ -1287,6 +1292,7 @@ static void usb_do_work(struct work_struct *w)
 			 */
 			if ((flags & USB_FLAG_VBUS_ONLINE) && _vbus) {
 				pr_info("msm72k_udc: OFFLINE -> ONLINE\n");
+				wake_lock(&ui->wlock);
 				clk_set_rate(ui->ebi1clk, 128000000);
 				udelay(10);
 				if (ui->coreclk)
@@ -1734,6 +1740,8 @@ static int msm72k_probe(struct platform_device *pdev)
 	ui = kzalloc(sizeof(struct usb_info), GFP_KERNEL);
 	if (!ui)
 		return -ENOMEM;
+
+	wake_lock_init(&ui->wlock, WAKE_LOCK_SUSPEND, "usb_bus_active");
 
 	spin_lock_init(&ui->lock);
 	ui->pdev = pdev;
