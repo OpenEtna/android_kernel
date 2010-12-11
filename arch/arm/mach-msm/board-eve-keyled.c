@@ -12,8 +12,8 @@
 #include <mach/vreg.h>
 #include <linux/err.h>
 
-#define DEBUG_INFO
-#define DEBUG_FUNCTION
+//#define DEBUG_INFO
+//#define DEBUG_FUNCTION
 
 #ifdef DEBUG_INFO
 #define D(fmt, args...) printk(fmt, ##args)
