@@ -190,7 +190,7 @@ static int bd6083_write_reg(struct i2c_client *client, unsigned char reg,
 	buf[1] = val;
 
 	if ((err = i2c_transfer(client->adapter, &msg, 1)) < 0) {
-		dev_err(&client->dev, "i2c write error\n");
+		printk("%s: i2c write error\n",__func__);
 	}
 
 	return 0;
@@ -438,7 +438,7 @@ static void bd6083_init_register(struct i2c_client *client)
 	}
 	mutex_lock(&bl_lock);
 	ret = bd6083_write_reg(client, BG6083_REG_RESET, 0x00);
-	ret = bd6083_write_reg(client, BD6083_REG_LDO12, 0xc0); /* 3 V for vibator */
+	//ret = bd6083_write_reg(client, BD6083_REG_LDO12, 0xc0); /* 3 V for vibator */
 	ret = bd6083_write_reg(client, BG6083_REG_LEDPIN, BG6083_W6MD | BG6083_W5MD | BG6083_W4MD);
 	ret = bd6083_write_reg(client, BD6083_REG_MGC, 0x40);
 	ret = bd6083_write_reg(client, BD6083_REG_MCT, BD6083_VAL_MCT(0x7,0x8));
@@ -532,7 +532,7 @@ static int eve_bl_set_intensity(struct backlight_device *bd)
 {
 	struct i2c_client *client = to_i2c_client(bd->dev.parent);
 
-	printk("%s() cur_main_lcd_level : %d, level : %d\n", __FUNCTION__,
+	D_FUNC("%s() cur_main_lcd_level : %d, level : %d\n", __FUNCTION__,
 	  cur_main_lcd_level, bd->props.brightness);
 
 	bd6083_set_main_current_level(client,
