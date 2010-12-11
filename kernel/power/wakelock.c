@@ -261,8 +261,10 @@ long has_wake_lock(int type)
 
 static void suspend(struct work_struct *work)
 {
+	extern unsigned int battery_get_current_charge(void);
 	int ret;
 	int entry_event_num;
+	unsigned int old_charge;
 
 	if (has_wake_lock(WAKE_LOCK_SUSPEND)) {
 		if (debug_mask & DEBUG_SUSPEND)
@@ -274,16 +276,36 @@ static void suspend(struct work_struct *work)
 	sys_sync();
 	if (debug_mask & DEBUG_SUSPEND)
 		pr_info("suspend: enter suspend\n");
+#if 1
+	struct timespec enter_ts;
+    struct rtc_time tm;
+	getnstimeofday(&enter_ts);
+	rtc_time_to_tm(enter_ts.tv_sec, &tm);
+	pr_info("suspend: enter suspend, "
+            "(%d-%02d-%02d %02d:%02d:%02d.%09lu UTC)\n",
+            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+            tm.tm_hour, tm.tm_min, tm.tm_sec, enter_ts.tv_nsec);
+	old_charge = battery_get_current_charge();
+#endif
 	ret = pm_suspend(requested_suspend_state);
 	if (debug_mask & DEBUG_EXIT_SUSPEND) {
 		struct timespec ts;
 		struct rtc_time tm;
+		unsigned int new_charge;
+
 		getnstimeofday(&ts);
 		rtc_time_to_tm(ts.tv_sec, &tm);
 		pr_info("suspend: exit suspend, ret = %d "
 			"(%d-%02d-%02d %02d:%02d:%02d.%09lu UTC)\n", ret,
 			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 			tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec);
+
+		new_charge = battery_get_current_charge();
+		pr_info("suspend: dcharge %d (=%d-%d), dtime %d (=%d-%d), drate %d/h\n",
+				old_charge-new_charge, old_charge, new_charge,
+				ts.tv_sec-enter_ts.tv_sec, ts.tv_sec, enter_ts.tv_sec,
+				(ts.tv_sec-enter_ts.tv_sec) ? (old_charge-new_charge)*3600/(ts.tv_sec-enter_ts.tv_sec) : 0);
+
 	}
 	if (current_event_num == entry_event_num) {
 		if (debug_mask & DEBUG_SUSPEND)
