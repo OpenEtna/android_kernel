@@ -95,6 +95,14 @@ struct vreg *vreg_get(struct device *dev, const char *id)
 	return ERR_PTR(-ENOENT);
 }
 
+void vreg_print_enabled(void)
+{
+	int n;
+	for (n = 0; n < ARRAY_SIZE(vregs); n++)
+		if(vregs[n].refcnt)
+			printk("vreg_is_enabled: %s\n", vregs[n].name);
+}
+
 void vreg_put(struct vreg *vreg)
 {
 }
@@ -104,6 +112,7 @@ int vreg_enable(struct vreg *vreg)
 	unsigned id = vreg->id;
 	unsigned enable = 1;
 
+	printk("%s: %s ref = %d (1: already enabled, 0: gets now enabled)\n",__func__,vreg->name,vreg->refcnt);
 	if (vreg->refcnt == 0)
 		vreg->status = msm_proc_comm(PCOM_VREG_SWITCH, &id, &enable);
 
@@ -121,6 +130,7 @@ int vreg_disable(struct vreg *vreg)
 	if (!vreg->refcnt)
 		return 0;
 
+	printk("%s: %s ref = %d (0: already disabled, 1: gets now disabled)\n",__func__,vreg->name,vreg->refcnt);
 	if (vreg->refcnt == 1)
 		vreg->status = msm_proc_comm(PCOM_VREG_SWITCH, &id, &enable);
 
