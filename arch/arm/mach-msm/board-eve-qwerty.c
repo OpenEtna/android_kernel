@@ -141,8 +141,6 @@ __inline void P_ChipSendACK( void )
 	QWERTY_SCL_HIGH();
 
 	QWERTY_SDA_INPUT();
-
-	printk(" %s\n",__FUNCTION__);
 }
 
 /*=========================================================================
@@ -166,7 +164,6 @@ __inline int P_ChipGetData( uint32_t *p_data  )
 	QWERTY_SCL_HIGH();
 	QWERTY_SDA_LOW();
 	udelay(25);
-	printk(" %s\n",__FUNCTION__);
 
 	for( trigger_count=QWERTY_START_BIT; trigger_count < QWERTY_MAX_BIT ; trigger_count++ )
 	{
@@ -225,7 +222,6 @@ static inline void lge_xlscancode(void)
 		xlkcode = pp2106m2_keycode[(buf & 0x7f)];
 
 	QDBG("+++++++++ Keypad : org <<0x%x>>  trans <<0x%x>>\n", buf, xlkcode);
-	printk("+++++++++ Keypad : org <<0x%x>>  trans <<0x%x>>\n", buf, xlkcode);
 
 
 	// we have a translated code to feed into the input system
