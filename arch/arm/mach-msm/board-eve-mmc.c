@@ -113,13 +113,17 @@ int eve_wifi_power(int on)
 static uint32_t eve_sdslot_switchvdd(struct device *dev, unsigned int vdd)
 {
 	int rc;
+	static int vreg_enabled = 0;
 	printk("%s(vdd = %d)\n",__func__,vdd);
-	if (vdd == 0) {
+	if ( !vdd && vreg_enabled ) {
 		rc = vreg_disable(vreg_mmc);
 		if (rc)
 			printk(KERN_ERR "%s: return val: %d \n",
 					__func__, rc);
-	} else {
+		else
+			vreg_enabled = 0;
+
+	} else if( vdd && !vreg_enabled) {
 
 		rc = vreg_set_level(vreg_mmc, 2850);
 		if (!rc)
@@ -127,6 +131,8 @@ static uint32_t eve_sdslot_switchvdd(struct device *dev, unsigned int vdd)
 		if (rc)
 			printk(KERN_ERR "%s: return val: %d \n",
 					__func__, rc);
+		else
+			vreg_enabled = 1;
 	}
 	return 0;
 }
