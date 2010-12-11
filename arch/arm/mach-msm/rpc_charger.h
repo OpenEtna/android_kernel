@@ -108,8 +108,7 @@ typedef struct
 }smart_battery_info_type;
 #endif
 
-typedef struct
-{
+struct lge_battery_info_type {
 	unsigned int  batt_remaining;		/* 0~100 % */
 	unsigned int  batt_voltage;		/* mV */
 	int  batt_current;		/* mA */
@@ -118,7 +117,7 @@ typedef struct
 	unsigned int  chg_status;
 	unsigned int  charger_type;
 	unsigned int  present;
-} lge_battery_info_type;
+};
 
 typedef enum
 {
