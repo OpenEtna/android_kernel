@@ -469,7 +469,7 @@ static irqreturn_t ts_interrupt(int irq, void *dev_id)
 
 	struct ts *ts = dev_id;
 
-	printk("%s: entered\n", __func__);
+	//printk("%s: entered\n", __func__);
 	status = readl(TSSC_REG(STATUS));
 	avgs = readl(TSSC_REG(AVG12));
 	x = avgs & 0xFFFF;
