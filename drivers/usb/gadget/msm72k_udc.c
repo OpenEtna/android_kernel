@@ -38,6 +38,7 @@
 #include <asm/mach-types.h>
 
 #include <mach/board.h>
+#include <mach/vreg.h>
 #include <mach/msm_hsusb.h>
 #include <linux/device.h>
 #include <mach/msm_hsusb_hw.h>
@@ -181,6 +182,7 @@ struct usb_info {
 	struct clk *pclk;
 	struct clk *otgclk;
 	struct clk *ebi1clk;
+	struct vreg* vreg;
 
 	struct wake_lock wlock;
 
@@ -895,12 +897,44 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 	struct usb_info *ui = data;
 	unsigned n;
 
+    n = readl(USB_OTGSC);
+    writel(n, USB_OTGSC);
+
+    if (n & OTGSC_BSVIS) {
+        /*Verify B Session Valid Bit to verify vbus status*/
+        if (B_SESSION_VALID & n)    {
+            printk("usb cable connected\n");
+            //ui->usb_state = USB_STATE_POWERED;
+            ui->flags = USB_FLAG_VBUS_ONLINE;
+            vbus = 1;
+            /* Wait for 100ms to stabilize VBUS before initializing
+             * USB and detecting charger type
+             */
+            schedule_work(&ui->work);
+            //queue_delayed_work(usb_work, &ui->work,
+            //            DELAY_FOR_USB_VBUS_STABILIZE);
+        } else {
+            int i;
+
+            //usb_disable_pullup(ui);
+
+            printk("usb cable disconnected\n");
+            vbus = 0;
+            //ui->usb_state = USB_STATE_NOTATTACHED;
+            ui->flags = USB_FLAG_VBUS_OFFLINE;
+            schedule_work(&ui->work);
+            //queue_delayed_work(usb_work, &ui->work, 0);
+        }
+    }
+
 	n = readl(USB_USBSTS);
 	writel(n, USB_USBSTS);
 
 	/* somehow we got an IRQ while in the reset sequence: ignore it */
-	if (ui->running == 0)
+	if (ui->running == 0) {
+		printk("Interrupt while running = 0\n");
 		return IRQ_HANDLED;
+	}
 
 	if (n & STS_PCI) {
 		switch (readl(USB_PORTSC) & PORTSC_PSPD_MASK) {
@@ -1137,6 +1171,7 @@ static void usb_reset(struct usb_info *ui)
 
 	/* enable interrupts */
 	writel(STS_URI | STS_SLI | STS_UI | STS_PCI, USB_USBINTR);
+	writel(readl(USB_OTGSC) | OTGSC_BSVIE, USB_OTGSC);
 
 	/* go to RUN mode (D+ pullup enable) */
 	msm72k_pullup(&ui->gadget, 1);
@@ -1227,6 +1262,7 @@ static void usb_do_work(struct work_struct *w)
 				clk_enable(ui->pclk);
 				if (ui->otgclk)
 					clk_enable(ui->otgclk);
+				vreg_enable(ui->vreg);
 				usb_reset(ui);
 
 				ui->state = USB_STATE_ONLINE;
@@ -1261,10 +1297,11 @@ static void usb_do_work(struct work_struct *w)
 #ifndef CONFIG_ARCH_MSM7X00A
 				usb_phy_reset(ui);
 #endif
-
+#if 0
 				/* power down phy, clock down usb */
 				spin_lock_irqsave(&ui->lock, iflags);
 				usb_suspend_phy(ui);
+				vreg_disable(ui->vreg);
 				clk_disable(ui->pclk);
 				clk_disable(ui->clk);
 				if (ui->otgclk)
@@ -1273,7 +1310,7 @@ static void usb_do_work(struct work_struct *w)
 					clk_disable(ui->coreclk);
 				clk_set_rate(ui->ebi1clk, 0);
 				spin_unlock_irqrestore(&ui->lock, iflags);
-
+#endif
 				ui->state = USB_STATE_OFFLINE;
 				wake_unlock(&ui->wlock);
 				usb_do_work_check_vbus(ui);
@@ -1301,6 +1338,7 @@ static void usb_do_work(struct work_struct *w)
 				clk_enable(ui->pclk);
 				if (ui->otgclk)
 					clk_enable(ui->otgclk);
+				vreg_enable(ui->vreg);
 				usb_reset(ui);
 
 				/* detect shorted D+/D-, indicating AC power */
@@ -1792,6 +1830,13 @@ static int msm72k_probe(struct platform_device *pdev)
 	ui->ebi1clk = clk_get(NULL, "ebi1_clk");
 	if (IS_ERR(ui->ebi1clk))
 		return usb_free(ui, PTR_ERR(ui->ebi1clk));
+
+#if defined(CONFIG_MACH_EVE)
+    ui->vreg = vreg_get(NULL, "wlan");
+#else
+    ui->vreg = vreg_get(NULL, "usb");
+#endif
+
 
 	/* clear interrupts before requesting irq */
 	if (ui->coreclk)
