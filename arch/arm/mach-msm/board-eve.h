@@ -134,6 +134,9 @@ typedef enum {
 #define GPIO_BT_REG_ON          21 //19
 #define GPIO_WL_RESET_N         35
 
+/* battery/charger */
+void notify_usb_connected(int online);
+
 #endif //__ARCH_ARM_MACH_MSM_BOARD_EVE_H
 
 int eve_backlight_init(void);

@@ -199,9 +199,6 @@ close:
 }
 
 /* adjust eye diagram, disable vbusvalid interrupts */
-static void notify_usb_connected(int online) {
-	printk("%s: online = %d\n",__func__,online);
-}
 static int hsusb_phy_init_seq[] = { 0x40, 0x31, 0x1D, 0x0D, 0x1D, 0x10, -1 };
 
 static struct msm_hsusb_platform_data msm_hsusb_pdata = {
