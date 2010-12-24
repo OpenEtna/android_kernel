@@ -115,7 +115,7 @@ struct msm_endpoint {
 };
 
 static void usb_do_work(struct work_struct *w);
-
+static void usb_lpm_exit(struct usb_info *ui);
 
 #define USB_STATE_IDLE    0
 #define USB_STATE_ONLINE  1
@@ -125,6 +125,17 @@ static void usb_do_work(struct work_struct *w);
 #define USB_FLAG_VBUS_ONLINE    0x0002
 #define USB_FLAG_VBUS_OFFLINE   0x0004
 #define USB_FLAG_RESET          0x0008
+
+int msm_chg_usb_charger_connected(uint32_t device);
+int msm_chg_usb_charger_disconnected(void);
+int msm_chg_usb_i_is_available(uint32_t sample);
+int msm_chg_usb_i_is_not_available(void);
+
+enum charger_type {
+    CHG_HOST_PC,
+    CHG_WALL = 2,
+    CHG_UNDEFINED,
+};
 
 struct usb_info {
 	/* lock for register/queue/device state changes */
@@ -142,6 +153,7 @@ struct usb_info {
 
 	unsigned	online:1;
 	unsigned	running:1;
+	unsigned	in_lpm:1;
 
 	struct dma_pool *pool;
 
@@ -168,6 +180,7 @@ struct usb_info {
 	void (*usb_connected)(int);
 
 	struct work_struct work;
+	enum charger_type chg_type;
 	unsigned phy_status;
 	unsigned phy_fail_count;
 
@@ -181,7 +194,6 @@ struct usb_info {
 	struct clk *coreclk;
 	struct clk *pclk;
 	struct clk *otgclk;
-	struct clk *ebi1clk;
 	struct vreg* vreg;
 
 	struct wake_lock wlock;
@@ -891,11 +903,55 @@ static void flush_all_endpoints(struct usb_info *ui)
 		flush_endpoint_sw(ui->ept + n);
 }
 
+static struct usb_info *the_usb_info;
+
+static void usb_chg_set_type(struct usb_info *ui)
+{
+    ui->chg_type = CHG_UNDEFINED;
+
+    msleep(10);
+    //USB_PHY_EXTERNAL:
+        if (ulpi_write(ui, 0x30, 0x3A)) {
+			printk(KERN_ERR "%s: ulpi_write failed\n",__func__);
+            return;
+		}
+
+        /* 50ms is requried for charging circuit to powerup
+         * and start functioning
+         */
+        msleep(50);
+        if ((readl(USB_PORTSC) & PORTSC_LS) == PORTSC_LS)
+            ui->chg_type = CHG_WALL;
+        else
+            ui->chg_type = CHG_HOST_PC;
+
+        ulpi_write(ui, 0x30, 0x3B);
+
+
+    switch (ui->chg_type) {
+    case CHG_WALL:
+        pr_info("\n*********** Charger Type: WALL CHARGER\n\n");
+        msm_chg_usb_charger_connected(CHG_WALL);
+        msm_chg_usb_i_is_available(1500);
+        break;
+    case CHG_HOST_PC:
+        pr_info("\n*********** Charger Type: HOST PC\n\n");
+        msm_chg_usb_charger_connected(CHG_HOST_PC);
+        break;
+    default:
+        pr_err("%s:undefned charger type", __func__);
+    }
+}
 
 static irqreturn_t usb_interrupt(int irq, void *data)
 {
 	struct usb_info *ui = data;
 	unsigned n;
+
+	if (ui->in_lpm) {
+		usb_lpm_exit(ui);
+		return IRQ_HANDLED;
+	}
 
     n = readl(USB_OTGSC);
     writel(n, USB_OTGSC);
@@ -905,14 +961,11 @@ static irqreturn_t usb_interrupt(int irq, void *data)
         if (B_SESSION_VALID & n)    {
             printk("usb cable connected\n");
             //ui->usb_state = USB_STATE_POWERED;
-            ui->flags = USB_FLAG_VBUS_ONLINE;
-            vbus = 1;
-            /* Wait for 100ms to stabilize VBUS before initializing
-             * USB and detecting charger type
-             */
-            schedule_work(&ui->work);
-            //queue_delayed_work(usb_work, &ui->work,
-            //            DELAY_FOR_USB_VBUS_STABILIZE);
+            if(!vbus) {
+				ui->flags = USB_FLAG_VBUS_ONLINE;
+				vbus = 1;
+				schedule_work(&ui->work);
+			}
         } else {
             int i;
 
@@ -1000,8 +1053,6 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 
 static void usb_prepare(struct usb_info *ui)
 {
-	spin_lock_init(&ui->lock);
-
 	memset(ui->buf, 0, 4096);
 	ui->head = (void *) (ui->buf + 0);
 
@@ -1017,8 +1068,6 @@ static void usb_prepare(struct usb_info *ui)
 
 	ui->setup_req =
 		usb_ept_alloc_req(&ui->ep0in, SETUP_BUF_SIZE, GFP_KERNEL);
-
-	INIT_WORK(&ui->work, usb_do_work);
 }
 
 static void usb_suspend_phy(struct usb_info *ui)
@@ -1036,14 +1085,38 @@ static void usb_suspend_phy(struct usb_info *ui)
 	writel(readl(USB_PORTSC) | PORTSC_PHCD, USB_PORTSC);
 	mdelay(1);
 #else
-	/* clear VBusValid and SessionEnd rising interrupts */
-	ulpi_write(ui, (1 << 1) | (1 << 3), 0x0f);
-	/* clear VBusValid and SessionEnd falling interrupts */
-	ulpi_write(ui, (1 << 1) | (1 << 3), 0x12);
-	/* disable interface protect circuit to drop current consumption */
-	ulpi_write(ui, (1 << 7), 0x08);
-	/* clear the SuspendM bit -> suspend the PHY */
-	ulpi_write(ui, 1 << 6, 0x06);
+#define ASYNC_INTR_CTRL (1 << 29)
+#define ULPI_STP_CTRL   (1 << 30)
+
+	int i;
+	unsigned long flags;
+
+	printk("%s: entered\n",__func__);
+	/* loop for large amount of time */
+    for (i = 0; i < 500; i++) {
+        /* set phy to be in lpm */
+        writel(readl(USB_PORTSC) | PORTSC_PHCD, USB_PORTSC);
+
+        msleep(1);
+        if (readl(USB_PORTSC) & PORTSC_PHCD)
+            goto blk_stp_sig;
+    }
+
+    if (!(readl(USB_PORTSC) & PORTSC_PHCD)) {
+        pr_err("unable to set phcd of portsc reg\n");
+        pr_err("Reset HW link and phy to recover from phcd error\n");
+        return;
+    }
+
+    /* we have to set this bit again to work-around h/w bug */
+    writel(readl(USB_PORTSC) | PORTSC_PHCD, USB_PORTSC);
+blk_stp_sig:
+    /* block the stop signal */
+    writel(readl(USB_USBCMD) | ULPI_STP_CTRL, USB_USBCMD);
+	/* enable async interrupt */
+    writel(readl(USB_USBCMD) | ASYNC_INTR_CTRL, USB_USBCMD);
+
+	ui->in_lpm = 1;
 #endif
 }
 
@@ -1191,8 +1264,6 @@ static void usb_start(struct usb_info *ui)
 	spin_unlock_irqrestore(&ui->lock, flags);
 }
 
-static struct usb_info *the_usb_info;
-
 static int usb_free(struct usb_info *ui, int ret)
 {
 	INFO("usb_free(%d)\n", ret);
@@ -1213,36 +1284,72 @@ static int usb_free(struct usb_info *ui, int ret)
 		clk_put(ui->otgclk);
 	if (ui->coreclk)
 		clk_put(ui->coreclk);
-	if (ui->ebi1clk)
-		clk_put(ui->ebi1clk);
 	kfree(ui);
 	return ret;
 }
 
-static void usb_do_work_check_vbus(struct usb_info *ui)
+static void usb_lpm_exit(struct usb_info *ui)
 {
-	unsigned long iflags;
+	if (ui->in_lpm == 0)
+		return;
 
-	spin_lock_irqsave(&ui->lock, iflags);
-	if (vbus) {
-		ui->flags |= USB_FLAG_VBUS_ONLINE;
+	wake_lock(&ui->wlock);
+	if (ui->coreclk)
+		clk_enable(ui->coreclk);
+	clk_enable(ui->clk);
+	clk_enable(ui->pclk);
+	if (ui->otgclk)
+		clk_enable(ui->otgclk);
+	vreg_enable(ui->vreg);
+
+	writel(readl(USB_USBCMD) & ~ASYNC_INTR_CTRL, USB_USBCMD);
+	writel(readl(USB_USBCMD) & ~ULPI_STP_CTRL, USB_USBCMD);
+
+	if (readl(USB_PORTSC) & PORTSC_PHCD) {
+		disable_irq_nosync(ui->irq);
+		printk("Phy is still sleeping\n");
+		//schedule_work(&ui->li.wakeup_phy);
 	} else {
-		ui->flags |= USB_FLAG_VBUS_OFFLINE;
+		ulpi_write(ui,
+			ULPI_VBUS_VALID_RAISE | ULPI_SESSION_END_RAISE,
+			ULPI_USBINTR_ENABLE_RASING_S);
+		ulpi_write(ui,
+			ULPI_VBUS_VALID_FALL | ULPI_SESSION_END_FALL,
+			ULPI_USBINTR_ENABLE_FALLING_S);
+		ui->in_lpm = 0;
 	}
-	spin_unlock_irqrestore(&ui->lock, iflags);
+	pr_info("%s(): USB exited from low power mode\n", __func__);
+}
+
+static int usb_vbus_is_on(struct usb_info *ui)
+{
+        unsigned tmp;
+
+        /* disable session valid raising and falling interrupts */
+        ulpi_write(ui, ULPI_SESSION_VALID_RAISE, ULPI_USBINTR_ENABLE_RASING_C);
+        ulpi_write(ui, ULPI_SESSION_VALID_FALL, ULPI_USBINTR_ENABLE_FALLING_C);
+
+        tmp = ulpi_read(ui, ULPI_USBINTR_STATUS);
+
+        /* enable session valid raising and falling interrupts */
+        ulpi_write(ui, ULPI_SESSION_VALID_RAISE, ULPI_USBINTR_ENABLE_RASING_S);
+        ulpi_write(ui, ULPI_SESSION_VALID_FALL, ULPI_USBINTR_ENABLE_FALLING_S);
+
+        if (tmp & (1 << 2))
+                return 1;
+        return 0;
 }
 
 static void usb_do_work(struct work_struct *w)
 {
 	struct usb_info *ui = container_of(w, struct usb_info, work);
 	unsigned long iflags;
-	unsigned flags, _vbus;
+	unsigned flags;
 
 	for (;;) {
 		spin_lock_irqsave(&ui->lock, iflags);
 		flags = ui->flags;
 		ui->flags = 0;
-		_vbus = vbus;
 		spin_unlock_irqrestore(&ui->lock, iflags);
 
 		/* give up if we have nothing to do */
@@ -1252,9 +1359,7 @@ static void usb_do_work(struct work_struct *w)
 		switch (ui->state) {
 		case USB_STATE_IDLE:
 			if (flags & USB_FLAG_START) {
-				pr_info("msm72k_udc: IDLE -> ONLINE\n");
 				wake_lock(&ui->wlock);
-				clk_set_rate(ui->ebi1clk, 128000000);
 				udelay(10);
 				if (ui->coreclk)
 					clk_enable(ui->coreclk);
@@ -1263,10 +1368,26 @@ static void usb_do_work(struct work_struct *w)
 				if (ui->otgclk)
 					clk_enable(ui->otgclk);
 				vreg_enable(ui->vreg);
+				msleep(100);
 				usb_reset(ui);
+				if(!usb_vbus_is_on(ui)) {
+					pr_info("msm72k_udc: IDLE -> OFFLINE\n");
+					ui->state = USB_STATE_OFFLINE;
+					usb_suspend_phy(ui);
+					vreg_disable(ui->vreg);
+					clk_disable(ui->pclk);
+					clk_disable(ui->clk);
+					if (ui->otgclk)
+						clk_disable(ui->otgclk);
+					if (ui->coreclk)
+						clk_disable(ui->coreclk);
+					wake_unlock(&ui->wlock);
+					break;
+                }
+				pr_info("msm72k_udc: IDLE -> ONLINE\n");
+				usb_chg_set_type(ui);
 
 				ui->state = USB_STATE_ONLINE;
-				usb_do_work_check_vbus(ui);
 			}
 			break;
 		case USB_STATE_ONLINE:
@@ -1275,6 +1396,10 @@ static void usb_do_work(struct work_struct *w)
 			 */
 			if (flags & USB_FLAG_VBUS_OFFLINE) {
 				pr_info("msm72k_udc: ONLINE -> OFFLINE\n");
+
+				msm_chg_usb_i_is_not_available();
+                ui->chg_type = CHG_UNDEFINED;
+                msm_chg_usb_charger_disconnected();
 
 				/* synchronize with irq context */
 				spin_lock_irqsave(&ui->lock, iflags);
@@ -1297,9 +1422,7 @@ static void usb_do_work(struct work_struct *w)
 #ifndef CONFIG_ARCH_MSM7X00A
 				usb_phy_reset(ui);
 #endif
-#if 0
 				/* power down phy, clock down usb */
-				spin_lock_irqsave(&ui->lock, iflags);
 				usb_suspend_phy(ui);
 				vreg_disable(ui->vreg);
 				clk_disable(ui->pclk);
@@ -1308,12 +1431,8 @@ static void usb_do_work(struct work_struct *w)
 					clk_disable(ui->otgclk);
 				if (ui->coreclk)
 					clk_disable(ui->coreclk);
-				clk_set_rate(ui->ebi1clk, 0);
-				spin_unlock_irqrestore(&ui->lock, iflags);
-#endif
 				ui->state = USB_STATE_OFFLINE;
 				wake_unlock(&ui->wlock);
-				usb_do_work_check_vbus(ui);
 				break;
 			}
 			if (flags & USB_FLAG_RESET) {
@@ -1327,10 +1446,9 @@ static void usb_do_work(struct work_struct *w)
 			/* If we were signaled to go online and vbus is still
 			 * present when we received the signal, go online.
 			 */
-			if ((flags & USB_FLAG_VBUS_ONLINE) && _vbus) {
+			if (flags & USB_FLAG_VBUS_ONLINE) {
 				pr_info("msm72k_udc: OFFLINE -> ONLINE\n");
 				wake_lock(&ui->wlock);
-				clk_set_rate(ui->ebi1clk, 128000000);
 				udelay(10);
 				if (ui->coreclk)
 					clk_enable(ui->coreclk);
@@ -1340,6 +1458,7 @@ static void usb_do_work(struct work_struct *w)
 					clk_enable(ui->otgclk);
 				vreg_enable(ui->vreg);
 				usb_reset(ui);
+				usb_chg_set_type(ui);
 
 				/* detect shorted D+/D-, indicating AC power */
 				msleep(10);
@@ -1348,7 +1467,6 @@ static void usb_do_work(struct work_struct *w)
 						ui->usb_connected(2);
 
 				ui->state = USB_STATE_ONLINE;
-				usb_do_work_check_vbus(ui);
 			}
 			break;
 		}
@@ -1381,7 +1499,7 @@ void msm_hsusb_set_vbus_state(int online)
 		spin_unlock_irqrestore(&ui->lock, flags);
 }
 
-#if defined(CONFIG_DEBUG_FS) && 0
+#if defined(CONFIG_DEBUG_FS)
 
 void usb_function_reenumerate(void)
 {
@@ -1782,6 +1900,11 @@ static int msm72k_probe(struct platform_device *pdev)
 	wake_lock_init(&ui->wlock, WAKE_LOCK_SUSPEND, "usb_bus_active");
 
 	spin_lock_init(&ui->lock);
+
+	INIT_WORK(&ui->work, usb_do_work);
+
+	ui->in_lpm = 0;
+
 	ui->pdev = pdev;
 
 	if (pdev->dev.platform_data) {
@@ -1826,10 +1949,6 @@ static int msm72k_probe(struct platform_device *pdev)
 	ui->coreclk = clk_get(&pdev->dev, "usb_hs_core_clk");
 	if (IS_ERR(ui->coreclk))
 		ui->coreclk = NULL;
-
-	ui->ebi1clk = clk_get(NULL, "ebi1_clk");
-	if (IS_ERR(ui->ebi1clk))
-		return usb_free(ui, PTR_ERR(ui->ebi1clk));
 
 #if defined(CONFIG_MACH_EVE)
     ui->vreg = vreg_get(NULL, "wlan");
