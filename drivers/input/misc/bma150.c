@@ -953,7 +953,7 @@ static void bma150_work(struct work_struct *work) {
 	struct bma150_data *data = container_of(to_delayed_work(work), struct bma150_data, wq);
 
 	smb380_read_accel_xyz(&acc);
-	printk("%s: read %d %d %d\n",__func__, acc.x, acc.y, acc.z );
+	//printk("%s: read %d %d %d\n",__func__, acc.x, acc.y, acc.z );
 
 	input_report_abs(data->input_dev, ABS_X, acc.x);
 	input_report_abs(data->input_dev, ABS_Y, acc.y);
