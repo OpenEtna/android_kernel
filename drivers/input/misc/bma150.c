@@ -1079,7 +1079,7 @@ int bma150_probe(struct i2c_client *client, const struct i2c_device_id * devid)
 	input_set_abs_params(data->input_dev, ABS_Y, -5760, 5760, 0, 0);
 	/* z-axis acceleration */
 	input_set_abs_params(data->input_dev, ABS_Z, -5760, 5760, 0, 0);
-	data->input_dev->name = "bm150";
+	data->input_dev->name = "bma150";
 	data->input_dev->open = bma150_open;
 	data->input_dev->close = bma150_close;
 	err = input_register_device(data->input_dev);
