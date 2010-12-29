@@ -558,8 +558,6 @@ static void __init eve_init(void)
 
 	eve_init_mmc();
 	platform_add_devices(devices, ARRAY_SIZE(devices));
-
-	msm_hsusb_set_vbus_state(1);
 }
 
 static void __init eve_fixup(struct machine_desc *desc, struct tag *tags,
