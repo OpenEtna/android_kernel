@@ -1449,14 +1449,6 @@ static void usb_do_work(struct work_struct *w)
 			if (flags & USB_FLAG_VBUS_ONLINE) {
 				pr_info("msm72k_udc: OFFLINE -> ONLINE\n");
 				wake_lock(&ui->wlock);
-				udelay(10);
-				if (ui->coreclk)
-					clk_enable(ui->coreclk);
-				clk_enable(ui->clk);
-				clk_enable(ui->pclk);
-				if (ui->otgclk)
-					clk_enable(ui->otgclk);
-				vreg_enable(ui->vreg);
 				usb_reset(ui);
 				usb_chg_set_type(ui);
 
