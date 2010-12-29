@@ -193,7 +193,17 @@ struct ept_queue_item {
 
 #define ULPI_FUNC_CTRL_CLR    (0x06)
 #define   ULPI_FUNC_SUSPENDM  (1 << 6)
-
+#define ULPI_USBINTR_ENABLE_RASING_C  0x0F
+#define ULPI_USBINTR_ENABLE_FALLING_C 0x12
+#define ULPI_USBINTR_STATUS           0x13
+#define ULPI_USBINTR_ENABLE_RASING_S  0x0E
+#define ULPI_USBINTR_ENABLE_FALLING_S 0x11
+#define ULPI_SESSION_END_RAISE        (1 << 3)
+#define ULPI_SESSION_END_FALL         (1 << 3)
+#define ULPI_SESSION_VALID_RAISE      (1 << 2)
+#define ULPI_SESSION_VALID_FALL       (1 << 2)
+#define ULPI_VBUS_VALID_RAISE         (1 << 1)
+#define ULPI_VBUS_VALID_FALL          (1 << 1)
 
 /* USB_PORTSC bits for determining port speed */
 #define PORTSC_PSPD_FS        (0 << 26)
