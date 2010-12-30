@@ -28,111 +28,109 @@ static struct rfkill *bt_rfk;
 static const char bt_name[] = "bcm4329";
 
 enum {
-        BT_WAKE,
-        BT_RFR,
-        BT_CTS,
-        BT_RX,
-        BT_TX,
-        BT_PCM_DOUT,
-        BT_PCM_DIN,
-        BT_PCM_SYNC,
-        BT_PCM_CLK,
-        BT_HOST_WAKE,
+	BT_WAKE,
+	BT_RFR,
+	BT_CTS,
+	BT_RX,
+	BT_TX,
+	BT_PCM_DOUT,
+	BT_PCM_DIN,
+	BT_PCM_SYNC,
+	BT_PCM_CLK,
+	BT_HOST_WAKE,
 };
 // shyoo modify
 static unsigned bt_config_power_on[] = {
-        GPIO_CFG(92, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),   /* WAKE */
-        GPIO_CFG(43, 2, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),   /* RFR */
-        GPIO_CFG(44, 2, GPIO_INPUT,  GPIO_NO_PULL, GPIO_2MA),   /* CTS */
-        GPIO_CFG(45, 2, GPIO_INPUT,  GPIO_NO_PULL, GPIO_2MA),   /* Rx */
-        GPIO_CFG(46, 3, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),   /* Tx */
-        GPIO_CFG(68, 1, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),   /* PCM_DOUT */
-        GPIO_CFG(69, 1, GPIO_INPUT,  GPIO_NO_PULL, GPIO_2MA),   /* PCM_DIN */
-        GPIO_CFG(70, 2, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),   /* PCM_SYNC */
-        GPIO_CFG(71, 2, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),   /* PCM_CLK */
-        GPIO_CFG(83, 0, GPIO_INPUT,  GPIO_NO_PULL, GPIO_2MA),   /* HOST_WAKE */
+	GPIO_CFG(92, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),   /* WAKE */
+	GPIO_CFG(43, 2, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),   /* RFR */
+	GPIO_CFG(44, 2, GPIO_INPUT,  GPIO_NO_PULL, GPIO_2MA),   /* CTS */
+	GPIO_CFG(45, 2, GPIO_INPUT,  GPIO_NO_PULL, GPIO_2MA),   /* Rx */
+	GPIO_CFG(46, 3, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),   /* Tx */
+	GPIO_CFG(68, 1, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),   /* PCM_DOUT */
+	GPIO_CFG(69, 1, GPIO_INPUT,  GPIO_NO_PULL, GPIO_2MA),   /* PCM_DIN */
+	GPIO_CFG(70, 2, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),   /* PCM_SYNC */
+	GPIO_CFG(71, 2, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),   /* PCM_CLK */
+	GPIO_CFG(83, 0, GPIO_INPUT,  GPIO_NO_PULL, GPIO_2MA),   /* HOST_WAKE */
 };
 static unsigned bt_config_power_off[] = {
-        GPIO_CFG(92, 0, GPIO_OUTPUT, GPIO_PULL_DOWN, GPIO_2MA), /* WAKE */
-        GPIO_CFG(43, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* RFR */
-        GPIO_CFG(44, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* CTS */
-        GPIO_CFG(45, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* Rx */
-        GPIO_CFG(46, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* Tx */
-        GPIO_CFG(68, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* PCM_DOUT */
-        GPIO_CFG(69, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* PCM_DIN */
-        GPIO_CFG(70, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* PCM_SYNC */
-        GPIO_CFG(71, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* PCM_CLK */
-        GPIO_CFG(83, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* HOST_WAKE */
+	GPIO_CFG(92, 0, GPIO_OUTPUT, GPIO_PULL_DOWN, GPIO_2MA), /* WAKE */
+	GPIO_CFG(43, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* RFR */
+	GPIO_CFG(44, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* CTS */
+	GPIO_CFG(45, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* Rx */
+	GPIO_CFG(46, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* Tx */
+	GPIO_CFG(68, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* PCM_DOUT */
+	GPIO_CFG(69, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* PCM_DIN */
+	GPIO_CFG(70, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* PCM_SYNC */
+	GPIO_CFG(71, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* PCM_CLK */
+	GPIO_CFG(83, 0, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),  /* HOST_WAKE */
 };
 
-static int bluetooth_power(int on)
+static int bluetooth_power(int blocked)
 {
-        int pin, rc;
+	int pin, rc;
+	printk("%s( blocked = %d)\n", __func__, blocked);
 
-        printk(KERN_DEBUG "%s(%d)\n", __func__, on);
-        printk(KERN_DEBUG "on_off: %d\n", on);  //added by shyoo
+	if (!blocked) {
+		for (pin = 0; pin < ARRAY_SIZE(bt_config_power_on); pin++) {
+			rc = gpio_tlmm_config(bt_config_power_on[pin],
+					GPIO_ENABLE);
+			if (rc) {
+				printk(KERN_ERR
+						"%s: gpio_tlmm_config(%#x)=%d\n",
+						__func__, bt_config_power_on[pin], rc);
+				return -EIO;
+			}
+		}
 
-        if (on) {
-                for (pin = 0; pin < ARRAY_SIZE(bt_config_power_on); pin++) {
-                        rc = gpio_tlmm_config(bt_config_power_on[pin],
-                                        GPIO_ENABLE);
-                        if (rc) {
-                                printk(KERN_ERR
-                                                "%s: gpio_tlmm_config(%#x)=%d\n",
-                                                __func__, bt_config_power_on[pin], rc);
-                                return -EIO;
-                        }
-                }
-
-                printk(KERN_DEBUG       "*****wait for regulator turned-on, 150ms*****\n");
+		printk(KERN_DEBUG       "*****wait for regulator turned-on, 150ms*****\n");
 
 #if 1  //fm White
-/*turn-on regulator*/
-if(!gpio_get_value(GPIO_BT_REG_ON))
-        gpio_set_value(GPIO_BT_REG_ON, 1);
+		/*turn-on regulator*/
+		if(!gpio_get_value(GPIO_BT_REG_ON))
+			gpio_set_value(GPIO_BT_REG_ON, 1);
 
-/*wait for regulator turned-on, 200ms*/
-msleep (200);
+		/*wait for regulator turned-on, 200ms*/
+		msleep (200);
 
-/*drive /RESET pin to LOW*/
-gpio_set_value(GPIO_BT_RESET_N, 0);
-/*reset assert for 120ms*/
-msleep (120);
+		/*drive /RESET pin to LOW*/
+		gpio_set_value(GPIO_BT_RESET_N, 0);
+		/*reset assert for 120ms*/
+		msleep (120);
 
-/*Power On Reset BCM4325D0*/
-gpio_set_value(GPIO_BT_RESET_N, 1);
-/*wait for 50ms for POR BCM2045*/
-msleep (50);
+		/*Power On Reset BCM4325D0*/
+		gpio_set_value(GPIO_BT_RESET_N, 1);
+		/*wait for 50ms for POR BCM2045*/
+		msleep (50);
 #else
-                /*turn-on regulator*/
-                if(!gpio_get_value(GPIO_BT_REG_ON))
-                        gpio_set_value(GPIO_BT_REG_ON, 1);
+		/*turn-on regulator*/
+		if(!gpio_get_value(GPIO_BT_REG_ON))
+			gpio_set_value(GPIO_BT_REG_ON, 1);
 
-                /*drive /RESET pin to LOW*/
-                gpio_set_value(GPIO_BT_RESET_N, 0);
-                /*wait for regulator turned-on, 150ms*/
-                msleep (150);
-                /*Power On Reset BCM4325D0*/
-                gpio_set_value(GPIO_BT_RESET_N, 1);
-                /*wait for 20ms for POR BCM2045*/
-                msleep (20);
+		/*drive /RESET pin to LOW*/
+		gpio_set_value(GPIO_BT_RESET_N, 0);
+		/*wait for regulator turned-on, 150ms*/
+		msleep (150);
+		/*Power On Reset BCM4325D0*/
+		gpio_set_value(GPIO_BT_RESET_N, 1);
+		/*wait for 20ms for POR BCM2045*/
+		msleep (20);
 #endif
-        } else {
-                for (pin = 0; pin < ARRAY_SIZE(bt_config_power_off); pin++) {
-                        rc = gpio_tlmm_config(bt_config_power_off[pin],
-                                        GPIO_ENABLE);
-                        if (rc) {
-                                printk(KERN_ERR
-                                                "%s: gpio_tlmm_config(%#x)=%d\n",
-                                                __func__, bt_config_power_off[pin], rc);
-                                return -EIO;
-                        }
-                }
-                gpio_set_value(GPIO_BT_RESET_N, 0);
-                if(!gpio_get_value(GPIO_WL_RESET_N))
-                        gpio_set_value(GPIO_BT_REG_ON, 0);
-        }
-        return 0;
+	} else {
+		for (pin = 0; pin < ARRAY_SIZE(bt_config_power_off); pin++) {
+			rc = gpio_tlmm_config(bt_config_power_off[pin],
+					GPIO_ENABLE);
+			if (rc) {
+				printk(KERN_ERR
+						"%s: gpio_tlmm_config(%#x)=%d\n",
+						__func__, bt_config_power_off[pin], rc);
+				return -EIO;
+			}
+		}
+		gpio_set_value(GPIO_BT_RESET_N, 0);
+		if(!gpio_get_value(GPIO_WL_RESET_N))
+			gpio_set_value(GPIO_BT_REG_ON, 0);
+	}
+	return 0;
 }
 
 
@@ -143,7 +141,7 @@ static struct rfkill_ops eve_rfkill_ops = {
 static int eve_rfkill_probe(struct platform_device *pdev)
 {
 	int rc = 0;
-	bool default_state = true;  /* off */
+	int default_state = true; /*off*/
 
 	rc = gpio_request(GPIO_BT_RESET_N, "bt_reset");
 	if (rc)
@@ -152,7 +150,7 @@ static int eve_rfkill_probe(struct platform_device *pdev)
 	bluetooth_power(default_state);
 
 	bt_rfk = rfkill_alloc(bt_name, &pdev->dev, RFKILL_TYPE_BLUETOOTH,
-				&eve_rfkill_ops, NULL);
+			&eve_rfkill_ops, NULL);
 	if (!bt_rfk) {
 		rc = -ENOMEM;
 	}
