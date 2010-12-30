@@ -551,6 +551,9 @@ static void __init eve_init(void)
 	i2c_register_board_info(I2C_BUS_NUM_PROX, &prox_i2c_bdinfo, 1);
 	i2c_register_board_info(I2C_BUS_NUM_COMPASS, &compass_i2c_bdinfo, 1);
 
+	gpio_request(GPIO_MOTION_IRQ, "bma150_int");
+	gpio_direction_input(GPIO_MOTION_IRQ);
+
 	gpio_request(GPIO_COMPASS_RESET, "compass_rst");
 	gpio_direction_output(GPIO_COMPASS_RESET, 1);
 	gpio_request(GPIO_COMPASS_IRQ, "compass_int");
