@@ -433,8 +433,8 @@ config SHARP_PROXIMITY
 	  To compile this driver as a module, choose M here: the
 	  module will be called SHARP.
 
-config SENSORS_AKM8973
-    tristate "AKM8973 compass sensor support "
+config SENSORS_AKM8973_EVE
+    tristate "AKM8973 compass sensor support (eve)"
     depends on I2C
     help
       If you say yes here you get support for Asahi Kasei's
