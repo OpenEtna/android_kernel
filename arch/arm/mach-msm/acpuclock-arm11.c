@@ -549,10 +549,10 @@ static void __init acpuclk_init(void)
 	if (rc < 0)
 		pr_err("Setting AXI min rate failed!\n");
 
-	for (speed = acpu_freq_tbl; speed->a11clk_khz != 0; speed++)
+	for (max_s = acpu_freq_tbl; max_s->a11clk_khz != 0; max_s++)
 		;
-	
-	max_s = speed - 1;
+
+	max_s -= 1;
 	max_axi_rate = max_s->axiclk_khz * 1000;
 
 	printk(KERN_INFO "ACPU running at %d KHz\n", speed->a11clk_khz);
