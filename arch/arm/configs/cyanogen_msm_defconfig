@@ -1000,6 +1000,7 @@ CONFIG_WLAN=y
 CONFIG_BCM4329=m
 CONFIG_BCM4329_FW_PATH="/system/etc/wl/rtecdc.bin"
 CONFIG_BCM4329_NVRAM_PATH="/system/etc/wl/nvram.txt"
+# CONFIG_BCM4329_ENABLE_CSCAN is not set
 # CONFIG_HOSTAP is not set
 # CONFIG_TIWLAN1251 is not set
 
