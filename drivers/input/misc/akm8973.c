@@ -37,8 +37,8 @@ extern int is_proxi_open(void);
 #define MAX_FAILURE_COUNT 10
 #define GPIO_COMPASS_RESET	91
 
-#define DEBUG 0
-#define AKMD_DEBUG 0
+#define DEBUG 1
+#define AKMD_DEBUG 1
 #if AKMD_DEBUG
 #define ADBG(fmt, args...) printk(fmt, ##args)
 #else
@@ -52,7 +52,7 @@ static struct i2c_client *this_client;
 
 struct akm8973_data {
 	struct input_dev *input_dev;
-//	struct work_struct work;
+	struct work_struct work;
 #ifdef CONFIG_HAS_EARLYSUSPEND
 //	struct early_suspend early_suspend;
 #endif
@@ -1340,6 +1340,31 @@ static ssize_t akm_checkopmode_store(
 
 static DEVICE_ATTR(checkopmode, S_IRUGO | S_IWUSR, akm_checkopmode_show, akm_checkopmode_store);
 
+static irqreturn_t akm8973_isr(int o, void *_data) {
+	struct akm8973_data *akm = _data;
+    printk("%s: entered\n",__func__);
+	schedule_work(&akm->work);
+    return IRQ_HANDLED;
+}
+
+static void akm8973_work(struct work_struct *work) {
+
+    struct akm8973_data *data = container_of(work, struct akm8973_data, work);
+	unsigned char msg[RBUFF_SIZE + 1];
+	int ret;
+
+	/* reading the values automatically resets the irq line */
+	ret = AKECS_TransRBuff(msg, RBUFF_SIZE+1);
+	if( ret < 0 )
+		printk("%s: error on TransRBuff\n",__func__);
+
+	input_report_abs(data->input_dev, ABS_THROTTLE, msg[1]);
+
+	input_report_abs(data->input_dev, ABS_HAT0X, msg[2]);
+	input_report_abs(data->input_dev, ABS_HAT0Y, msg[3]);
+	input_report_abs(data->input_dev, ABS_BRAKE, msg[4]);
+}
+
 int akm8973_probe(struct i2c_client *client, const struct i2c_device_id * devid)
 {
 	struct akm8973_data *akm;
@@ -1396,7 +1421,7 @@ int akm8973_probe(struct i2c_client *client, const struct i2c_device_id * devid)
 	/* z-axis acceleration */
 	input_set_abs_params(akm->input_dev, ABS_Z, -5760, 5760, 0, 0);
 	/* temparature */
-	input_set_abs_params(akm->input_dev, ABS_THROTTLE, -30, 85, 0, 0);
+	input_set_abs_params(akm->input_dev, ABS_THROTTLE, 0, 255, 0, 0);
 	/* status of magnetic sensor */
 	input_set_abs_params(akm->input_dev, ABS_RUDDER, 0, 3, 0, 0);
 	/* status of acceleration sensor */
@@ -1445,10 +1470,12 @@ int akm8973_probe(struct i2c_client *client, const struct i2c_device_id * devid)
 
 	err = device_create_file(&client->dev, &dev_attr_ms1);
 
-
+	INIT_WORK(&akm->work, akm8973_work);
+	request_irq(client->irq, akm8973_isr, IRQF_TRIGGER_RISING, "akm8973_irq", akm);
+	/* we only support versions higher than that
 	if(system_rev == LGE_PCB_VER_D)
 		AKECS_WriteEEPROM();
-
+	*/
 #ifdef CONFIG_HAS_EARLYSUSPEND
 //	akm->early_suspend.suspend = akm8973_early_suspend;
 //	akm->early_suspend.resume = akm8973_early_resume;
