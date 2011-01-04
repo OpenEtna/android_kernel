@@ -18,24 +18,21 @@
 #include <linux/i2c.h>
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
-#include <linux/ioctl.h>
+//#include <linux/ioctl.h>
 #include <linux/types.h>
-#include <linux/slab.h>
+//#include <linux/slab.h>
+#include <linux/input.h>
 #include <asm/io.h>
 #include <linux/delay.h>
 #include <asm/gpio.h>
 #include <mach/vreg.h>
-#include <linux/fs.h>
-#include <linux/miscdevice.h>
-#include <asm/uaccess.h>
+//#include <asm/uaccess.h>
 
 static struct psensor_dev {
 	struct i2c_client *client;
 	int gpio;
-	int major;
+	struct input_dev* input_dev;
 } psdev;
-
-static atomic_t opened = ATOMIC_INIT(-1);
 
 /*
  * Sharp Proximity Sensor Interface
@@ -135,7 +132,7 @@ static int gp2ap002_resume(struct i2c_client *client)
 	struct psensor_dev *pdev = i2c_get_clientdata(client);
 
 	//this is a race condition
-	if(atomic_read(&opened) > -1) {
+	if(psdev.input_dev->users) {
 		ret = prox_vreg_set(1);
 		if(ret) {
 			printk("%s: prox_vreg_set(1) returned %d\n", __func__, ret);
@@ -150,61 +147,33 @@ static int gp2ap002_resume(struct i2c_client *client)
 	return ret;
 }
 
-static int device_open(struct inode *inode, struct file *file) {
-	int ret;
+static irqreturn_t gp2ap002_isr(int o, void *_data) {
 
-	if(!atomic_inc_not_zero(&opened))
-		return -EBUSY;
+    printk("%s: entered, gpio= %d\n", __func__, gpio_get_value(psdev.gpio));
 
-	ret = prox_vreg_set(1);
+	input_report_abs(psdev.input_dev, ABS_DISTANCE, gpio_get_value(psdev.gpio));
+	input_sync(psdev.input_dev);
+
+	return IRQ_HANDLED;
+}
+
+static int gp2ap002_open(struct input_dev *dev) {
+
+	int ret = prox_vreg_set(1);
     if(ret)
         return ret;
 
     udelay(100);
 
-	printk("proximity device_open\n");
+    printk("proximity device_open\n");
     ret = sharp_psensor_init(psdev.client);
-
-	if(ret) {
-		prox_vreg_set(0);
-		atomic_dec(&opened);
-	}
-	return ret;
+    return 0;
 }
 
-static int device_release(struct inode *inode, struct file *file) {
-
+static void gp2ap002_close(struct input_dev *dev) {
 	prox_vreg_set(0);
-
-	atomic_dec(&opened);
-	return 0;
 }
 
-static ssize_t device_read(struct file *filp,	/* see include/linux/fs.h   */
-			   char *buffer,	/* buffer to fill with data */
-			   size_t length,	/* length of the buffer     */
-			   loff_t * offset) {
-	char p;
-
-	if( length == 0 ) return 0;
-
-	p = (char)gpio_get_value(psdev.gpio);;
-	put_user(p, buffer);
-	return 1;
-}
-
-static struct file_operations fops = {
-	.owner = THIS_MODULE,
-	.open = device_open,
-	.release = device_release,
-	.read = device_read,
-};
-
-static struct miscdevice proximity_device = {
-    .minor = MISC_DYNAMIC_MINOR,
-    .name = "proximity",
-    .fops = &fops,
-};
 static int gp2ap002_probe(struct i2c_client *client,
 		const struct i2c_device_id *dev_id)
 {
@@ -218,7 +187,22 @@ static int gp2ap002_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, &psdev);
 	psdev.gpio = client->irq;
 
-	return misc_register(&proximity_device);
+	psdev.input_dev = input_allocate_device();
+
+    if (!psdev.input_dev) {
+        printk(KERN_ERR
+                "%s: Failed to allocate input device\n", __func__);
+		return -ENOMEM;
+    }
+
+    set_bit(EV_ABS, psdev.input_dev->evbit);
+    input_set_abs_params(psdev.input_dev, ABS_DISTANCE, 0, 1, 0, 0);
+    psdev.input_dev->name = "gp2ap002";
+    psdev.input_dev->open = gp2ap002_open;
+    psdev.input_dev->close = gp2ap002_close;
+    input_register_device(psdev.input_dev);
+
+	request_irq(MSM_GPIO_TO_INT(psdev.gpio), gp2ap002_isr, IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING, "gp2ap002_irq", &psdev);
 }
 
 static int gp2ap002_remove(struct i2c_client *client)
