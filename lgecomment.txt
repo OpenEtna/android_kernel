@@ -1,0 +1,938 @@
+./kernel/power/wakelock.c:439:        //LGE_FIX proximity sensor issue(pranav.s@lge.com)
+./drivers/media/video/msm/mv9319.c:38:/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, blocked the debugging message */
+./drivers/media/video/msm/msm_camera.c:530:                /* LGE_CHANGE_S [zugwan@lge.com] 2009-09-12, verify NULL pointer */
+./drivers/media/video/msm/msm_camera.c:532:                /* LGE_CHANGE_E [zugwan@lge.com] 2009-09-12, verify NULL pointer */
+./drivers/media/video/msm/msm_camera.c:1386:/* LGE_CHANGE_S [wonki.choi@lge.com] 2010-04-07 EVE Merge */
+./drivers/media/video/msm/msm_camera.c:1457:/* LGE_CHANGE_E [wonki.choi@lge.com] 2010-04-07 */
+./drivers/media/video/msm/msm_camera.c:1546:/* LGE_CHANGE_S [wonki.choi@lge.com] 2010-04-07 EVE Merge */
+./drivers/media/video/msm/msm_camera.c:1552:/* LGE_CHANGE_E [wonki.choi@lge.com] 2010-04-07 */
+./drivers/media/video/msm/msm_camera.c:1802:                        // LGE_CHANGE_S [zugwan@lge.com] 2009-09-02, to prevent snapshot image from damaging.
+./drivers/media/video/msm/msm_camera.c:1807:                        // LGE_CHANGE_E [zugwan@lge.com] 2009-09-02
+./drivers/media/video/msm/msm_camera.c:1895:                        /* LGE_CHANGE_S [zugwan@lge.com] 2009-10-28 */
+./drivers/media/video/msm/msm_camera.c:1904:                        /* LGE_CHANGE_E [zugwan@lge.com] 2009-10-28 */
+./drivers/i2c/chips/akm8973.c:29:#include <mach/vreg.h> // LGE_CHANGE [jh.koo@lge.com] To set vreg
+./drivers/i2c/chips/akm8973.c:80:static int powerDownOrOff=0; //For used current //diyu@lge.com
+./drivers/i2c/chips/akm8973.c:165:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-06-12 */
+./drivers/i2c/chips/akm8973.c:224:/* LGE_CHANGE_E [jh.koo@lge.com] 2009-06-12 */
+./drivers/i2c/chips/akm8973.c:465://LGE_CHANGE_S diyu@lge.com.  To add for used current
+./drivers/i2c/chips/akm8973.c:477://LGE_CHANGE_E diyu@lge.com
+./drivers/i2c/chips/akm8973.c:601:/* LGE_CHANGE_S, [kundan.thakur@lge.com], 2010-11-26, < Proximity sensor fix > */
+./drivers/i2c/chips/akm8973.c:602:/* pranav.s@lge.com */
+./drivers/i2c/chips/akm8973.c:604:/* LGE_CHANGE_S, [kundan.thakur@lge.com], 2010-11-26, < Proximity sensor fix > */
+./drivers/i2c/chips/akm8973.c:682:/* LGE_CHANGE_S, [kundan.thakur@lge.com], 2010-11-26, < Proximity sensor fix > */
+./drivers/i2c/chips/akm8973.c:683:/* pranav.s@lge.com */
+./drivers/i2c/chips/akm8973.c:689:/* LGE_CHANGE_S, [kundan.thakur@lge.com], 2010-11-26, < Proximity sensor fix > */
+./drivers/i2c/chips/akm8973.c:1194:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-07-10 */
+./drivers/i2c/chips/akm8973.c:1203:/* LGE_CHANGE_E [jh.koo@lge.com] 2009-07-10 */
+./drivers/i2c/chips/akm8973.c:1228:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-07-10 */
+./drivers/i2c/chips/akm8973.c:1236:/* LGE_CHANGE_E [jh.koo@lge.com] 2009-07-10 */
+./drivers/i2c/chips/akm8973.c:1368:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-07-10 */
+./drivers/i2c/chips/akm8973.c:1374:/* LGE_CHANGE_E [jh.koo@lge.com] 2009-07-10 */
+./drivers/serial/msm_serial.c:37:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-03-10 */
+./drivers/serial/msm_serial.c:42:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-03-10 */
+./drivers/serial/msm_serial.c:45:/* LGE_CHANGE, [dojip.kim@lge.com] kernel panic when serial console disabled */
+./drivers/serial/msm_serial.c:936:/* LGE_CHANGE_S, [munyoung@lge.com] kernel panic when serial console disabled */
+./drivers/serial/msm_serial.c:937:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, 
+./drivers/serial/msm_serial.c:959:/* LGE_CHANGE, [munyoung@lge.com] kernel panic when serial console disabled */
+./drivers/serial/msm_serial.c:992:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-03-31, prevent console uart3 clock from being disabled */
+./drivers/serial/msm_serial.c:993:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, 
+./drivers/serial/msm_serial.c:1002:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-03-31 */
+./drivers/serial/msm_serial.c:1043:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-03-10, check uart arm9 mode and prevent clk_uart from disabling */
+./drivers/serial/msm_serial.c:1049:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-03-10 */
+./drivers/serial/msm_serial.c:1064:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-03-10, check uart arm9 mode and prevent clk_uart from disabling */
+./drivers/serial/msm_serial.c:1072:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-03-10 */
+./drivers/serial/msm_serial.c:1125:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-16, disable uart3 clock */
+./drivers/serial/msm_serial.c:1129:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-04-16 */
+./drivers/serial/msm_serial.c:1131:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-16, disable uart3 clock */
+./drivers/serial/msm_serial.c:1133:	/* LGE_CHANGE, [munyoung@lge.com] kernel panic when serial console disabled
+./drivers/serial/msm_serial.c:1135:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-05-10, 
+./drivers/serial/msm_serial.c:1145:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-04-16 */
+./drivers/serial/msm_serial.c:1159:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-16, enable uart3 clock */
+./drivers/serial/msm_serial.c:1163:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-04-16 */
+./drivers/serial/msm_serial.c:1166:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-16, enable uart3 clock */
+./drivers/serial/msm_serial.c:1168:	/* LGE_CHANGE, [munyoung@lge.com] kernel panic when serial console disabled 
+./drivers/serial/msm_serial.c:1170:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-05-10, 
+./drivers/serial/msm_serial.c:1180:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-04-16 */
+./drivers/serial/msm_serial_hs.c:59:// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+./drivers/serial/msm_serial_hs.c:64:// END: 0002333 chpark9@lge.com 2009-12-26
+./drivers/usb/gadget/f_mass_storage.c:1301:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-07-10, Setting of UMS */
+./drivers/usb/gadget/f_mass_storage.c:1311:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-07-10 */
+./drivers/usb/gadget/f_mass_storage.c:2866:	/*LGE_CHANGE_E[kyuhyung.lee@lge.com - #endif*/
+./drivers/usb/gadget/f_mass_storage.c:3042:/* LGE_CHANGES_S [younsuk.song@lge.com] 2010-06-16, Add Vendor/Product name */
+./drivers/usb/gadget/f_mass_storage.c:3047:/* LGE_CHANGES_E [younsuk.song@lge.com] 2010-06-16 */
+./drivers/usb/gadget/android.c:37:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-07-11, Include Additional Headers */
+./drivers/usb/gadget/android.c:43:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-07-11 */
+./drivers/usb/gadget/android.c:60:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-07-11, Include LG util header */
+./drivers/usb/gadget/android.c:64:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-07-11 */
+./drivers/usb/gadget/android.c:97:/* LGE_CHANGES_S [younsuk.song@lge.com] 2010-06-22, Init Serial Number */
+./drivers/usb/gadget/android.c:106:/* LGE_CHANGES_E [younsuk.song@lge.com] 2010-06-22 */
+./drivers/usb/gadget/android.c:353:/* LGE_CHANGES_S [younsuk.song@lge.com] 2010-06-24, For Software Download*/
+./drivers/usb/gadget/android.c:407:/* LGE_CHANGES_E [younsuk.song@lge.com] 2010-06-24 */
+./drivers/usb/gadget/android.c:491:/* LGE_CHANGES_S [younsuk.song@lge.com] 2010-06-24, For Software Download*/
+./drivers/usb/gadget/android.c:503:/* LGE_CHANGES_E [younsuk.song@lge.com] 2010-06-24 */
+./drivers/usb/gadget/android.c:528:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-08-12, Determine USB DeviceClass */
+./drivers/usb/gadget/android.c:560:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-08-12 */	
+./drivers/usb/gadget/android.c:682:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-07-15, Save Switching Overhead */
+./drivers/usb/gadget/android.c:786:/* LGE_CHANGES_S [younsuk.song@lge.com] 2010-06-23, Init Serial Number */
+./drivers/usb/gadget/android.c:791:/* LGE_CHANGES_E [younsuk.song@lge.com] 2010-06-23 */
+./drivers/usb/gadget/android.c:845:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-08-12, LGE USB Setting */
+./drivers/usb/gadget/android.c:856:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-08-12 */	
+./drivers/usb/gadget/android.c:875:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-08-20, Fix Init pid of USB */
+./drivers/usb/gadget/android.c:878:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-08-20 */	
+./drivers/usb/gadget/msm72k_udc.c:52:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-08-12, Add Header for LGE USB */
+./drivers/usb/gadget/msm72k_udc.c:56:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-08-12 */
+./drivers/usb/gadget/msm72k_udc.c:73:/* LGE_CHANGES_S [younsuk.song@lge.com] 2010-07-04, Add debugging macro sourced by hyunhui.park@lge.com */
+./drivers/usb/gadget/msm72k_udc.c:76:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-04-08, Macro for debugging */
+./drivers/usb/gadget/msm72k_udc.c:108:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-04-08 */
+./drivers/usb/gadget/msm72k_udc.c:109:/* LGE_CHANGES_E [younsuk.song@lge.com] 2010-07-04 */
+./drivers/usb/gadget/msm72k_udc.c:316:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-08-12, Detect Cable Type */
+./drivers/usb/gadget/msm72k_udc.c:322:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-08-12 */	
+./drivers/usb/gadget/msm72k_udc.c:324:/* LGE_CHANGES_S [younsuk.song@lge.com] 2010-06-30, TA when LT cable */
+./drivers/usb/gadget/msm72k_udc.c:329:/* LGE_CHANGES_E [younsuk.song@lge.com] 2010-06-30 */
+./drivers/usb/gadget/msm72k_udc.c:415:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-08-12, Factory Cable Sleep Skip */
+./drivers/usb/gadget/msm72k_udc.c:421:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-08-12 */	
+./drivers/usb/gadget/msm72k_udc.c:1184:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-08-14, Add Defence Code */
+./drivers/usb/gadget/msm72k_udc.c:1188:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-08-14 */			
+./drivers/usb/gadget/msm72k_udc.c:1236:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-08-14, Add Defence Code */
+./drivers/usb/gadget/msm72k_udc.c:1341:/* LGE_CHANGES_S [younsuk.song@lge.com] 2010-06-21, [VS660] Support Factory USB Cable sourced by VS760*/
+./drivers/usb/gadget/msm72k_udc.c:1360:/* LGE_CHANGES_E [younsuk.song@lge.com] 2010-06-21 */
+./drivers/usb/gadget/msm72k_udc.c:1532:/* LGE_CHANGE_S, [kundan.thakur@lge.com], 28.10.2010*/
+./drivers/usb/gadget/msm72k_udc.c:1535:/* LGE_CHANGE_E, [kundan.thakur@lge.com], 28.10.2010*/
+./drivers/usb/gadget/msm72k_udc.c:1656://LGE_CHANGE_S .. sinjo.mattappallil@lge.com 25/OCT/2010						
+./drivers/usb/gadget/msm72k_udc.c:1657:				/* ALESSI : LGE_CHANGE_S [euikyeom.kim@lge.com] 2010-08-09, Change USB state */
+./drivers/usb/gadget/msm72k_udc.c:1665:				/* LGE_CHANGE_E [euikyeom.kim@lge.com] 2010-08-09 */
+./drivers/usb/gadget/msm72k_udc.c:1669:				/* ALESSI : LGE_CHANGE_S [euikyeom.kim@lge.com] 2010-08-09, Change USB state */
+./drivers/usb/gadget/msm72k_udc.c:1677:				/* LGE_CHANGE_E [euikyeom.kim@lge.com] 2010-08-09 */
+./drivers/usb/gadget/msm72k_udc.c:1679://LGE_CHANGE_E .. sinjo.mattappallil@lge.com 25/OCT/2010			
+./drivers/usb/gadget/msm72k_udc.c:2471:/* LGE_CHANGE_S [younsuk.song@lge.com] 2010-08-24, QCT patch for USB kernel panic */
+./drivers/usb/gadget/msm72k_udc.c:2477:/* LGE_CHANGE_E [younsuk.song@lge.com] 2010-08-24 */
+./drivers/usb/gadget/u_lgeusb.h:5: * Author : Hyeon H. Park <hyunhui.park@lge.com>
+./drivers/usb/gadget/u_lgeusb.h:6: *			Youn Suk Song <younsuk.song@lge.com>
+./drivers/usb/gadget/u_lgeusb.c:5: * Author : Hyeon H. Park <hyunhui.park@lge.com>
+./drivers/usb/gadget/u_lgeusb.c:6: *			Youn Suk Song <younsuk.song@lge.com>
+./drivers/usb/gadget/u_lgeusb.c:43:/* LGE_CHANGES_S [younsuk.song@lge.com] 2010-06-21, Set MEID */
+./drivers/usb/gadget/u_lgeusb.c:59:/* LGE_CHANGES_E [younsuk.song@lge.com] 2010-06-21 */
+./drivers/usb/gadget/f_acm.c:22:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-07-18, Apply Patch for LG ACM */
+./drivers/usb/gadget/f_acm.c:30:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-07-18 */
+./drivers/usb/gadget/f_acm.c:111:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-07-18, Apply Patch for LG ACM */
+./drivers/usb/gadget/f_acm.c:117:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-07-18 */
+./drivers/usb/gadget/f_acm.c:481:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-07-18, Apply Patch for LG ACM */
+./drivers/usb/gadget/f_acm.c:487:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-07-18 */
+./drivers/usb/gadget/f_acm.c:493:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-07-18, Apply Patch for LG ACM */
+./drivers/usb/gadget/f_acm.c:499:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-07-18 */
+./drivers/usb/gadget/f_acm.c:509:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-07-18, Apply Patch for LG ACM */
+./drivers/usb/gadget/f_acm.c:516:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-07-18 */
+./drivers/usb/gadget/f_acm.c:784:/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-07-14, Fix panic by acm patch */
+./drivers/usb/gadget/f_acm.c:788:/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-07-14 */	
+./drivers/usb/function/msm_hsusb.c:2516:				/* LGE_CHANGES_S [khlee@lge.com] 2009-09-25 [VS740] to fix the DUN bug */
+./drivers/usb/function/msm_hsusb.c:3056:		/* LGE_CHANGES_S [khlee@lge.com] 2009-09-25 [VS740]  to fix the DUN bug */
+./drivers/mtd/devices/msm_nand.c:406:/* LGE_CHANGE [cleaneye@lge.com] 2009-02-22, add 4G-bit toshiba device */
+./drivers/mtd/devices/msm_nand.c:410:	{0x5510bcad, 0xFFFFFFFF, (512<<20), 1, 2048, (2048<<6), 64,}, // LGE_CHANGE [bluerti@lge.com] Add Hynix Memory (Eve will change memory to Hynix from Toshiba.)	
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:149:/* LGE_CHANGE_S, [yoohoo@lge.com], 2010-1-13, <Packet filter> */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:171:/* LGE_CHANGE_E, [yoohoo@lge.com], 2010-1-13, <Packet filter> */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:459:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:465:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:3936:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:3949:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:4049:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:4053:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:5441:/* LGE_CHANGE_S, [yoohoo@lge.com], 2010-1-13, <ARP offload, Packet filter> */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:5485:/* LGE_CHANGE_E, [yoohoo@lge.com], 2010-1-13, <ARP offload, Packet filter> */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:5487:/* LGE_CHANGE_S, [yoohoo@lge.com], 2010-1-13, <ARP offload> */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:5580:/* LGE_CHANGE_E, [yoohoo@lge.com], 2010-1-13, <ARP offload> */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:5582:/* LGE_CHANGE_s, [jisung.yang@lge.com], 2010-08-24, <Set listen interval and dtim listen> */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:5609:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-08-24, <Set listen interval and dtim listen> */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:5610:/* LGE_CHANGE_S, [yoohoo@lge.com], 2010-1-13, <Packet filter> */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_sdio.c:5811:/* LGE_CHANGE_E, [yoohoo@lge.com], 2010-1-13, <Packet filter> */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:488:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-04-03, configs */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:572:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-05-27, <Disable setting power save mode if PM is 0> */	
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:574:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-05-27, <Disable setting power save mode if PM is 0> */	
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:576:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-05-30, <Disable setting roam_offe if roam_off is 1> */	
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:578:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-05-30, <Disable setting roam_offe if roam_off is 1> */	
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:603:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-05-27, <Disable setting power save mode if PM is 0> */		
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:612:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-05-27, <Disable setting power save mode if PM is 0> */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:615:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-06-28, < MAC write > */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:645:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-06-28, < MAC write > */		
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:655:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-05-30, <Disable setting roam_offe if roam_off is 1> */	
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:664:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-05-30, <Disable setting roam_offe if roam_off is 1> */	
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:738:/* BEGIN: 001936 cosmichigh26@lge.com 2009-11-13 */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:742:/* END: 001936 cosmichigh26@lge.com 2009-11-13 */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:750:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-04-03, configs */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:762:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-08-27, roam_off, PM */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:767:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-08-27, roam_off, PM */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:771:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-09-22, bcn_timeout */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:775:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-09-22, bcn_timeout */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:784:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-04-03, configs */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:788:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-04-03, configs */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:798:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-08-27, already PM setup is configured */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:803:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-08-27, already PM setup is configured */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:812:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-09-22, already setting bcn_timeout in dhd_preinit_config */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:820:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-09-22, already setting bcn_timeout in dhd_preinit_config */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:822:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-04-08, roam_off */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:828:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-04-08, roam_off */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:890:/* LGE_CHANGE_S, [yoohoo@lge.com], 2009-11-19, Use deepsleep instead of dhd_dev_reset when driver start or stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_cdc.c:941:/* LGE_CHANGE_E, [yoohoo@lge.com], 2009-11-19, Use deepsleep instead of dhd_dev_reset when driver start or stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_linux.c:59:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-03-05, for gpio set in dhd_linux */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_linux.c:63:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-03-05, for gpio set in dhd_linux */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_linux.c:65:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-03-30, change ifname to wlan%d */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_linux.c:71:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-03-30, change ifname to wlan%d */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_linux.c:169:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-04-03, configs */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_linux.c:173:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-04-03, configs */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_linux.c:1964:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-06-04, <Prevent scan after turning on Wifi> */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_linux.c:1968:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-06-04, <Prevent scan after turning on Wifi> */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_linux.c:2081:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-03-05, for gpio set in dhd_linux */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_linux.c:2092:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-03-05, for gpio set in dhd_linux */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_linux.c:2115:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-03-05, for gpio set in dhd_linux */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_linux.c:2120:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-03-05, for gpio set in dhd_linux */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:40:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-05-14, support start/stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:45:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-05-14, support start/stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:102:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-12-08, support start/stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:112:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-12-08, support start/stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:122:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-12-08, support start/stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:130:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-12-08, support start/stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:140:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-12-08, support start/stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:148:		/* LGE_CHANGE_E [yoohoo@lge.com] 2009-12-08, support start/stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:157:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-05-14, support start/stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:164:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-07-02, add BCM4325_GPIO_WL_REGON on /off when "DRIVER START/STOP */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:166:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-05-14, support start/stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:175:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-05-14, support start/stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:177:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-07-02, add BCM4325_GPIO_WL_REGON on /off when "DRIVER START/STOP */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:184:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-07-02, add BCM4325_GPIO_WL_REGON on /off when "DRIVER START/STOP */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_custom_gpio.c:189:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-05-14, support start/stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_common.c:44:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-04-03, configs */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_common.c:48:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-04-03, configs */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_common.c:108:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-09-03, don't init */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd_common.c:112:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-09-03, don't init */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd.h:298:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-12-08, support start/stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd.h:304:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-12-08, support start/stop */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd.h:398:/* LGE_CHANGE_S [jisung.yang@lge.com] 2010-04-24, gcc compile of this version limits array size. */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd.h:404:/* LGE_CHANGE_E [jisung.yang@lge.com] 2010-04-24, gcc compile of this version limits array size. */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd.h:407:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-04-03, configs */
+./drivers/net/wireless/bcm4325/src/dhd/sys/dhd.h:411:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-04-03, configs */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc.c:73:/* BEGIN: 0005337 mingi.sung@lge.com 2010-03-23 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc.c:76:/* END: 0005337 mingi.sung@lge.com 2010-03-23 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc.c:683:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc.c:687:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:67:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:91:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:130:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:141:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:144:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:153:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:270:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:275:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:282:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:290:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:297:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:302:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:310:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:314:/* BEGIN: 0004825 mingi.sung@lge.com 2010-03-09 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:326:/* END: 0004825 mingi.sung@lge.com 2010-03-09 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:393:/* BEGIN: 0003780 mingi.sung@lge.com 2010-02-02 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:395:/* END: 0003780 mingi.sung@lge.com 2010-02-02 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:430:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:525:/* BEGIN: 0004486 mingi.sung@lge.com 2010-02-28 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:530:/* END: 0004486 mingi.sung@lge.com 2010-02-28 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:532:/* BEGIN: 0004486 mingi.sung@lge.com 2010-02-28 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:537:/* END: 0004486 mingi.sung@lge.com 2010-02-28 */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:545:/* LGE_CHANGE_S, [yoohoo@lge.com], 2010-1-13, <ARP offload> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:549:/* LGE_CHANGE_E, [yoohoo@lge.com], 2010-1-13, <ARP offload> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:550:/* LGE_CHANGE_s, [jisung.yang@lge.com], 2010-08-24, <Set listen interval and dtim listen> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:554:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-08-24, <Set listen interval and dtim listen> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:555:/* LGE_CHANGE_S, [yoohoo@lge.com], 2010-1-13, <Packet filter> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:560:/* LGE_CHANGE_E, [yoohoo@lge.com], 2010-1-13, <Packet filter> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:563:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:578:/* LGE_CHANGE_s, [jisung.yang@lge.com], 2010-08-24, <Set listen interval and dtim listen> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:582:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-08-24, <Set listen interval and dtim listen> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:583:/* LGE_CHANGE_S, [yoohoo@lge.com], 2010-1-13, <ARP offload> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:588:/* LGE_CHANGE_E, [yoohoo@lge.com], 2010-1-13, <ARP offload> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:590:/* LGE_CHANGE_S, [yoohoo@lge.com], 2010-1-13, <Packet filter> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:594:/* LGE_CHANGE_E, [yoohoo@lge.com], 2010-1-13, <Packet filter> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:628:/* LGE_CHANGE_s, [jisung.yang@lge.com], 2010-08-24, <Set listen interval and dtim listen> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:632:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-08-24, <Set listen interval and dtim listen> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:633:/* LGE_CHANGE_S, [yoohoo@lge.com], 2010-1-13, <ARP offload> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:638:/* LGE_CHANGE_E, [yoohoo@lge.com], 2010-1-13, <ARP offload> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:640:/* LGE_CHANGE_S, [yoohoo@lge.com], 2010-1-13, <Packet filter> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:644:/* LGE_CHANGE_E, [yoohoo@lge.com], 2010-1-13, <Packet filter> */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:652:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:656:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-06, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:667:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-11-06, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:716:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-06, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:720:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-11-06, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:750:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Init wakelock */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:756:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-11-19, Init wakelock */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:765:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Set gpio init value to zero */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:774:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-11-19, Init wakelock */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:789:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-06, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:793:		IRQF_DISABLED | IRQF_TRIGGER_RISING , "wifi_hostwakeup", NULL); //jisung.yang@lge.com
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:798:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-11-06, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:810:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, set_irq_type and disable_irq */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:818:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-11-19, set_irq_type and disable_irq */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:836:	/* LGE_CHANGE_S [yoohoo@lge.com] 2009-01-14, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:855:/* LGE_CHANGE_E [yoohoo@lge.com] 2010-01-14, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:861:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-01-14, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/bcmsdio/sys/bcmsdh_sdmmc_linux.c:879:/* LGE_CHANGE_E [yoohoo@lge.com] 2010-01-14, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.h:112:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-06-28, < MAC write > */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.h:118:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-06-28, < MAC write > */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:103:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-12-08, support start/stop */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:109:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-12-08, support start/stop */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:162:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-05-27, <Disable setting power save mode if PM is 0> */	
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:164:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-05-27, <Disable setting power save mode if PM is 0> */	
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:166:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-05-30, <Disable setting roam_offe if roam_off is 1> */	
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:168:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-05-30, <Disable setting roam_offe if roam_off is 1> */	
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:320:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-04-04, <Check whether dev is null or not> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:331:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-04-04, <Check whether dev is null or not> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:359:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-04-28, <Fixing wl_iw_set_priv function> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:383:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-04-28, <Fixing wl_iw_set_priv function> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:531:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-04-15, fixed passive/active scan */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:535:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-04-15, fixed passive/active scan */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:566:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-04-15, fixed passive/active scan */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:570:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-04-15, fixed passive/active scan */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:606:/* LGE_CHANGE_s, [jisung.yang@lge.com], 2010-08-24, <Set listen interval and dtim listen> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:651:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-08-24, <Set listen interval and dtim listen> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:700:/* LGE_CHANGE_s, [jisung.yang@lge.com], 2010-08-24, <Set listen interval and dtim listen> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:702:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-08-24, <Set listen interval and dtim listen> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:754:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-04-28, <Fixing wl_iw_set_priv function> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:847:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-04-28, <Fixing wl_iw_set_priv function> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:891:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-04-07, showing the 5.5 Mbps */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:897:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-04-07, showing the 5.5 Mbps */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:908:/* BEGIN: 0005568 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:911:/* END: 0005568 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:924:/* LGE_CHANGE_S, [yoohoo@lge.com], 2009-05-13,
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:930:/* LGE_CHANGE_E, [yoohoo@lge.com], 2009-05-13,
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:935:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:939:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:952:/* LGE_CHANGE_S, [yoohoo@lge.com], 2009-05-13,
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:961:/* LGE_CHANGE_E, [yoohoo@lge.com], 2009-05-13,
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:965:/* BEGIN: 0005568 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:982:/* END: 0005568 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1015:/* LGE_CHANGE_S, [yoohoo@lge.com], 2009-11-19, Use deepsleep instead of dhd_dev_reset when driver start or stop */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1019:/* LGE_CHANGE_E, [yoohoo@lge.com], 2009-11-19, Use deepsleep instead of dhd_dev_reset when driver start or stop */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1022:/* LGE_CHANGE_S, [yoohoo@lge.com], 2010-01-27, successive power key press lock up */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1027:/* LGE_CHANGE_E, [yoohoo@lge.com], 2010-01-27, successive power key press lock up */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1057:/* LGE_CHANGE_S, [yoohoo@lge.com], 2009-11-19, Use deepsleep instead of dhd_dev_reset when driver start or stop */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1086:/* LGE_CHANGE_E, [yoohoo@lge.com], 2009-11-19, Use deepsleep instead of dhd_dev_reset when driver start or stop */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1092:/* LGE_CHANGE_S, [yoohoo@lge.com], 2010-01-27, successive power key press lock up */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1098:/* LGE_CHANGE_E, [yoohoo@lge.com], 2010-01-27, successive power key press lock up */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1136:/* LGE_CHANGE_S, [yoohoo@lge.com], 2010-01-27, successive power key press lock up */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1146:/* LGE_CHANGE_E, [yoohoo@lge.com], 2010-01-27, successive power key press lock up */	
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1189:/* BEGIN: 0004683 mingi.sung@lge.com 2010-03-05 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1194:/* END: 0004683 mingi.sung@lge.com 2010-03-05 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1206:/* LGE_CHANGE_S, [yoohoo@lge.com], 2009-11-19, Use deepsleep instead of dhd_dev_reset when driver start or stop */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1229:/* BEGIN: 0004683 mingi.sung@lge.com 2010-03-05 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1238:/* END: 0004683 mingi.sung@lge.com 2010-03-05 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1251:/* LGE_CHANGE_E, [yoohoo@lge.com], 2009-11-19, Use deepsleep instead of dhd_dev_reset when driver start or stop */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1255:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-08-12, Do not send START here */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1259:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-08-12, Do not send START here */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1262:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-08-12, Hidden SSID */	
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1268:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-08-12, Hidden SSID */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1270:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-06-08, Hidden SSID */	
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1275:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-06-08, Hidden SSID */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1816:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1820:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1918:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:1922:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:2020:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:2024:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:2245:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-06-04, <Association timeout> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:2254:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-06-04, <Association timeout> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:2431:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:2435:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:3057:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-06-15, <The following prevent scan failure in case of successive scan command> */		
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:3059:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-06-15, <The following prevent scan failure in case of successive scan command> */				
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:3416:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:3420:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:3469:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-08-16, fix the getting ISCAN/SCAN results */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:3481:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-08-16, fix the getting ISCAN/SCAN results */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:3483:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-08-16, fix the getting ISCAN/SCAN results */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:3790:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:3794:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:3874:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:3878:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:3934:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:3938:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:4093:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:4097:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:4160:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:4164:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:4302:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:4306:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:4389:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:4393:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:4863:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-05-14, support private command */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:4865:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-04-28, <Fixing wl_iw_set_priv function> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:4893:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-04-28, <Fixing wl_iw_set_priv function> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:5039:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-05-14, support private command */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6154:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-04-04, <Check whether dev is null or not> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6162:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-04-04, <Check whether dev is null or not> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6188:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-07-09, send wl_iw_send_priv_event  */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6200:/* LGE_CHANGE_S [jisung.yang@lge.com] 2010-04-24, START event will be sent in wl_iw_control_wl_on()  */								
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6204:/* LGE_CHANGE_E [jisung.yang@lge.com] 2010-04-24, START event will be sent in wl_iw_control_wl_on()  */				
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6230:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-07-09, send wl_iw_send_priv_event only if receiving regular START command */		
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6259:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-04-28, <Fixing wl_iw_set_priv function> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6264:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-04-28, <Fixing wl_iw_set_priv function> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6265:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-05-14, support private command */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6276:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-04-28, <Fixing wl_iw_set_priv function> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6279:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-05-27, <Disable setting power save mode if PM is 0> */	
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6281:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-05-27, <Disable setting power save mode if PM is 0> */			
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6285:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-04-28, <Fixing wl_iw_set_priv function> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6292:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-05-19, <Set roam_off to 1 during A2DP> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6294:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-05-30, <Disable setting roam_offe if roam_off is 1> */	
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6296:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-05-30, <Disable setting roam_offe if roam_off is 1> */				
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6301:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-05-30, <Disable setting roam_offe if roam_off is 1> */	
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6303:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-05-30, <Disable setting roam_offe if roam_off is 1> */				
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6306:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-05-30, <Disable setting roam_offe if roam_off is 1> */	
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6308:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-05-30, <Disable setting roam_offe if roam_off is 1> */				
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6313:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-05-30, <Disable setting roam_offe if roam_off is 1> */	
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6315:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-05-30, <Disable setting roam_offe if roam_off is 1> */				
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6317:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-05-19, <Set roam_off to 1 during A2DP> */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:6366:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-05-14, support private command */ 
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:7422:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-06-08, Hidden SSID */	
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:7428:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-06-08, Hidden SSID */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:7445:/* LGE_CHANGE_S, [yoohoo@lge.com], 2010-01-27, successive power key press lock up */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:7449:/* LGE_CHANGE_E, [yoohoo@lge.com], 2010-01-27, successive power key press lock up */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:7519:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/wl/sys/wl_iw.c:7540:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-11-19, Support Host Wakeup */
+./drivers/net/wireless/bcm4325/src/shared/linux_osl.c:56:/* BEGIN: 0005337 mingi.sung@lge.com 2010-03-23 */
+./drivers/net/wireless/bcm4325/src/shared/linux_osl.c:59:/* END: 0005337 mingi.sung@lge.com 2010-03-23 */
+./drivers/net/wireless/bcm4325/src/shared/linux_osl.c:160:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/shared/linux_osl.c:167:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/shared/linux_osl.c:201:/* BEGIN: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/shared/linux_osl.c:215:/* END: 0005533 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/shared/linux_osl.c:551:/* BEGIN: 0005566 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/src/shared/linux_osl.c:557:/* END: 0005566 mingi.sung@lge.com 2010-03-27 */
+./drivers/net/wireless/bcm4325/brcm_static_buf.c:12:/* BEGIN: 0005337 mingi.sung@lge.com 2010-03-23 */
+./drivers/net/wireless/bcm4325/brcm_static_buf.c:15:/* END: 0005337 mingi.sung@lge.com 2010-03-23 */
+./drivers/misc/hall_bu52031.c:21:#include <linux/at_kpd_eve.h> //LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+GKPD
+./drivers/misc/hall_bu52031.c:39:extern void lg_slideon_event_func(void);	//LGE_CHANGE [bluerti@lge.com] 2009-10-16
+./drivers/misc/hall_bu52031.c:66:		//LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-07-17 steal folder open ASCII(73) for AT+GKPD
+./drivers/misc/hall_bu52031.c:72:		//LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-07-17 steal folder closed ASCII(74) for AT+GKPD
+./drivers/misc/hall_bu52031.c:131:	//LGE_CHANGE_S [bluerti@lge.com] 2009-10-16,
+./drivers/misc/hall_bu52031.c:134:	//LGE_CHANGE_E [bluerti@lge.com] 2009-10-16
+./drivers/misc/hall_bu52031.c:354:MODULE_AUTHOR("Dae il, yu <diyu@lge.com>");
+./drivers/misc/eve_at_class.c:199:MODULE_AUTHOR("kimeh@lge.com");
+./drivers/misc/eve_at.c:96:MODULE_AUTHOR("kimeh@lge.com");
+./drivers/misc/vibrator_eve.c:22:/*++ ViBrator setting *///diyu@lge.com
+./drivers/misc/vibrator_eve.c:24://LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
+./drivers/misc/vibrator_eve.c:31:/*-- ViBrator setting *///diyu@lge.com
+./drivers/misc/vibrator_eve.c:130://static //LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-07-17 comment out "static" for AT+MOT 
+./drivers/misc/vibrator_eve.c:142://static //LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-07-17 comment out "static" for AT+MOT 
+./drivers/misc/vibrator_eve.c:157://static //LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-07-17 comment out "static" for AT+MOT 
+./drivers/misc/vibrator_eve.c:182://LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT
+./drivers/misc/vibrator_eve.c:183:int is_vib_state(void) //antispoon0713 diyu@lge.com
+./drivers/misc/vibrator_eve.c:216:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-05-13, fixed the lockup issue:
+./drivers/misc/vibrator_eve.c:250:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-05-13, fixed the lockup issue:
+./drivers/misc/vibrator_eve.c:280:	//LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-10-24 Add Voltage Setting one more
+./drivers/misc/vibrator_eve.c:335:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-05-13, fixed the lockup issue:
+./drivers/misc/vibrator_eve.c:385:MODULE_AUTHOR("Dae il, yu <diyu@lge.com>");
+./drivers/power/lge_battery.c:16:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-19 */
+./drivers/power/lge_battery.c:29:/* LGE_CHANGE_S [ybw75@lge.com] 2009-01-21, Add Charger MtoA (modem to app) RPC routine */
+./drivers/power/lge_battery.c:31:/* LGE_CHANGE_E [ybw75@lge.com] 2009-01-21 */
+./drivers/power/lge_battery.c:33:/* LGE_CHANGE_S [ybw75@lge.com] 2009-02-04, Add Debugfs feature for test mode */
+./drivers/power/lge_battery.c:35:/* LGE_CHANGE_E [ybw75@lge.com] 2009-02-04  */
+./drivers/power/lge_battery.c:63:/* LGE_CHANGE_S [ybw75@lge.com] 2009-02-20, Modify battery infomation structure */
+./drivers/power/lge_battery.c:65:/* LGE_CHANGE_E [ybw75@lge.com] 2009-02-20 */
+./drivers/power/lge_battery.c:67:/* LGE_CHANGE_S [ybw75@lge.com] 2009-03-02, checking if MtoA is initialized */
+./drivers/power/lge_battery.c:71:/* LGE_CHANGE_E [ybw75@lge.com] 2009-03-02, checking if MtoA is initialized */
+./drivers/power/lge_battery.c:75:/* LGE_CHANGE_S [ybw75@lge.com] 2009-03-06, Workaround of detecting AC or USB  */
+./drivers/power/lge_battery.c:79:/* LGE_CHANGE_E [ybw75@lge.com] 2009-03-06  */
+./drivers/power/lge_battery.c:420:			/* LGE_CHANGE_S [ybw75@lge.com] 2009-03-06, Workaround of detecting AC or USB  */
+./drivers/power/lge_battery.c:431:			/* LGE_CHANGE_E [ybw75@lge.com] 2009-03-06 */
+./drivers/power/lge_battery.c:435:			/* LGE_CHANGE_S [ybw75@lge.com] 2009-03-06, Workaround of detecting AC or USB  */
+./drivers/power/lge_battery.c:445:			/* LGE_CHANGE_E [ybw75@lge.com] 2009-03-06  */
+./drivers/power/lge_battery.c:472:	/* LGE_CHANGE [pranav.s@lge.com] */
+./drivers/power/lge_battery.c:594:/* LGE_CHANGE_S [ybw75@lge.com] 2009-01-21, Add Charger MtoA (modem to app) RPC routine */
+./drivers/power/lge_battery.c:721:/* LGE_CHANGE_E [ybw75@lge.com] 2009-01-21 */
+./drivers/switch/switch_gpio.c:27:/* LGE_CHANGE_S [kimeh@lge.com] 2009-04-15, for debugging */
+./drivers/switch/switch_gpio.c:37:/* LGE_CHANGE_E [kimeh@lge.com] 2009-04-15, for debugging */
+./drivers/switch/switch_gpio.c:56:/* LGE_CHANGE_S [kimeh@lge.com] 2009-04-15, for debugging */
+./drivers/switch/switch_gpio.c:60:/* LGE_CHANGE_E [kimeh@lge.com] 2009-04-15, for debugging */
+./drivers/switch/switch_gpio.c:97:/* LGE_CHANGE_S [kimeh@lge.com] 2009-04-15, for debugging */
+./drivers/switch/switch_gpio.c:101:/* LGE_CHANGE_E [kimeh@lge.com] 2009-04-15, for debugging */
+./drivers/switch/switch_gpio.c:134:/* LGE_CHANGE_S [kimeh@lge.com] 2009-04-15, interrupt triggerring setting */
+./drivers/switch/switch_gpio.c:143:/* LGE_CHANGE_S [kimeh@lge.com] 2009-04-15, add set_irq_wake */
+./drivers/switch/switch_gpio.c:147:/* LGE_CHANGE_E [kimeh@lge.com] 2009-04-15 */
+./drivers/bluetooth/bluetooth-power.c:44:/* LGE_CHANGES_S [taekeun1.kim@lge.com] 2010-06-06, for bt */
+./drivers/bluetooth/bluetooth-power.c:58:/* LGE_CHANGES_S [taekeun1.kim@lge.com] 2010-06-06, for bt */
+./drivers/video/console/fbcon.c:281:/* LGE_CHANGE_S, [munyoung@lge.com] booting logo */
+./drivers/video/console/fbcon.c:285:/* LGE_CHANGE_S, [munyoung@lge.com] booting logo */
+./drivers/video/console/fbcon.c:1264:/* LGE_CHANGE_S [bluerti@lge.com] 2009-07-13 */
+./drivers/video/console/fbcon.c:1288:/* LGE_CHANGE_E [bluerti@lge.com] 2009-07-13 */
+./drivers/video/console/fbcon.c:1329:/* LGE_CHANGE_S [parksh03@lge.com] 2009-07-28 */
+./drivers/video/console/fbcon.c:1353:/* LGE_CHANGE_E [parksh03@lge.com] 2009-07-28 */
+./drivers/video/msm/msm_fb.c:84:int msm_fb_refesh_enabled = 1;	// LGE_CHANGE [bluerti@lge.com] 2009-07-18
+./drivers/video/msm/msm_fb.c:85:int msm_fb_open_enabled = 0;	//LGE_CHANGE [jh.koo@lge.com] 2009-08-18
+./drivers/video/msm/msm_fb.c:106:/* LGE_CHANGE_S, [munyoung@lge.com] booting logo */
+./drivers/video/msm/msm_fb.c:122:/* LGE_CHANGE_E, [munyoung@lge.com] booting logo */
+./drivers/video/msm/msm_fb.c:487:/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, workaround for resuming bug of android */
+./drivers/video/msm/msm_fb.c:506:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, workaround for resuming bug of android */
+./drivers/video/msm/msm_fb.c:972:	/* LGE_CHANGE,[munyoung@lge.com] booting logo */
+./drivers/video/msm/msm_fb.c:1168:/* LGE_CHANGE_S, [munyoung@lge.com] booting logo */
+./drivers/video/msm/msm_fb.c:1173:/* LGE_CHANGE_E, [munyoung@lge.com] booting logo */
+./drivers/video/msm/msm_fb.c:1213:/* LGE_CHNAGE [bluerti@lge.com] 2009-07-22*/
+./drivers/video/msm/msm_fb.c:1272:/* LGE_CHNAGE [bluerti@lge.com] 2009-07-22*/
+./drivers/video/msm/mdp_dma.c:60:extern int LG_ErrorHandler_enable ;	/*LGE_CHANGE [bluerti@lge.com] */
+./drivers/video/msm/mdp_dma.c:124:/* LGE_CHANGE [zugwan@lge.com] for double buffering */
+./drivers/video/msm/mdp_dma.c:527:		/*LGE_CHANGE_S [bluerti@lge.com] 2009-08-24 */
+./drivers/video/msm/mdp_dma.c:535:		/*LGE_CHANGE_E [bluerti@lge.com] */
+./drivers/video/msm/mdp_dma.c:544:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-25, prevent the LCD shift (referenced from swift) */
+./drivers/video/msm/mddihost.c:37:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-05-23 */
+./drivers/video/msm/mddihost.c:46:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-05-23 */
+./drivers/video/msm/mddihost.c:121:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-06-10 */
+./drivers/video/msm/mddihost.c:150:/* LGE_CHANGE_E [jh.koo@lge.com] 2009-06-10 */
+./drivers/video/msm/mddihost.c:317:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-05-23 */
+./drivers/video/msm/mddihost.c:417:/* LGE_CHANGE_E [jh.koo@lge.com] 2009-05-23 */
+./drivers/video/msm/mddi_innotek.c:58:/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, blocked the debugging message */
+./drivers/video/msm/mddi_innotek.c:183:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-25, prevent the LCD shift (referenced from swift) */
+./drivers/video/msm/mddi_innotek.c:218:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-25, prevent the LCD shift (referenced from swift) */
+./drivers/video/msm/mddi_innotek.c:363:	/* LGE_CHANGE_S, [munyoung@lge.com] workaround blink issue when first call of lcd_on */
+./drivers/video/msm/mddihost.h:61:/* LGE_CHANGE [cleaneye@lge.com] 2009-03-03, for epson panel */
+./drivers/video/msm/mddihost.h:233:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-05-23 */
+./drivers/video/msm/mddihost.h:238:/* LGE_CHANGE_E [jh.koo@lge.com] 2009-05-23 */
+./drivers/video/fbmem.c:852:/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, from EVE-cupcake
+./drivers/video/fbmem.c:880:/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, from EVE-cupcake
+./drivers/video/fbsysfs.c:382:/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, from EVE-cupcake
+./drivers/video/fbsysfs.c:390:/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, check the fb suspend */
+./drivers/video/fbsysfs.c:546:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, from EVE-cupcake 
+./drivers/video/backlight/bl_bd6083.c:4: * Author: Seung-Ho Park <parksh03@lge.com>
+./drivers/video/backlight/bl_bd6083.c:25:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, use mutex instead of spinlock */
+./drivers/video/backlight/bl_bd6083.c:76:/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, from EVE-cupcake
+./drivers/video/backlight/bl_bd6083.c:94:// LGE_CHANGE[jh.koo@lge.com] 2009-03-16, Auto Luminance mode setting
+./drivers/video/backlight/bl_bd6083.c:102:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, use mutex instead of spinlock */
+./drivers/video/backlight/bl_bd6083.c:133:	{0x14, 0xc0},		/*LDO2 Vout Control for the vibrator: 3.0V *//*diyu@lge.com */
+./drivers/video/backlight/bl_bd6083.c:181:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-03-04, add backlight i2c device and i2c adapter for it */
+./drivers/video/backlight/bl_bd6083.c:414:// LGE_CHANGE[jh.koo@lge.com] 2009-03-16, Auto Luminance mode setting
+./drivers/video/backlight/bl_bd6083.c:427:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, use mutex instead of spinlock */
+./drivers/video/backlight/bl_bd6083.c:454:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, use mutex instead of spinlock */
+./drivers/video/backlight/bl_bd6083.c:470:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, use mutex instead of spinlock */
+./drivers/video/backlight/bl_bd6083.c:493:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, use mutex instead of spinlock */
+./drivers/video/backlight/bl_bd6083.c:512:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, use mutex instead of spinlock */
+./drivers/video/backlight/bl_bd6083.c:535:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, use mutex instead of spinlock */
+./drivers/video/backlight/bl_bd6083.c:547:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, should be controlled after resumed */
+./drivers/video/backlight/bl_bd6083.c:579:		/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-29, after suspend, couldn't set the alc mode */
+./drivers/video/backlight/bl_bd6083.c:778:	/* LGE_CHANGE_S [jh.koo@lge.com] 2009-03-12, set the Auto Luminance Mode */
+./drivers/video/backlight/bl_bd6083.c:782:	/* LGE_CHANGE_S [jh.koo@lge.com] 2009-08-14, register early suspend */
+./drivers/video/backlight/bl_bd6083.c:808:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-06-11 */
+./drivers/video/backlight/bl_bd6083.c:828:/* LGE_CHANGE_E [jh.koo@lge.com] 2009-06-10 */
+./drivers/video/backlight/bl_bd6083.c:830:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-08-14, for early suspend */
+./drivers/video/backlight/bl_bd6083.c:850:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, check the fb suspend */
+./drivers/video/backlight/bl_bd6083.c:873:/* LGE_CHANGE_E [jh.koo@lge.com] 2009-08-14 */
+./drivers/video/backlight/bl_bd6083.c:875:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-07-09, for AT%BOFF */
+./drivers/video/backlight/bl_bd6083.c:889:/* LGE_CHANGE_E [jh.koo@lge.com] 2009-07-09 */
+./drivers/video/backlight/bl_bd6083.c:922:MODULE_AUTHOR("SeungHo Park <parksh03@lge.com>");
+./drivers/char/vt.c:109:/*LGE_CHANGE_S [bluerti@lge.com] 2009-07-10, Make a New API for Error Handler > */
+./drivers/char/vt.c:333:/*LGE_CHANGE_S [bluerti@lge.com] 2009-07-10, Make a New API for Error Handler > */
+./drivers/char/vt.c:365:/*LGE_CHANGE_E [bluerti@lge.com] 2009-07-10, Make a New API for Error Handler > */
+./drivers/char/vt.c:367:/*LGE_CHANGE_S [hylim@lge.com] 2009-08-03, for Security Integrity check > */
+./drivers/char/vt.c:368:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, fix the mixed declarations and code */
+./drivers/char/vt.c:383:/*LGE_CHANGE_E [hylim@lge.com] 2009-08-03, for Security Integrity check >  */
+./drivers/mmc/host/msm_sdcc.c:54:/* LGE_CHANGE_S [jisung.yang@lge.com] 2010-04-24, for gpio_to_irq */
+./drivers/mmc/host/msm_sdcc.c:57:/*LGE_CHANGE_S, [dongp.kim@lge.com], 2010-03-17, mmc_fmax is 24576000Hz for Wi-Fi */ 
+./drivers/mmc/host/msm_sdcc.c:60:/*LGE_CHANGE_E, [dongp.kim@lge.com], 2010-03-17, mmc_fmax is 24576000Hz for Wi-Fi */ 
+./drivers/mmc/host/msm_sdcc.c:62:/* LGE_CHANGE_E [jisung.yang@lge.com] 2010-04-24, for gpio_to_irq */
+./drivers/mmc/host/msm_sdcc.c:66:/* LGE_CHANGE [fred.cho@lge.com] 2010-08-05, Delay time for work-queue to rescan. */
+./drivers/mmc/host/msm_sdcc.c:131:/* LGE_CHANGE_S [jisung.yang@lge.com] 2010-04-24, Support Host Wakeup */
+./drivers/mmc/host/msm_sdcc.c:158:/* LGE_CHANGE_E [jisung.yang@lge.com] 2010-04-24, Support Host Wakeup */
+./drivers/mmc/host/msm_sdcc.c:762:		 * fred.cho@lge.com , 2010-08-26
+./drivers/mmc/host/msm_sdcc.c:785:/*LGE_CHANGE_S, [jisung.yang@lge.com], 2010-04-24, when PIO_irq, delay is given */ 
+./drivers/mmc/host/msm_sdcc.c:791:/*LGE_CHANGE_E, [jisung.yang@lge.com], 2010-04-24, when PIO_irq, delay is given */ 
+./drivers/mmc/host/msm_sdcc.c:1171: * fred.cho@lge.com, 2010-08-05
+./drivers/mmc/host/msm_sdcc.c:1248: * fred.cho@lge.com, 2010-08-05
+./drivers/mmc/host/msm_sdcc.c:1384:/* LGE_CHANGE_S [jisung.yang@lge.com] 2010-04-24, don't do this to WLAN */
+./drivers/mmc/host/msm_sdcc.c:1390:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-10-24, don't do this to WLAN */
+./drivers/mmc/host/msm_sdcc.c:1395:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-10-24, don't do this to WLAN */
+./drivers/mmc/host/msm_sdcc.c:1398:/* LGE_CHANGE_S [jisung.yang@lge.com] 2010-04-24, don't do this to WLAN */
+./drivers/mmc/host/msm_sdcc.c:1405:/* LGE_CHANGE_S [jisung.yang@lge.com] 2010-04-24, don't do this to WLAN */
+./drivers/mmc/host/msm_sdcc.c:1411:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-10-24, don't do this to WLAN */
+./drivers/mmc/host/msm_sdcc.c:1418:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-10-24, don't do this to WLAN */
+./drivers/mmc/host/msm_sdcc.c:1421:/* LGE_CHANGE_S [jisung.yang@lge.com] 2010-04-24, don't do this to WLAN */
+./drivers/mmc/host/msm_sdcc.c:1551:/*LGE_CHANGE_S, [dongp.kim@lge.com], 2010-03-17, mmc_fmax is 24576000Hz for Wi-Fi */ 
+./drivers/mmc/host/msm_sdcc.c:1575:/*LGE_CHANGE_E, [dongp.kim@lge.com], 2010-03-17, mmc_fmax is 24576000Hz for Wi-Fi */ 
+./drivers/mmc/host/msm_sdcc.c:1788:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-04-24 */
+./drivers/mmc/host/msm_sdcc.c:1790:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-04-24 */
+./drivers/mmc/host/msm_sdcc.c:1802:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-04-24, <never sleep policy - host wakeup> */
+./drivers/mmc/host/msm_sdcc.c:1814:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-04-24, <never sleep policy - host wakeup> */
+./drivers/mmc/host/msm_sdcc.c:1825:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-05-04, <do not do for wifi> */
+./drivers/mmc/host/msm_sdcc.c:1831:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-05-04, <do not do for wifi> */			
+./drivers/mmc/host/msm_sdcc.c:1834:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-04-24 */
+./drivers/mmc/host/msm_sdcc.c:1836:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-04-24 */
+./drivers/mmc/host/msm_sdcc.c:1847:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-04-24 */
+./drivers/mmc/host/msm_sdcc.c:1849:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-04-24 */
+./drivers/mmc/host/msm_sdcc.c:1868:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-05-04, <do not do for wifi> */
+./drivers/mmc/host/msm_sdcc.c:1874:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-05-04, <do not do for wifi> */
+./drivers/mmc/host/msm_sdcc.c:1882:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-04-24, <never sleep policy - host wakeup> */
+./drivers/mmc/host/msm_sdcc.c:1896:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-04-24, <never sleep policy - host wakeup> */
+./drivers/mmc/host/msm_sdcc.c:1898:/* LGE_CHANGE_S, [jisung.yang@lge.com], 2010-04-24 */
+./drivers/mmc/host/msm_sdcc.c:1900:/* LGE_CHANGE_E, [jisung.yang@lge.com], 2010-04-24 */
+./drivers/mmc/core/core.c:1362:	 * fred.cho@lge.com , 2010-08-29
+./drivers/mmc/card/block.c:379:		// LGE_CHANGE [dojip.kim@lge.com] 2010-08-29,
+./drivers/mmc/card/block.c:510:		// LGE_CHANGE [dojip.kim@lge.com] 2010-08-29,
+./drivers/input/misc/gpio_matrix.c:22:#include <linux/at_kpd_eve.h> //LGE_CHANGE_S [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
+./drivers/input/misc/gpio_matrix.c:23:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-21, for tlmm handling */
+./drivers/input/misc/gpio_matrix.c:27:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-21, for tlmm handling */
+./drivers/input/misc/gpio_matrix.c:29:/* LGE_CHANGE_S [zugwan@lge.com]] 2009-07-03, for delay() */
+./drivers/input/misc/gpio_matrix.c:33:/* LGE_CHANGE_E [zugwan@lge.com]] 2009-07-03, for delay() */
+./drivers/input/misc/gpio_matrix.c:54:/* LGE_CHANGE_S [zugwan@lge.com]] 2009-07-03, for AT%CAM, AT%AVR */
+./drivers/input/misc/gpio_matrix.c:55:/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-13, set the initial value */
+./drivers/input/misc/gpio_matrix.c:59:/* LGE_CHANGE_E [zugwan@lge.com]] 2009-07-03, for AT%CAM, AT%AVR */
+./drivers/input/misc/gpio_matrix.c:229:/* LGE_CHANGE_S [jh.koo@lge.com], block system dead when two keys are pressed simultaneously */
+./drivers/input/misc/gpio_matrix.c:289:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-21, input pin should be pull-uped */
+./drivers/input/misc/gpio_matrix.c:294:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-04-21 */
+./drivers/input/misc/gpio_matrix.c:373:		/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-13, modified for the new driver */
+./drivers/input/misc/gpio_matrix.c:374:                /* LGE_CHANGE_S [zugwan@lge.com]] 2009-07-03, for AT%CAM, AT%AVR */
+./drivers/input/misc/gpio_matrix.c:399:                /* LGE_CHANGE_E [zugwan@lge.com]] 2009-07-03, for AT%CAM, AT%AVR */
+./drivers/input/misc/gpio_matrix.c:486:/* LGE_CHANGE_S [zugwan@lge.com]] 2009-07-03, for AT%CAM, AT%AVR */
+./drivers/input/misc/gpio_matrix.c:506:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-13, handle the exception */
+./drivers/input/misc/gpio_matrix.c:647:/* LGE_CHANGE_E [zugwan@lge.com]] 2009-07-03, for AT%CAM, AT%AVR */
+./drivers/input/misc/keyled_pm.c:1:/*++ ViBrator setting *///diyu@lge.com
+./drivers/input/misc/keyled_pm.c:14:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.03.09 Add for rpc */
+./drivers/input/misc/keyled_pm.c:19:/* LGE_CHANGE_E [jinwoonam@lge.com] 2009.03.09 Add for rpc */
+./drivers/input/misc/keyled_pm.c:37:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.03.09 Add for rpc */
+./drivers/input/misc/keyled_pm.c:59:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.03.09 Add for rpc */
+./drivers/input/misc/keyled_pm.c:359:/*LGE_CHANGE_S [jh.koo@lge.com], shift key LED control */
+./drivers/input/misc/keyled_pm.c:467:MODULE_AUTHOR("Dae il, yu <diyu@lge.com>");
+./drivers/input/misc/prox_sharp.c:17:#include <asm/uaccess.h>//add to test //diyu@lge.com
+./drivers/input/misc/prox_sharp.c:28:#include <linux/delay.h>//LGE_CHANGE [diyu@lge.com]  //diyu@lge.com
+./drivers/input/misc/prox_sharp.c:29:#include <asm/gpio.h>//LGE_CHANGE [diyu@lge.com]  //diyu@lge.com
+./drivers/input/misc/prox_sharp.c:30:#include <mach/vreg.h> //LGE_CHANGE [diyu@lge.com] To set vreg
+./drivers/input/misc/prox_sharp.c:670:MODULE_AUTHOR("Dae il, yu <diyu@lge.com>");
+./drivers/input/keyboard/kbd_pp2106.c:35:#include <linux/at_kpd_eve.h> //LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
+./drivers/input/keyboard/kbd_pp2106.c:36:#include <mach/msm_rpcrouter.h> //LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
+./drivers/input/keyboard/kbd_pp2106.c:136:/* LGE_CHANGE [EVE:FW:james.jang@lge.com] 2010-04-19, u32 -> unsigned char */
+./drivers/input/keyboard/kbd_pp2106.c:154://LGE_CHANGE_S [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
+./drivers/input/keyboard/kbd_pp2106.c:178://LGE_CHANGE_E [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
+./drivers/input/keyboard/kbd_pp2106.c:268:// LGE_CHANGE_S [bluerti@lge.com] 2009-08-15 <LG_Enhanced_Menukey function >
+./drivers/input/keyboard/kbd_pp2106.c:271:// LGE_CHANGE_E [bluerti@lge.com]
+./drivers/input/keyboard/kbd_pp2106.c:274://LGE_CHANGE_S [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+GKPD, FKPD
+./drivers/input/keyboard/kbd_pp2106.c:484://LGE_CHANGE_E [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+GKPD, FKPD
+./drivers/input/keyboard/kbd_pp2106.c:555:// LGE_CHANGE_S [bluerti@lge.com] 2009-08-15 <LG_Enhanced_Menukey function >
+./drivers/input/keyboard/kbd_pp2106.c:557:// LGE_CHANGE_E [bluerti@lge.com] 
+./drivers/input/keyboard/kbd_pp2106.c:611://LGE_CHANGE_S [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD		
+./drivers/input/keyboard/kbd_pp2106.c:615://LGE_CHANGE_E [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD		
+./drivers/input/keyboard/kbd_pp2106.c:628:	// LGE_CHANGE_S [bluerti@lge.com] 2009-08-15 <LG_Enhanced_Menukey function >
+./drivers/input/keyboard/kbd_pp2106.c:631:	// LGE_CHANGE_E [bluerti@lge.com] 
+./drivers/input/touchscreen/msm_touch.c:27:/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:39:/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+./drivers/input/touchscreen/msm_touch.c:71:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:81:/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:92:/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+./drivers/input/touchscreen/msm_touch.c:94:/* LGE_CHANGE_S [munyoung@lge.com] change default sampling rate for tssc */
+./drivers/input/touchscreen/msm_touch.c:100:/* LGE_CHANGE [munyoung@lge.com] change number of operation due to z axis */
+./drivers/input/touchscreen/msm_touch.c:103:/* LGE_CHANGE_S [diyu@lge.com] 2009-04-15*/
+./drivers/input/touchscreen/msm_touch.c:106:/* LGE_CHANGE_S [luckyjun77@lge.com] 2009-10-17, touch tunning*/
+./drivers/input/touchscreen/msm_touch.c:109:/* LGE_CHANGE_E [luckyjun77@lge.com] 2009-10-17*/
+./drivers/input/touchscreen/msm_touch.c:113:/* LGE_CHANGE_E [diyu@lge.com] 2009-04-15*/
+./drivers/input/touchscreen/msm_touch.c:117:/* LGE_CHANGE_S [diyu@lge.com] 2009-04-15*/
+./drivers/input/touchscreen/msm_touch.c:119:/* LGE_CHANGE_S [luckyjun77@lge.com] 2009-10-14*/
+./drivers/input/touchscreen/msm_touch.c:130:/* LGE_CHANGE_E [luckyjun77@lge.com] 2009-10-14*/
+./drivers/input/touchscreen/msm_touch.c:149:	//LGE_CHANGE_S by cleaneye@lge.com, For performance, 2009.8.26
+./drivers/input/touchscreen/msm_touch.c:153:	//LGE_CHANGE_E by cleaneye@lge.com
+./drivers/input/touchscreen/msm_touch.c:155://LGE_CHANGE_S by cleaneye@lge.com,  2009.8.26
+./drivers/input/touchscreen/msm_touch.c:158://LGE_CHANGE_E by cleaneye@lge.com
+./drivers/input/touchscreen/msm_touch.c:159:/* LGE_CHANGE_S, [munyoung@lge.com] touch tuning */
+./drivers/input/touchscreen/msm_touch.c:164:/* LGE_CHANGE_S, [luckyjun77@lge.com] 2009-10-17, touch tuning */
+./drivers/input/touchscreen/msm_touch.c:172:/* LGE_CHANGE_E, [luckyjun77@lge.com]  2009-10-17*/
+./drivers/input/touchscreen/msm_touch.c:173:/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:176:/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+./drivers/input/touchscreen/msm_touch.c:181:/* LGE_CHANGE [cleaneye@lge.com] 2009-02-24, for debug */
+./drivers/input/touchscreen/msm_touch.c:203:/* LGE_CHANGE_S [bluerti@lge.com] 2009-09-01 */
+./drivers/input/touchscreen/msm_touch.c:214:/* LGE_CHANGE_E [bluerti@lge.com] 2009-09-01 */
+./drivers/input/touchscreen/msm_touch.c:216:/* LGE_CHANGE_S, [munyoung@lge.com] touch tunning */
+./drivers/input/touchscreen/msm_touch.c:266:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:313:/* LGE_CHANGE_S, [munyoung@lge.com] */
+./drivers/input/touchscreen/msm_touch.c:316:	// LGE_CHANGE_S [bluerti@lge.com] 2009-09-01 
+./drivers/input/touchscreen/msm_touch.c:326:	// LGE_CHANGE_S [bluerti@lge.com] 2009-09-01 
+./drivers/input/touchscreen/msm_touch.c:331://LGE_CHANGE_S by cleaneye@lge.com for performance,  2009.8.26
+./drivers/input/touchscreen/msm_touch.c:356:	/* LGE_CHANGE_S, [luckyjun77@lge.com] 2009-10-17, touch tuning */
+./drivers/input/touchscreen/msm_touch.c:359:	/* LGE_CHANGE_E, [luckyjun77@lge.com] 2009-10-17*/
+./drivers/input/touchscreen/msm_touch.c:376://LGE_CHANGE_E by cleaneye@lge.com  
+./drivers/input/touchscreen/msm_touch.c:381:		/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:384:		/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+./drivers/input/touchscreen/msm_touch.c:389:		/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:394:		/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:397:		/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+./drivers/input/touchscreen/msm_touch.c:400:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake: no sync */
+./drivers/input/touchscreen/msm_touch.c:409:	/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:414:	/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+./drivers/input/touchscreen/msm_touch.c:417:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:424:/* LGE_CHANGE_S, [munyoung@lge.com] setup operation for z axis */
+./drivers/input/touchscreen/msm_touch.c:429:	/* LGE_CHANGE_S, [luckyjun77@lge.com] 2009-10-17, touch tuning */
+./drivers/input/touchscreen/msm_touch.c:449:	/* LGE_CHANGE_E, [luckyjun77@lge.com] 2009-10-17*/
+./drivers/input/touchscreen/msm_touch.c:460:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:465:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:475:	/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:479:	/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+./drivers/input/touchscreen/msm_touch.c:492:	/* LGE_CHANGE [munyoung@lge.com] setup op for z axis */
+./drivers/input/touchscreen/msm_touch.c:494:	/* LGE_CHAGE [munyoung@lge.com] change sampling interval(20ms) */
+./drivers/input/touchscreen/msm_touch.c:514:/* LGE_CHANGE [cleaneye@lge.com] 2009-02-24, invert y axis */
+./drivers/input/touchscreen/msm_touch.c:521:		/* LGE_CHANGE_S, [luckyjun77@lge.com] 2009-10-17, touch tunning*/
+./drivers/input/touchscreen/msm_touch.c:524:		/* LGE_CHANGE_E, [luckyjun77@lge.com] 2009-10-17*/
+./drivers/input/touchscreen/msm_touch.c:530:		/* LGE_CHANGE_S, [luckyjun77@lge.com] 2009-10-23, 
+./drivers/input/touchscreen/msm_touch.c:535:		/* LGE_CHANGE_E, [luckyjun77@lge.com] 2009-10-23*/
+./drivers/input/touchscreen/msm_touch.c:544:	/* LGE_CHANGE_S, [luckyjun77@lge.com] 2009-10-23, 
+./drivers/input/touchscreen/msm_touch.c:548:	/* LGE_CHANGE_E, [luckyjun77@lge.com] 2009-10-23*/
+./drivers/input/touchscreen/msm_touch.c:582:	/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:585:	/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-24 */
+./drivers/input/touchscreen/msm_touch.c:591:	/* LGE_CHANGE_S, [munyoung@lge.com] touch tunning */
+./drivers/input/touchscreen/msm_touch.c:651:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, from cupcake */
+./drivers/input/touchscreen/msm_touch.c:672:/*LGE_CHANGE_S diyu@lge.com. To calibration touch screen */
+./drivers/input/touchscreen/msm_touch.c:682:/*LGE_CHANGE_E diyu@lge.com. To calibration touch screen */
+./drivers/input/touchscreen/msm_touch.c:690:	// LGE_CHANGE [bluerti@lge.com] 2009-09-01 
+./drivers/input/touchscreen/touch_so240001.c:28:#include <mach/vreg.h>		//LGE_CHANGE [diyu@lge.com] To set vreg
+./drivers/input/touchscreen/touch_so240001.c:29:#include  <linux/at_kpd_eve.h>	//LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+GKPD
+./drivers/input/touchscreen/touch_so240001.c:34://LGE_CHANGE_S [bluerti@lge.com] 
+./drivers/input/touchscreen/touch_so240001.c:45://LGE_CHANGE [blue.park@lge.com]
+./drivers/input/touchscreen/touch_so240001.c:64://LGE_CHANGE [blue.park@lge.com]
+./drivers/input/touchscreen/touch_so240001.c:70:struct timer_list lg_enhanced_menukey;	//[bluerti@lge.com] 2009-09-15 
+./drivers/input/touchscreen/touch_so240001.c:71:struct timer_list lg_enhanced_sliedon;	//[bluerti@lge.com] 2009-10-16
+./drivers/input/touchscreen/touch_so240001.c:74://static struct touchbutton *touchbutton; //touch-key //diyu@lge.com
+./drivers/input/touchscreen/touch_so240001.c:134:// LGE_CHANGE_S [blue.park@lge.com] 2010.2.16 
+./drivers/input/touchscreen/touch_so240001.c:162:// LGE_CHANGE_E [blue.park@lge.com] 2010.2.16 
+./drivers/input/touchscreen/touch_so240001.c:164://LGE_CHANGE_E [bluerti@lge.com]
+./drivers/input/touchscreen/touch_so240001.c:368:	unsigned int leftkey_pressed;	//LGE_CHANGE diyu@lge.com
+./drivers/input/touchscreen/touch_so240001.c:369:	unsigned int rightkey_pressed;	//LGE_CHANGE diyu@lge.com
+./drivers/input/touchscreen/touch_so240001.c:501:	/* LGE_CHANGE [bluerti@lge.com] 2009-09-15 
+./drivers/input/touchscreen/touch_so240001.c:508:			/* LGE_CHANGE_S [antispoon@lge.com,diyu@lge.com] 2009-07-17 
+./drivers/input/touchscreen/touch_so240001.c:528:			//LGE_CHAGNE [blue.park@lge.com]
+./drivers/input/touchscreen/touch_so240001.c:536:			/* LGE_CHANGE_S [antispoon@lge.com,diyu@lge.com] 2009-07-17 
+./drivers/input/touchscreen/touch_so240001.c:550:			//LGE_CHANGE [blue.park@lge.com]
+./drivers/input/touchscreen/touch_so240001.c:565:				//LGE_CHANGE [blue.park@lge.com]
+./drivers/input/touchscreen/touch_so240001.c:592:				//LGE_CHANGE [blue.park@lge.com]
+./drivers/input/touchscreen/touch_so240001.c:608:	}			//LGE_CHANGE [bluerti@lge.com] 2009-09-15 
+./drivers/input/touchscreen/touch_so240001.c:699:	/*for reading Board revision, by jinwoonam@lge.com */
+./drivers/input/touchscreen/touch_so240001.c:781:	//struct touchbutton *touchbutton; //touch-key //diyu@lge.com
+./drivers/input/touchscreen/touch_so240001.c:828:			static int init_cnt = 0;	// [bluerti@lge.com] 2009-06-02
+./drivers/input/touchscreen/touch_so240001.c:858:	set_bit(KEY_HOME /*KEY_MENU */ , ts->input_dev->keybit);	//diyu@lge.com
+./drivers/input/touchscreen/touch_so240001.c:859:	set_bit(KEY_BACK, ts->input_dev->keybit);	//diyu@lge.com
+./drivers/input/touchscreen/touch_so240001.c:898:	// LGE_CHANGE [bluerti@lge.com] 2009-09-01 
+./drivers/input/touchscreen/touch_so240001.c:900:	// LGE_CHANGE [bluerti@lge.com] 2009-09-15
+./drivers/input/touchscreen/touch_so240001.c:902:	// LGE_CHANGE [bluerti@lge.com] 2009-10-16
+./drivers/input/touchscreen/touch_so240001.c:904:	is_menutimer_initialized = 1;	// LGE_CHANGE [bluerti@lge.com] 2009-09-24
+./drivers/input/touchscreen/touch_so240001.c:905:	is_slideon_timer_initialized = 1;	// LGE_CHANGE [bluerti@lge.com] 2009-10-16
+./drivers/input/touchscreen/touch_so240001.c:1002:			static int init_cnt = 0;	// [bluerti@lge.com] 2009-06-02
+./arch/arm/kernel/traps.c:36://LGE_CHANGE_S [bluerti@lge.com] 2009-08-20 
+./arch/arm/kernel/traps.c:43:// LGE_CHANGE_E [bluerti@lge.com] 2009-08-20
+./arch/arm/kernel/traps.c:239:	extern int get_status_hidden_reset();	//LGE_CHANGE [bluerti@lge.com] 2009-08-20 
+./arch/arm/kernel/traps.c:255:	//LGE_CHANGE_S [bluerti@lge.com] 2009-08-20 
+./arch/arm/kernel/traps.c:290:	// LGE_CHANGE_E [bluerti@lge.com] 2009-08-20
+./arch/arm/mach-msm/rpc_charger.c:25:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.03.03 */
+./arch/arm/mach-msm/rpc_charger.c:36:/* LGE_CHANGE_E [jinwoonam@lge.com] 2009.03.03 */
+./arch/arm/mach-msm/rpc_charger.c:50:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009-01-20, Add RPC functions in charger rpc */
+./arch/arm/mach-msm/rpc_charger.c:62:/* LGE_CHANGE_E [jinwooanm@lge.com] 2008-01-20 */
+./arch/arm/mach-msm/rpc_charger.c:79:		/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-18, from cupcake */
+./arch/arm/mach-msm/rpc_charger.c:85:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009-01-20, Add RPC functions in charger rpc */
+./arch/arm/mach-msm/rpc_charger.c:97:/* LGE_CHANGE_E [jinwoonam@lge.com] 2008-01-20, Add shutdonw test code */
+./arch/arm/mach-msm/rpc_charger.c:99:		/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-03-18, from cupcake */
+./arch/arm/mach-msm/rpc_charger.c:102:		/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-03-18 */
+./arch/arm/mach-msm/rpc_charger.c:129:/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-07-28, fixed rpc problem */
+./arch/arm/mach-msm/rpc_charger.c:137:/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-07-28 */
+./arch/arm/mach-msm/rpc_charger.c:223:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.03.03 */
+./arch/arm/mach-msm/rpc_charger.c:315:/* LGE_CHANGE_E [jinwoonam@lge.com] 2009.03.03 */
+./arch/arm/mach-msm/rpc_charger.c:340:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009-07-26, Get batt info */
+./arch/arm/mach-msm/rpc_charger.c:383:/* LGE_CHANGE_E [jinwoonam@lge.com] 2009-07-26 */
+./arch/arm/mach-msm/rpc_charger.c:385:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009-03-02, checking if MtoA is initialized */
+./arch/arm/mach-msm/rpc_charger.c:417:/* LGE_CHANGE_E [jinwoonam@lge.com] 2009-03-02 */
+./arch/arm/mach-msm/rpc_charger.c:419:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009-03-19, Add test mode for changing GPIO setting during sleep */
+./arch/arm/mach-msm/rpc_charger.c:503:/* LGE_CHANGE_E [jinwoonam@lge.com] 2009-03-19 */
+./arch/arm/mach-msm/rpc_charger.c:505:/* LGE_CHANGE_S [jinwoonam@lge.com] 2008-04-01, Add shutdonw test code */
+./arch/arm/mach-msm/rpc_charger.c:551:/* LGE_CHANGE_E [jinwoonam@lge.com] 2008-04-01 */
+./arch/arm/mach-msm/rpc_server_handset.c:31:#include <linux/at_kpd_eve.h> //LGE_CHANGE [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD
+./arch/arm/mach-msm/rpc_server_handset.c:216:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, FIXME: conflict with eve_hs_device */
+./arch/arm/mach-msm/rpc_server_handset.c:250://LGE_CHANGE_S [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
+./arch/arm/mach-msm/rpc_server_handset.c:255://LGE_CHANGE_E [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
+./arch/arm/mach-msm/rpc_server_handset.c:299://LGE_CHANGE_S [taekeun1.kim@lge.com] 2010-03-14 for EVE
+./arch/arm/mach-msm/rpc_server_handset.c:302://LGE_CHANGE_E [taekeun1.kim@lge.com]
+./arch/arm/mach-msm/rpc_server_handset.c:481:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, reduction of bootime */
+./arch/arm/mach-msm/rpc_server_handset.c:535:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, FIXME: conflict with eve_hs_device */
+./arch/arm/mach-msm/rpc_server_handset.c:558:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, FIXME: conflict with eve_hs_device */
+./arch/arm/mach-msm/rpc_server_handset.c:615:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, FIXME: conflict with eve_hs_device */
+./arch/arm/mach-msm/rpc_server_handset.c:629:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, FIXME: conflict with eve_hs_device */
+./arch/arm/mach-msm/rpc_server_misc.c:2:/* Created by princlee@lge.com  
+./arch/arm/mach-msm/rpc_server_misc.c:23:#include <linux/fcntl.h>	//LGE_CHANGE [seypark@lge.com] for AT+MTC
+./arch/arm/mach-msm/rpc_server_misc.c:24:#include <linux/eve_at.h>	//LGE_CHANGE [kime@lge.com] for AT+VLC, MPT, SPM
+./arch/arm/mach-msm/rpc_server_misc.c:25:#include <linux/at_kpd_eve.h>	//LGE_CHANGE_S [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
+./arch/arm/mach-msm/rpc_server_misc.c:26:#include <linux/timer.h>	//LGE_CHANGE [taekeun1.kim@lge.com] 2010-03-07 for kernel timer
+./arch/arm/mach-msm/rpc_server_misc.c:40:#define ONCRPC_LGE_GET_FLEX_MCC_PROC 		7	//LGE_UPDATE_S [seypark@lge.com] 2009.07.24 - Get Flex MCC/MNC value
+./arch/arm/mach-msm/rpc_server_misc.c:41:#define ONCRPC_LGE_GET_FLEX_MNC_PROC 		8	//LGE_UPDATE_S [seypark@lge.com] 2009.07.24 - Get Flex MCC/MNC value
+./arch/arm/mach-msm/rpc_server_misc.c:42:#define ONCRPC_LGE_GET_FLEX_OPERATOR_CODE_PROC 	9	//LGE_UPDATE_S [seypark@lge.com] 2009.08.03 - Get Flex Operator ?value
+./arch/arm/mach-msm/rpc_server_misc.c:43:#define ONCRPC_LGE_GET_FLEX_COUNTRY_CODE_PROC 	10	//LGE_UPDATE_S [seypark@lge.com] 2009.08.03 - Get Flex Operator ?value
+./arch/arm/mach-msm/rpc_server_misc.c:72:/* LGE_CHANGE [dobi77@lge.com] 2008-03-05, For New Battery UI */
+./arch/arm/mach-msm/rpc_server_misc.c:168:#define ATCMD_MTC	  80	//LGE_CHANGE_S [seypark@lge.com] for AT+MTC
+./arch/arm/mach-msm/rpc_server_misc.c:170:#define ATCMD_DRMINDEX		81	//LGE_CHANGE_S [kageki@lge.com]
+./arch/arm/mach-msm/rpc_server_misc.c:171://LGE_UPDATE_S 2009.08.14 [seypark@lge.com]
+./arch/arm/mach-msm/rpc_server_misc.c:177:#define ATCMD_POWERDOWN		85	// LGE_CHANGE [jinwoonam@lge.com] Powerdown system when no battery
+./arch/arm/mach-msm/rpc_server_misc.c:203://LGE_CHANGE_S [bluerti@lge.com] 2009-10-08 
+./arch/arm/mach-msm/rpc_server_misc.c:217://LGE_CHANGE_E [bluerti@lge.com] 2009-10-08
+./arch/arm/mach-msm/rpc_server_misc.c:244:/* LGE_CHANGE_S [zugwan@lge.com] 2009-07-03, for AT%AVR */
+./arch/arm/mach-msm/rpc_server_misc.c:259:/* LGE_CHANGE_E [zugwan@lge.com] 2009-07-03, for AT%AVR */
+./arch/arm/mach-msm/rpc_server_misc.c:263:/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-07-02, for AT%EMT */
+./arch/arm/mach-msm/rpc_server_misc.c:302:/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-07-02 */
+./arch/arm/mach-msm/rpc_server_misc.c:336:		/* LGE_CHANGE_S [zugwan@lge.com] 2009-07-03, for AT%AVR */
+./arch/arm/mach-msm/rpc_server_misc.c:343:		/* LGE_CHANGE_E [zugwan@lge.com] 2009-07-03, for AT%AVR */
+./arch/arm/mach-msm/rpc_server_misc.c:344:/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-07-02, for AT%EMT */
+./arch/arm/mach-msm/rpc_server_misc.c:350:/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-07-02 */
+./arch/arm/mach-msm/rpc_server_misc.c:352://LGE_CHANGE_S [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,FKPD, GKPD
+./arch/arm/mach-msm/rpc_server_misc.c:413://LGE_CHANGE_E [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,FKPD, GKPD
+./arch/arm/mach-msm/rpc_server_misc.c:415:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-07-08, for AT%BOFF */
+./arch/arm/mach-msm/rpc_server_misc.c:425:/* LGE_CHANGE_E [jh.koo@lge.com] 2009-07-08 */
+./arch/arm/mach-msm/rpc_server_misc.c:454:/* add for atcmd for audio by kimeh@lge.com */
+./arch/arm/mach-msm/rpc_server_misc.c:492:		/* LGE_CHANGE_S, [antosky@lge.com] , 2009-03-05, < comment > */
+./arch/arm/mach-msm/rpc_server_misc.c:502:		/* LGE_CHANGE_S, [antosky@lge.com] , 2009-03-05, < comment > */
+./arch/arm/mach-msm/rpc_server_misc.c:504:		/* LGE_CHANGE_S [zugwan@lge.com] 2009-07-03, for AT%CAM, LCD */
+./arch/arm/mach-msm/rpc_server_misc.c:518:		/* LGE_CHANGE_E [zugwan@lge.com] 2009-07-03, for AT%CAM */
+./arch/arm/mach-msm/rpc_server_misc.c:648://LGE_CHANTE_S [seypark@lge.com] 2009-04-16 - for AT+MTC
+./arch/arm/mach-msm/rpc_server_misc.c:649:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, fix the mixed declarations and code */
+./arch/arm/mach-msm/rpc_server_misc.c:686://LGE_CHANGE_E [seypark@lge.com]
+./arch/arm/mach-msm/rpc_server_misc.c:772://LGE_CHANTE_S [seypark@lge.com] 2009-04-16 - for AT+MTC
+./arch/arm/mach-msm/rpc_server_misc.c:826:	//add for atcmd uevent by kimeh@lge.com
+./arch/arm/mach-msm/rpc_server_misc.c:932://LGE_UPDATE_S [seypark@lge.com] 2009.07.24 - Get Flex MCC/MNC value
+./arch/arm/mach-msm/rpc_server_misc.c:990:			//LGE_CHANGE_S [bluerti@lge.com] 2009-08-17 <Activate fb_refresh during hidden reset > 
+./arch/arm/mach-msm/rpc_server_misc.c:993:				setup_timer(&lg_fb_control, lg_fb_control_timer, 0);	// LGE_CHANGE [bluerti@lge.com] 2009-10-8
+./arch/arm/mach-msm/rpc_server_misc.c:1003:			//LGE_CHANGE_E [bluerti@lge.com]
+./arch/arm/mach-msm/io.c:216:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-03-23, eve specific io map */
+./arch/arm/mach-msm/io.c:225:#if 0 /* [zugwan@lge.com] 2009-05-22, not needed */
+./arch/arm/mach-msm/io.c:239:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-03-23, eve specific io map */
+./arch/arm/mach-msm/gpio.c:42:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-23, definitions  */
+./arch/arm/mach-msm/lge_errorhandler.h:2: * Created by [bluerti@lge.com]
+./arch/arm/mach-msm/rpc_hsusb.c:26:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.03.03 */
+./arch/arm/mach-msm/rpc_hsusb.c:29:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-18, proc_comm_batt.h */
+./arch/arm/mach-msm/rpc_hsusb.c:39:/* LGE_CHANGE_E [jinwoonam@lge.com] 2009.03.03 */
+./arch/arm/mach-msm/rpc_hsusb.c:41:/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-21, for Serial number generation */	
+./arch/arm/mach-msm/rpc_hsusb.c:48:/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-21 . LnT */	
+./arch/arm/mach-msm/rpc_hsusb.c:462:/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-21, for Serial number generation */
+./arch/arm/mach-msm/rpc_hsusb.c:539:/* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-21 */	
+./arch/arm/mach-msm/proc_comm_batt.h:4: * Author: DJ Kim <dojip.kim@lge.com>
+./arch/arm/mach-msm/lge_errorhandler.c:2: * Created by [bluerti@lge.com]
+./arch/arm/mach-msm/lge_errorhandler.c:31:	/* LGE_CHANGE_S [EVE:FW:james.jang@lge.com] 2010-04-22, 
+./arch/arm/mach-msm/proc_comm.h:170:/* LGE_CHANGE [pranav.s@lge.com] 2010-08-31 */
+./arch/arm/mach-msm/proc_comm.h:185:/* LGE_UPDATE_E [jinwoonam@lge.com] 2008.06.15 */
+./arch/arm/mach-msm/board-eve-keypad.c:22:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-26, not used */
+./arch/arm/mach-msm/board-eve-keypad.c:39:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-01, eve keypad platform device information */
+./arch/arm/mach-msm/board-eve-keypad.c:49:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-04-01, eve keypad platform device information */
+./arch/arm/mach-msm/board-eve-keypad.c:51:/* LGE_CHANGE_S [diyu@lge.com] 2009-05-18, eve rev_b gpio-key(side-key)  */
+./arch/arm/mach-msm/board-eve-keypad.c:63:/* LGE_CHANGE_E [diyu@lge.com] 2009-05-18, eve rev_b gpio-key(side-key)  */
+./arch/arm/mach-msm/board-eve-keypad.c:71:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-01, eve keypad platform device information */
+./arch/arm/mach-msm/board-eve-keypad.c:115:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-04-01, eve keypad platform device information */
+./arch/arm/mach-msm/qdsp5/snd.c:31:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-18, from cupcake */
+./arch/arm/mach-msm/qdsp5/snd.c:62:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-18, from cupcake */
+./arch/arm/mach-msm/qdsp5/snd.c:144:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-18, from cupcake */
+./arch/arm/mach-msm/qdsp5/snd.c:558:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-18, from cupcake */
+./arch/arm/mach-msm/qdsp5/snd.c:664:		/* LGE_CHANGE_S, [antosky@lge.com] , 2009-09-06, To keep fm radio from changing device */
+./arch/arm/mach-msm/qdsp5/snd.c:689:		/* LGE_CHANGE_E, [antosky@lge.com] , 2009-09-06, To keep fm radio from changing device */
+./arch/arm/mach-msm/qdsp5/snd.c:701:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-18, from cupcake */
+./arch/arm/mach-msm/qdsp5/snd.c:773:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-18, from cupcake */
+./arch/arm/mach-msm/qdsp5/board-eve-amp.c:130:MODULE_AUTHOR("Eunhye Kim <kimeh@lge.com>");
+./arch/arm/mach-msm/board-eve-keypad.h:18:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-04-01, keypad device for eve */
+./arch/arm/mach-msm/board-eve-keypad.h:22:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-04-01, keypad device for eve */
+./arch/arm/mach-msm/pm.c:48:/* LGE_CHANGE_S [bluerti@lge.com] 2009-06-15 <Add RPC > */
+./arch/arm/mach-msm/pm.c:54:/* LGE_CHANGE_E [bluerti@lge.com] 2009-06-15 <Add RPC > */
+./arch/arm/mach-msm/pm.c:65:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-08-14, for passing hidden reset information */
+./arch/arm/mach-msm/pm.c:83:/* LGE_CHANGE [cleaneye@lge.com] 2009-08-14 */
+./arch/arm/mach-msm/pm.c:100:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-08-14, for passing hidden reset information */
+./arch/arm/mach-msm/pm.c:105:// LGE_CHANGE_S [bluerti@lge.com] 2009-08-14 
+./arch/arm/mach-msm/pm.c:115:// LGE_CHANGE_E [bluerti@lge.com] 
+./arch/arm/mach-msm/pm.c:120://LGE_CHANGE_S [bluerti@lge.com] 2009-08-31
+./arch/arm/mach-msm/pm.c:127:// LGE_CHANGE [blue.park@lge.com] 2010-02-16
+./arch/arm/mach-msm/pm.c:131://LGE_CHANGE_E [bluerti@lge.com] 2009-08-31
+./arch/arm/mach-msm/pm.c:138:/* LGE_CHANGE [cleaneye@lge.com] 2009-08-14 */
+./arch/arm/mach-msm/pm.c:163:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-08-14, for passing hidden reset information */
+./arch/arm/mach-msm/pm.c:167:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-08-14 */
+./arch/arm/mach-msm/pm.c:242:/* LGE_CHANGE_S [bluerti@lge.com] 2009-06-15 <Add RPC > */
+./arch/arm/mach-msm/pm.c:275:/* LGE_CHANGE_E [bluerti@lge.com] 2009-06-15 <Add RPC > */
+./arch/arm/mach-msm/pm.c:356:	/* LGE_CHANGE_S [seypark@lge.com] 2009-08-04, check uart arm9 mode and prevent go to sleep */
+./arch/arm/mach-msm/pm.c:366:	/* LGE_CHANGE_E [seypark@lge.com] 2009-08-04 */
+./arch/arm/mach-msm/pm.c:793:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009-09-19 */
+./arch/arm/mach-msm/pm.c:808:/* LGE_CHANGE_E [jinwoonam@lge.com] 2009-09-19 */
+./arch/arm/mach-msm/pm.c:1029:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-08-14, for passing hidden reset information */
+./arch/arm/mach-msm/pm.c:1052:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-08-14 */
+./arch/arm/mach-msm/devices-msm7x01a.c:787:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-03-11, for solving problem of disconnecting QPST */
+./arch/arm/mach-msm/devices-msm7x01a.c:797:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-03-11 */
+./arch/arm/mach-msm/proc_comm_batt.c:4: * Author: DJ Kim <dojip.kim@lge.com>
+./arch/arm/mach-msm/proc_comm.c:100:/* LGE_UPDATE_S [jinwoonam@lge.com] 2009-08-29 */
+./arch/arm/mach-msm/proc_comm.c:124:/* LGE_UPDATE_E [jinwoonam@lge.com] 2009-08-29 */
+./arch/arm/mach-msm/proc_comm.c:136:		goto crash; //goto again; /* LGE_CHANGE [bluerti@lge.com] 2009-07-06 <For Error Handler > */
+./arch/arm/mach-msm/proc_comm.c:145:		goto crash ;//goto again;/* LGE_CHANGE_S [bluerti@lge.com] 2009-07-06 <For Error Handler > */
+./arch/arm/mach-msm/proc_comm.c:176:/* LGE_CHANGE_E [bluerti@lge.com] 2009-07-06 <For Error Handler > */
+./arch/arm/mach-msm/board-halibut.c:67:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-26, board-eve-keypad.h instead of msm-keypad-devices.h */
+./arch/arm/mach-msm/board-halibut.c:111:/* LGE_CHANGE_S [ljmblueday@lge.com] 2009-08-02, reduce number of mass storage from two to one*/
+./arch/arm/mach-msm/board-halibut.c:635:/* LGE_CHANGE_S [jh.koo@lge.com] 2009-05-23 */
+./arch/arm/mach-msm/board-halibut.c:649:/* LGE_CHANGE_E [jh.koo@lge.com] 2009-05-23 */
+./arch/arm/mach-msm/board-halibut.c:698:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009-09-19, Set GPIO config */
+./arch/arm/mach-msm/board-halibut.c:708:/* LGE_CHANGE_E [jinwoonam@lge.com] 2009-09-19 */
+./arch/arm/mach-msm/board-halibut.c:1454:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-05, not used */
+./arch/arm/mach-msm/board-halibut.c:1545:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-03-05, BCM4325 control gpio */
+./arch/arm/mach-msm/board-halibut.c:1565:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-03-05, BCM4325 control gpio */
+./arch/arm/mach-msm/board-halibut.c:1594:/* LGE_CHANGE_S [yoohoo@lge.com] 2009-03-05, BCM4325 control gpio */
+./arch/arm/mach-msm/board-halibut.c:1612:/* LGE_CHANGE_E [yoohoo@lge.com] 2009-03-05, BCM4325 control gpio */
+./arch/arm/mach-msm/board-halibut.c:1686:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009-08-29 */
+./arch/arm/mach-msm/board-halibut.c:1711:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009-08-29 */
+./arch/arm/mach-msm/board-halibut.c:1714:/* LGE_CHANGE_S [diyu@lge.com] 2009-05-11,  */
+./arch/arm/mach-msm/board-halibut.c:1718:	/* LGE_CHANGE_E [diyu@lge.com] 2009-05-11,  */
+./arch/arm/mach-msm/board-halibut.c:1770:	/* LGE_CHANGE [cleaneye@lge.com] 2009-02-23, eve specific devices */
+./arch/arm/mach-msm/board-halibut.c:1824: * 2009/05/26 cleaneye@lge.com */
+./arch/arm/mach-msm/board-halibut.c:1827:/* LGE_CHANGE [parksh03@lge.com] 2009-03-09, change the size of the system memory */
+./arch/arm/mach-msm/board-halibut.c:1920:        /* LGE_CHANGE_S [zugwan@lge.com] 2009-05-22, add mapping for the vibrator */
+./arch/arm/mach-msm/smd_rpcrouter_servers.c:183:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-22, FIXME: confused */
+./arch/arm/mach-msm/include/mach/msm_iomap-7xxx.h:70:/* LGE_CHANGE_S [munyoung@lge.com] 2008-11-15, for MN Register */
+./arch/arm/mach-msm/include/mach/camera.h:100:        /* LGE_CHANGE_S [zugwan@lge.com] 2009-10-28 */
+./arch/arm/mach-msm/include/mach/camera.h:103:        /* LGE_CHANGE_E [zugwan@lge.com] 2009-10-28 */
+./arch/arm/mach-msm/include/mach/camera.h:129:/* LGE_CHANGE_S [wonki.choi@lge.com] 2010-04-07 EVE Merge */
+./arch/arm/mach-msm/include/mach/camera.h:134:/* LGE_CHANGE_E [wonki.choi@lge.com] 2010-04-07 */
+./arch/arm/mach-msm/include/mach/camera.h:204:/* LGE_CHANGE_S [zugwan@lge.com] 2009-04-30 */
+./arch/arm/mach-msm/include/mach/camera.h:206:/* LGE_CHANGE_E [zugwan@lge.com] 2009-04-30 */
+./arch/arm/mach-msm/include/mach/system.h:18:/* LGE_UPDATE_S [jinwoonam@lge.com] 2009.8.31 */
+./arch/arm/mach-msm/include/mach/system.h:39:/* LGE_UPDATE_E [jinwoonam@lge.com] 2009.8.31 */
+./arch/arm/mach-msm/include/mach/board.h:275:/* LGE_CHANGE_S [diyu@lge.com] 2009-03-20 */
+./arch/arm/mach-msm/include/mach/board.h:279:/* LGE_CHANGE_E [diyu@lge.com] 2009-03-20 */
+./arch/arm/mach-msm/include/mach/board.h:307:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-22, from cupcake */
+./arch/arm/mach-msm/include/mach/lprintk.h:6: *         Author:  Jugwan Eom, zugwan@lge.com
+./arch/arm/mach-msm/include/mach/charger.h:44:/* LGE_CHANGE_S [ybw75@lge.com] 2009-01-21, Add Charger MtoA (modem to app) RPC routine */
+./arch/arm/mach-msm/include/mach/charger.h:46:/* LGE_CHANGE_E [ybw75@lge.com] 2009-01-21 */
+./arch/arm/mach-msm/include/mach/charger.h:48:/* LGE_CHANGE_S [ybw75@lge.com] 2009-03-19, Add test mode for changing GPIO setting during sleep */
+./arch/arm/mach-msm/include/mach/charger.h:50:/* LGE_CHANGE_E [ybw75@lge.com] 2009-03-19 */
+./arch/arm/mach-msm/include/mach/charger.h:52:/* LGE_CHANGE_S [ybw75@lge.com] 2008-05-22, Add RPC for sharing battery information */
+./arch/arm/mach-msm/include/mach/charger.h:159:/* LGE_CHANGE_E [ybw75@lge.com] 2008-05-22 */
+./arch/arm/mach-msm/include/mach/charger.h:161:/* LGE_CHANGE_S [ybw75@lge.com] 2009-04-01, Add shutdonw test code */
+./arch/arm/mach-msm/include/mach/charger.h:176:/* LGE_CHANGE_E [ybw75@lge.com] 2009-04-01 */
+./arch/arm/mach-msm/include/mach/charger.h:1816:/* LGE_CHANGE_S [ybw75@lge.com] 2008-05-22, Add RPC for sharing battery information */
+./arch/arm/mach-msm/include/mach/charger.h:1818:/* LGE_CHANGE_E [ybw75@lge.com] 2008-05-22 */
+./arch/arm/mach-msm/include/mach/rpc_charger.h:26:/* LGE_CHANGE_S [ybw75@lge.com] 2009-01-06*/
+./arch/arm/mach-msm/include/mach/rpc_charger.h:31:/* LGE_CHANGE_E [ybw75@lge.com] 2009-01-06 */
+./arch/arm/mach-msm/include/mach/rpc_charger.h:40:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009.03.03 */
+./arch/arm/mach-msm/include/mach/rpc_charger.h:45:/* LGE_CHANGE_E [jinwoonam@lge.com] 2009.03.03 */
+./arch/arm/mach-msm/include/mach/rpc_charger.h:48:/* LGE_CHANGE_S [jinwoonam@lge.com] 2009-01-06 */
+./arch/arm/mach-msm/include/mach/rpc_charger.h:55:/* LGE_CHANGE_E [jinwoonam@lge.com] 2009-01-06 */
+./arch/arm/mach-msm/include/mach/gpio_keypad.h:9:/* LGE_CHANGE_S [cleaneye@lge.com] 2009-03-04 */
+./arch/arm/mach-msm/include/mach/gpio_keypad.h:24:/* LGE_CHANGE_E [cleaneye@lge.com] 2009-03-04 */
+./arch/arm/mach-msm/include/mach/msm_serial_hs.h:20:// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+./arch/arm/mach-msm/include/mach/msm_serial_hs.h:25:// END: 0002333 chpark9@lge.com 2009-12-26
+./arch/arm/mach-msm/include/mach/msm_serial_hs.h:40:// BEGIN: 0002333 chpark9@lge.com 2009-12-26
+./arch/arm/mach-msm/include/mach/msm_serial_hs.h:45:// END: 0002333 chpark9@lge.com 2009-12-26
+./arch/arm/mach-msm/include/mach/msm_rpcrouter.h:58:#define ABSOLUTE_STRING_LENGTH  500 //40 [seypark@lge.com]
+./arch/arm/mach-msm/include/mach/msm_rpcrouter.h:62:#define MAX_SEND_LOOP_NUM  8 // 4 => 8 kageki@lge.com
+./arch/arm/mach-msm/include/mach/msm_rpcrouter.h:420:int is_slide_open(void); //diyu@lge.com
+./arch/arm/mach-msm/include/mach/msm_rpcrouter.h:421:void set_slide_open(int value);//diyu@lge.com
+./arch/arm/mach-msm/include/mach/rpc_hsusb.h:107:  /* LGE_CHANGE_E [ljmblueday@lge.com] 2009-08-29 */
+./arch/arm/mach-msm/smd.c:44:/* LGE_CHANGE_S [bluerti@lge.com] 2009-07-06 <For Error Handler > */
+./arch/arm/mach-msm/smd.c:46:/* LGE_CHANGE_E [bluerti@lge.com] 2009-07-06 <For Error Handler > */
+./include/media/msm_camera.h:100:/* LGE_CHANGE_S [wonki.choi@lge.com] 2010-04-07 EVE Merge */
+./include/media/msm_camera.h:106:/* LGE_CHANGE_E [wonki.choi@lge.com] 2010-04-07 */
+./include/media/msm_camera.h:353:        /* LGE_CHANGE_S [zugwan@lge.com] 2009-05-19 */
+./include/media/msm_camera.h:363:        /* LGE_CHANGE_E [zugwan@lge.com] 2009-05-19 */
+./include/media/msm_camera.h:382:        /* LGE_CHANGE_S [zugwan@lge.com] 2009-05-11, add picture size */
+./include/media/msm_camera.h:389:        /* LGE_CHANGE_E [zugwan@lge.com] 2009-05-11, add picture size */
+./include/media/msm_camera.h:393:/* LGE_CHANGE_S [zugwan@lge.com] 2009-05-19 */
+./include/media/msm_camera.h:452:/* LGE_CHANGE_E [zugwan@lge.com] 2009-05-19 */
+./include/media/msm_camera.h:488:                /* LGE_CHANGE_S [zugwan@lge.com] 2009-05-19 */
+./include/media/msm_camera.h:499:                /* LGE_CHANGE_E [zugwan@lge.com] 2009-05-19 */
+./include/linux/msm_audio.h:311:/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-18, from cupcake */
+./include/linux/msm_audio.h:352:	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-18, NS_ENABLE is constant */
+./include/linux/at_kpd_eve.h:26://LGE_CHANGE_S [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
+./include/linux/at_kpd_eve.h:27:void vibrator_disable(void);//antispoon@lge.com, diyu@lge.com
+./include/linux/at_kpd_eve.h:28:void vibrator_enable(void);//antispoon@lge.com, diyu@lge.com
+./include/linux/at_kpd_eve.h:35://LGE_CHANGE_E [antispoon@lge.com,diyu@lge.com] 2009-07-17 for AT+MOT,GKPD, FKPD
+./include/linux/usb/android.h:41:/* LGE_CHANGES_S [younsuk.song@lge.com] 2010-06-23, Add serial_number */
+./include/linux/usb/android.h:46:/* LGE_CHANGES_E [younsuk.song@lge.com] 2010-06-23 */
+./include/linux/mmc/host.h:110:/* LGE_CHANGE fred.cho@lge.com, 2010-08-05 , check gpio pin status */
+./include/linux/eve_at.h:4:/* LGE_CHANGE_S [kimeh@lge.com] 2009-04-15, for debugging */
+./include/linux/eve_at.h:27:/* LGE_CHANGE_E [kimeh@lge.com] 2009-04-15, for debugging */
