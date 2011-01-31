@@ -84,7 +84,7 @@ static struct platform_device eve_prox_i2c_device = {
 static struct i2c_board_info prox_i2c_bdinfo = {
 	I2C_BOARD_INFO("gp2ap002", 0x44),
 	.type = "gp2ap002",
-	.irq = MSM_GPIO_TO_INT(GPIO_PROX_IRQ),
+	.irq = GPIO_PROX_IRQ,
 };
 
 void __init eve_init_prox(void)
