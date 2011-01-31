@@ -1922,7 +1922,7 @@ static void __init halibut_map_io(void)
 	msm_halibut_allocate_memory_regions();
 }
 
-MACHINE_START(EVE, "Eve Board (LGE GW650)")
+MACHINE_START(EVE, "eve")
 #ifdef CONFIG_MSM_DEBUG_UART
 	.phys_io        = MSM_DEBUG_UART_PHYS,
 	.io_pg_offst    = ((MSM_DEBUG_UART_BASE) >> 18) & 0xfffc,
