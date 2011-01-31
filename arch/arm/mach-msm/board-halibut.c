@@ -1134,14 +1134,6 @@ static struct platform_device eve_qwerty_device = {
 	},
 };
 
-static struct platform_device android_vibrator_device = {
-        .name   = "android-vibrator",
-        .id     = -1,
-        .dev = {
-                .platform_data = 0,
-        },
-};
-
 static struct atcmd_platform_data eve_atcmd_pdata = {
         .name = "eve_atcmd",
 };
@@ -1220,7 +1212,6 @@ static struct platform_device *devices[] __initdata = {
 	&eve_snd,
 	&android_hallic_device, 	//hall ic
 	&eve_hs_device,
-	&android_vibrator_device, //vibrator
 	&android_keyled_device, //keyled
 	&msm_device_hw3d,
 	&eve_qwerty_device,
