@@ -144,7 +144,7 @@ obj-$(CONFIG_MSM_NPA_REMOTE_ONCRPC) += npa_remote_rpc_client.o
 obj-$(CONFIG_ARCH_MSM7X30) += spm.o
 
 # EVE board
-obj-$(CONFIG_MACH_EVE) += board-eve-gpio-i2c.o
+obj-$(CONFIG_MACH_EVE) += board-eve-gpio-i2c.o board-eve-vibrator.o
 # LGE_CHANGE_E
 # /* LGE_CHANGES LGE_FACTORY_AT_COMMANDS  */
 ## LGE_CHANGES_S  2009_03_13 princlee

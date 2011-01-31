@@ -12,10 +12,6 @@ menuconfig MISC_DEVICES
 	  If you say N, all options in this submenu will be skipped and disabled.
 
 if MISC_DEVICES
-config ANDROID_VIBRATOR
-	bool "Android vibrator"
-	default n
-
 config ANDROID_HALL_IC
 	tristate "Slide detect(Hall ic)"
 	default n

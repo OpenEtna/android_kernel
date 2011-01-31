@@ -40,6 +40,5 @@ obj-$(CONFIG_PMIC8058_PWM) += pmic8058-pwm.o
 obj-$(CONFIG_PMIC8058_VIBRATOR) += pmic8058-vibrator.o
 obj-$(CONFIG_MACH_EVE)      	+= eve_at_class.o
 obj-$(CONFIG_MACH_EVE)      	+= eve_at.o
-obj-$(CONFIG_ANDROID_VIBRATOR)      	+= vibrator_eve.o
 obj-$(CONFIG_ANDROID_HALL_IC) += hall_bu52031.o
 obj-$(CONFIG_PMIC8058_NFC) += pmic8058-nfc.o
