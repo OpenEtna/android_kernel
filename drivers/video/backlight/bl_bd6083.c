@@ -432,7 +432,7 @@ static void bd6083_set_alc_mode(struct i2c_client *client)
 #endif
 	if (lge_hw_rev > 7) {
 		ret = bd6083_write_reg(client, 0x00, 0x00);
-		ret = bd6083_write_reg(client, 0x01, 0x0f);
+		ret = bd6083_write_reg(client, 0x01, 0x0e);
 		ret = bd6083_write_reg(client, 0x03, 0x40);
 		ret = bd6083_write_reg(client, 0x09, 0x87);
 		ret = bd6083_write_reg(client, 0x0a, 0x01);
@@ -697,9 +697,6 @@ ssize_t lcd_backlight_show_alc_brightness(struct device * dev,
 	err = bd6083_read_reg(client, 0x0C, &ret);
 	level = ret;
 
-	if (level > 7)
-		level = 7;
-
 	D_FUNC("%s() alc_brightness : %d\n", __FUNCTION__, level);
 
 	//printk("%s() reg:0x0c, value:0x%x\n", __func__, ret);
@@ -707,6 +704,14 @@ ssize_t lcd_backlight_show_alc_brightness(struct device * dev,
 
 	return r;
 }
+
+int bl_bd_get_brightness(void)
+{
+	unsigned char ret;
+	bd6083_read_reg(bd6083_dev->client, 0x0C, &ret);
+	return ret;
+}
+EXPORT_SYMBOL(bl_bd_get_brightness);
 
 ssize_t lcd_backlight_onoff(struct device * dev, struct device_attribute * attr,
 			    const char *buf, size_t count)

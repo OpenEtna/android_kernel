@@ -688,6 +688,9 @@ static void AKECS_Report_Value(short *rbuf)
 			input_report_abs(data->input_dev, ABS_DISTANCE, 0);/*rbuf[12]);*/
 /* LGE_CHANGE_S, [kundan.thakur@lge.com], 2010-11-26, < Proximity sensor fix > */
 	}
+
+	int bl_bd_get_brightness(void);
+	input_report_abs(data->input_dev, ABS_VOLUME, bl_bd_get_brightness());
 #endif 
 	input_sync(data->input_dev);
 }
@@ -1426,6 +1429,8 @@ int akm8973_probe(struct i2c_client *client, const struct i2c_device_id * devid)
 	input_set_abs_params(akm->input_dev, ABS_BRAKE, -2048, 2032, 0, 0);
 	/* proximity */
 	input_set_abs_params(akm->input_dev, ABS_DISTANCE, 0, 1, 0, 0);
+	/* brightness */
+	input_set_abs_params(akm->input_dev, ABS_VOLUME, 0, 15, 0, 0);
 
 	akm->input_dev->name = "compass";
 
