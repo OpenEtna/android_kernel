@@ -66,9 +66,6 @@ struct bl_init_table_s {
 };
 
 enum {
-	BL_MODE_NORMAL,
-	BL_MODE_ALC,
-	BL_MODE_MAX,
 	BL_CAMERA_ON,
 	BL_CAMERA_OFF
 };
@@ -90,11 +87,6 @@ static int power_state_flag = NORMAL_STATE;
 extern void force_pan(void);
 //extern int need_force_pan;
 #endif
-
-// LGE_CHANGE[jh.koo@lge.com] 2009-03-16, Auto Luminance mode setting
-#define DEFAULT_ALC_MODE BL_MODE_ALC	/* Auto Luminance Control Disabled */
-unsigned int cur_alc_mode = DEFAULT_ALC_MODE;
-unsigned int temp_cur_alc_mode = BL_MODE_NORMAL;
 
 unsigned int cur_camera_mode = BL_CAMERA_OFF;
 unsigned int lge_hw_rev;
@@ -131,13 +123,13 @@ static struct bl_init_table_s bd6083_normal_mode_config[] = {
 	// Normal Mode(Non ALC Mode)
 	{0x00, 0x00},
 	{0x14, 0xc0},		/*LDO2 Vout Control for the vibrator: 3.0V *//*diyu@lge.com */
-	{0x01, 0x0f},
+	{0x01, 0x0e},
 	{0x03, 0x40},
-	{0x09, 0x67},
+	{0x09, 0x87},
 	{0x0a, 0x01},
-	{0x0b, 0x13},
-	{0x0d, 0x3b},
-	{0x0e, 0x63},
+	{0x0b, 0x00},
+	{0x0d, 0x14}, //backlight level
+	{0x0e, 0x2b},
 	// {0x02, 0x40},
 	// {ALC_DELAY, 0x00},
 	// {0x02, 0x01},
@@ -407,7 +399,7 @@ static void bd6083_set_main_current_level(struct i2c_client *client, int level)
 
 	cur_main_lcd_level = level;
 
-	bd6083_write_reg(client, 0x0d, level);	// registry 0x0d , value : level(hex)    
+	bd6083_write_reg(client, 0x03, level);	// registry 0x0d , value : level(hex)    
 }
 
 static void bd6083_set_camera_on_mode_internal(void);
@@ -415,13 +407,11 @@ static void bd6083_set_camera_on_mode_internal(void);
 static void bd6083_set_alc_mode(struct i2c_client *client)
 {
 	int ret;
-	unsigned long flags;
 
 	pre_main_lcd_level = eve_bl_get_intensity(bd6083_dev->bl_dev);
 
 	if (cur_camera_mode == BL_CAMERA_ON) {
 		bd6083_set_camera_on_mode_internal();
-		cur_alc_mode = BL_MODE_ALC;
 		return;
 	}
 	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, use mutex instead of spinlock */
@@ -458,54 +448,11 @@ static void bd6083_set_alc_mode(struct i2c_client *client)
 	spin_unlock_irqrestore(&bl_lock, flags);
 #endif
 
-	cur_alc_mode = BL_MODE_ALC;
-}
-
-static void bd6083_set_normal_mode(struct i2c_client *client)
-{
-	int ret;
-	unsigned long flags;
-
-	D_FUNC("%s()\n", __FUNCTION__);
-	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, use mutex instead of spinlock */
-#ifdef USE_MUTEX_BL
-	mutex_lock(&bl_lock);
-#else
-	spin_lock_irqsave(&bl_lock, flags);
-#endif
-	if (lge_hw_rev > 7) {
-		ret = bd6083_write_reg(client, 0x00, 0x00);
-		ret = bd6083_write_reg(client, 0x01, 0x0f);
-		ret = bd6083_write_reg(client, 0x03, 0x40);
-		ret = bd6083_write_reg(client, 0x09, 0x87);
-		ret = bd6083_write_reg(client, 0x0d, 0x02);
-		ret = bd6083_write_reg(client, 0x0e, 0x68);
-	} else {
-		ret = bd6083_write_reg(client, 0x00, 0x00);
-		ret = bd6083_write_reg(client, 0x01, 0x0f);
-		ret = bd6083_write_reg(client, 0x03, 0x40);
-		ret = bd6083_write_reg(client, 0x09, 0x87);
-		ret = bd6083_write_reg(client, 0x0d, 0x13);
-		ret = bd6083_write_reg(client, 0x0e, 0x4f);
-	}
-
-	ret = bd6083_write_reg(client, 0x02, 0x01);
-	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, use mutex instead of spinlock */
-#ifdef USE_MUTEX_BL
-	mutex_unlock(&bl_lock);
-#else
-	spin_unlock_irqrestore(&bl_lock, flags);
-#endif
-	cur_alc_mode = BL_MODE_NORMAL;
-	/* XXX: This should be the last because it can change cur_alc_mode to BL_MODE_ALC
-	 * So we avoid that cur_alc_mode value is overwritten */
-	ret = eve_bl_set_intensity(bd6083_dev->bl_dev);
 }
 
 static void bd6083_set_camera_on_mode_internal(void)
 {
 	int ret;
-	unsigned long flags;
 
 	D_FUNC("%s()\n", __FUNCTION__);
 
@@ -515,21 +462,8 @@ static void bd6083_set_camera_on_mode_internal(void)
 #else
 	spin_lock_irqsave(&bl_lock, flags);
 #endif
-	if (lge_hw_rev > 7) {
-		ret = bd6083_write_reg(bd6083_dev->client, 0x00, 0x00);
-		ret = bd6083_write_reg(bd6083_dev->client, 0x01, 0x0f);
-		ret = bd6083_write_reg(bd6083_dev->client, 0x03, 0x40);
-		ret = bd6083_write_reg(bd6083_dev->client, 0x09, 0x87);
-		ret = bd6083_write_reg(bd6083_dev->client, 0x0d, 0x13);
-		ret = bd6083_write_reg(bd6083_dev->client, 0x0e, 0x40);
-	} else {
-		ret = bd6083_write_reg(bd6083_dev->client, 0x00, 0x00);
-		ret = bd6083_write_reg(bd6083_dev->client, 0x01, 0x0f);
-		ret = bd6083_write_reg(bd6083_dev->client, 0x03, 0x40);
-		ret = bd6083_write_reg(bd6083_dev->client, 0x09, 0x87);
-		ret = bd6083_write_reg(bd6083_dev->client, 0x0d, 0x1d);
-		ret = bd6083_write_reg(bd6083_dev->client, 0x0e, 0x4f);
-	}
+	ret = bd6083_write_reg(bd6083_dev->client, 0x0d, 0x13);
+	ret = bd6083_write_reg(bd6083_dev->client, 0x0e, 0x40);
 
 	ret = bd6083_write_reg(bd6083_dev->client, 0x02, 0x01);
 	/* LGE_CHANGE [dojip.kim@lge.com] 2010-03-24, use mutex instead of spinlock */
@@ -544,21 +478,16 @@ int bd6083_set_camera_on_mode(void)
 
 	D_FUNC("%s()\n", __FUNCTION__);
 
-	/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-27, should be controlled after resumed */
 #ifdef MDDI_DEBUG
 	if (power_state_flag == NORMAL_STATE) {
 		/* blocked in non-ALC mode, camera-on-mode is only valid in ALC mode */
-		if (cur_alc_mode == BL_MODE_ALC) {
 			bd6083_set_camera_on_mode_internal();
 			cur_camera_mode = BL_CAMERA_ON;
-		}
 	}
 #else
 	/* blocked in non-ALC mode, camera-on-mode is only valid in ALC mode */
-	if (cur_alc_mode == BL_MODE_ALC) {
 		bd6083_set_camera_on_mode_internal();
 		cur_camera_mode = BL_CAMERA_ON;
-	}
 #endif
 
 	return 0;
@@ -573,40 +502,21 @@ int bd6083_set_camera_off_mode(void)
 		return 0;
 
 	/* Case 2: Camera close in ALC Backlight Mode EXIT */
-	if (cur_alc_mode == BL_MODE_ALC || temp_cur_alc_mode == BL_MODE_ALC) {
 		cur_camera_mode = BL_CAMERA_OFF;
-		temp_cur_alc_mode = BL_MODE_NORMAL;
 		/* LGE_CHANGE [dojip.kim@lge.com] 2010-04-29, after suspend, couldn't set the alc mode */
 #ifdef MDDI_DEBUG
-		if (power_state_flag == SUSPEND_STATE)
-			cur_alc_mode = BL_MODE_ALC;
-		else
+		if (power_state_flag != SUSPEND_STATE)
 			bd6083_set_alc_mode(bd6083_dev->client);
 #else
 		bd6083_set_alc_mode(bd6083_dev->client);
 #endif
-	}
 
-	/* Case 3: Sleep in ALC Backlight Mode */
-	if (cur_camera_mode == BL_CAMERA_ON) {
-		/* Do nothing */
-	}
 
 	return 0;
 }
 
 EXPORT_SYMBOL(bd6083_set_camera_on_mode);
 EXPORT_SYMBOL(bd6083_set_camera_off_mode);
-
-static void bd6083_set_mode(struct i2c_client *client, int mode)
-{
-	D_FUNC("%s() mode : %d.\n", __FUNCTION__, mode);
-
-	if (mode) {
-		bd6083_set_alc_mode(client);
-	} else
-		bd6083_set_normal_mode(client);
-}
 
 static int eve_bl_set_intensity(struct backlight_device *bd)
 {
@@ -616,18 +526,8 @@ static int eve_bl_set_intensity(struct backlight_device *bd)
 	D("%s() cur_main_lcd_level : %d, level : %d\n", __FUNCTION__,
 	  cur_main_lcd_level, bd->props.brightness);
 
-#ifdef MDDI_DEBUG
-	if (power_state_flag == NORMAL_STATE) {
-		if (temp_cur_alc_mode == BL_MODE_ALC) {
-			bd6083_set_mode(client, 1);
-			temp_cur_alc_mode = BL_MODE_NORMAL;
-		} else
-			bd6083_set_main_current_level(client,
+	bd6083_set_main_current_level(client,
 						      bd->props.brightness);
-	}
-#endif
-//      cur_main_lcd_level = bd->props.brightness;
-
 	return 0;
 }
 
@@ -638,49 +538,6 @@ static int eve_bl_get_intensity(struct backlight_device *bd)
 //      bd->props.brightness = cur_main_lcd_level;
 	cur_main_lcd_level = bd->props.brightness;
 	return cur_main_lcd_level;
-}
-
-// 2009-03-16, Auto Luminance mode setting
-ssize_t lcd_backlight_show_alc_mode(struct device * dev,
-				    struct device_attribute * attr, char *buf)
-{
-
-	int r;
-	D_FUNC("%s()\n", __FUNCTION__);
-
-	r = snprintf((char *)buf, PAGE_SIZE, "%d\n", cur_alc_mode);
-
-	return r;
-}
-
-ssize_t lcd_backlight_store_alc_mode(struct device * dev,
-				     struct device_attribute * attr,
-				     const char *buf, size_t count)
-{
-	int mode;
-	struct i2c_client *client = to_i2c_client(dev->parent);
-
-	D_FUNC("%s()\n", __FUNCTION__);
-
-	if (!count)
-		return -EINVAL;
-
-	mode = simple_strtoul(buf, NULL, 10);
-
-	// cur_alc_mode_user= !(!mode);
-
-#ifdef MDDI_DEBUG
-	if (power_state_flag == NORMAL_STATE)
-		bd6083_set_mode(client, !(!mode));
-	else {
-		if (mode)
-			temp_cur_alc_mode = BL_MODE_ALC;
-		else
-			temp_cur_alc_mode = BL_MODE_NORMAL;
-	}
-#endif
-
-	return count;
 }
 
 ssize_t lcd_backlight_show_alc_brightness(struct device * dev,
@@ -727,12 +584,8 @@ ssize_t lcd_backlight_onoff(struct device * dev, struct device_attribute * attr,
 	if (onoff) {
 		D_FUNC("%s(): onoff - %d\n", __FUNCTION__, onoff);
 
-		if (cur_alc_mode == BL_MODE_ALC)
 			bd6083_write_reg(bd6083_dev->client, 0x02, 0x41);
-		else {
-			bd6083_write_reg(bd6083_dev->client, 0x02, 0x01);
 			ret = eve_bl_set_intensity(bd6083_dev->bl_dev);
-		}
 	} else {
 
 		D_FUNC("%s(): onoff - %d\n", __FUNCTION__, onoff);
@@ -743,8 +596,6 @@ ssize_t lcd_backlight_onoff(struct device * dev, struct device_attribute * attr,
 	return ret;
 }
 
-DEVICE_ATTR(alc_mode, 0666, lcd_backlight_show_alc_mode,
-	    lcd_backlight_store_alc_mode);
 DEVICE_ATTR(alc_brightness, 0666, lcd_backlight_show_alc_brightness, NULL);
 DEVICE_ATTR(bl_onoff, 0666, NULL, lcd_backlight_onoff);
 
@@ -793,8 +644,7 @@ static int __init bd6083_probe(struct i2c_client *i2c_dev,
 #endif
 
 	ret = device_create_file(&bl_dev->dev, &dev_attr_alc_brightness);
-	ret = device_create_file(&bl_dev->dev, &dev_attr_bl_onoff);
-	return device_create_file(&bl_dev->dev, &dev_attr_alc_mode);
+	return device_create_file(&bl_dev->dev, &dev_attr_bl_onoff);
 }
 
 static int bd6083_remove(struct i2c_client *i2c_dev)
@@ -867,10 +717,7 @@ static void bd6083_late_resume(struct early_suspend *h)
 		return;
 	}
 
-	if (cur_alc_mode == BL_MODE_ALC)
 		bd6083_set_alc_mode(bd6083_dev->client);
-	else
-		bd6083_set_normal_mode(bd6083_dev->client);
 
 	D_FUNC("%s() done.\n", __FUNCTION__);
 }
@@ -883,7 +730,6 @@ void lge_atcmd_boff(void)
 {
 	D_FUNC("%s()\n", __FUNCTION__);
 
-	if (cur_alc_mode == BL_MODE_ALC)
 		bd6083_write_reg(bd6083_dev->client, 0x02, 0x01);
 
 	bd6083_set_main_current_level(bd6083_dev->client, 0);
