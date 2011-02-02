@@ -7,24 +7,18 @@
  */
 
 #include <linux/kernel.h>
-#include <linux/interrupt.h>
-#include <linux/input.h>
 #include <linux/module.h>
-#include <linux/workqueue.h>
 #include <linux/fs.h>
 #include <linux/slab.h>
 #include <linux/init.h>
 #include <linux/list.h>
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
-#include <linux/delay.h>
 #include <asm/uaccess.h>
 #include <linux/unistd.h>
 #include <linux/module.h>
 
 #include "smb380.h"
-
-#define DEBUG 0
 
 #define BMA150_MAJOR	100
 #define BMA150_MINOR	3
@@ -82,42 +76,46 @@
 
 #define BMA150_IOC_MAXNR			48
 
+
+#define DEBUG	0
+
 static unsigned short normal_i2c[] = { I2C_CLIENT_END };
 
 static struct i2c_client *bma150_client = NULL;
 
-struct bma150_data {
+struct bma150_data{
 	struct i2c_client client;
-	struct input_dev* input_dev;
-	struct delayed_work wq;
 };
 
 
 
 static smb380_t smb380;
 
-static int bma150_detect(struct i2c_client *, struct i2c_board_info *);
+static struct class *bma_dev_class;
+
+static int bma150_detect(struct i2c_client *client, int kind, struct i2c_board_info *info);
 
 static char bma150_i2c_write(unsigned char reg_addr, unsigned char *data, unsigned char len);
 static char bma150_i2c_read(unsigned char reg_addr, unsigned char *data, unsigned char len);
 
 static const struct i2c_device_id bma150_id[] = {
-	{ "bma150", 0 },
-	{ }
+        { "bma150", 0 },
+        { }
 };
 
 /*	i2c write routine for bma150	*/
 static inline char bma150_i2c_write(unsigned char reg_addr, unsigned char *data, unsigned char len)
 {
-	int dummy;
+	int dummy;	
+	//printk(KERN_INFO"%s\n", __FUNCTION__);
 	if( bma150_client == NULL )	/*	No global client pointer?	*/
 		return -1;
 	dummy = i2c_smbus_write_byte_data(bma150_client, reg_addr, data[0]);
-	return dummy;
+	return dummy;	
 }
 
 /*	i2c read routine for bma150	*/
-static inline char bma150_i2c_read(unsigned char reg_addr, unsigned char *data, unsigned char len)
+static inline char bma150_i2c_read(unsigned char reg_addr, unsigned char *data, unsigned char len) 
 {
 	int dummy=0;
 	int i=0;
@@ -125,46 +123,46 @@ static inline char bma150_i2c_read(unsigned char reg_addr, unsigned char *data, 
 	if( bma150_client == NULL )	/*	No global client pointer?	*/
 		return -1;
 	while(i<len)
-	{
+	{        
 		dummy = i2c_smbus_read_word_data(bma150_client, reg_addr);
 		if (dummy>=0)
-		{
+		{         
 			data[i] = dummy & 0x00ff;
 			i++;
 			if (i<len)
-			{
+			{            
 				data[i] = (dummy>>8)&0x00ff;
-				//				printk(KERN_INFO" 1 - data[%d] = %d ",i, data[i]);
+//				printk(KERN_INFO" 1 - data[%d] = %d ",i, data[i]);
 				i++;
-
+				
 			}
 			reg_addr+=2;
-		}
-		else
+		} 
+		else 
 			return dummy;
 		dummy = len;
 	}
-	//	printk(KERN_INFO"\n");
-	//	for(i=0; i<12 ; i++)
-	//		printk(KERN_INFO" 2 - data[%d] = %d ",i, data[i]);
-	//	printk(KERN_INFO"\n");
+//	printk(KERN_INFO"\n");
+//	for(i=0; i<12 ; i++)
+//		printk(KERN_INFO" 2 - data[%d] = %d ",i, data[i]);
+//	printk(KERN_INFO"\n");
 	return dummy;
 }
 
 /*	read command for BMA150 device file	*/
 static ssize_t bma150_read(struct file *file, char __user *buf, size_t count, loff_t *offset)
 {
-#if DEBUG
-	smb380acc_t acc;
-#endif
+	#if DEBUG	
+	smb380acc_t acc;	
+	#endif
 	if( bma150_client == NULL )
 		return -1;
-#if DEBUG
+	#if DEBUG
 	smb380_read_accel_xyz(&acc);
 	printk("BMA150: X axis: %d\n" , acc.x);
-	printk("BMA150: Y axis: %d\n" , acc.y);
-	printk("BMA150: Z axis: %d\n" , acc.z);
-#endif
+	printk("BMA150: Y axis: %d\n" , acc.y); 
+	printk("BMA150: Z axis: %d\n" , acc.z);  
+	#endif
 	return 0;
 }
 
@@ -173,21 +171,20 @@ static ssize_t bma150_write(struct file *file, const char __user *buf, size_t co
 {
 	if( bma150_client == NULL )
 		return -1;
-#if DEBUG
+	#if DEBUG
 	printk("BMA150 should be accessed with ioctl command\n");
-#endif
+	#endif
 	return 0;
 }
 
-#if 0
 /*	open command for BMA150 device file	*/
 static int bma150_open(struct inode *inode, struct file *file)
 {
 	if( bma150_client == NULL)
 	{
-#if DEBUG
-		printk("I2C driver not install\n");
-#endif
+		#if DEBUG
+		printk("I2C driver not install\n"); 
+		#endif
 		return -1;
 	}
 	smb380.bus_write = bma150_i2c_write;
@@ -196,30 +193,30 @@ static int bma150_open(struct inode *inode, struct file *file)
 
 	if (smb380.chip_id>0)
 	{
-#if DEBUG
-		printk("BMA150: ChipId: 0x%x\n" , smb380.chip_id);
+		#if DEBUG
+		printk("BMA150: ChipId: 0x%x\n" , smb380.chip_id); 
 		printk("BMA150: ALVer: 0x%x MLVer: 0x%x\n", smb380.al_version, smb380.ml_version);
-#endif
+		#endif
 	}
 	else
 	{
-#if DEBUG
-		printk("BMA150: open error\n");
-#endif
+		#if DEBUG
+		printk("BMA150: open error\n"); 
+		#endif
 		return -1;
 	}
-#if DEBUG
+	#if DEBUG
 	printk("BMA150 has been opened\n");
-#endif
+	#endif
 	return 0;
 }
 
 /*	release command for BMA150 device file	*/
 static int bma150_close(struct inode *inode, struct file *file)
 {
-#if DEBUG
-	printk("BMA150 has been closed\n");
-#endif
+	#if DEBUG	
+	printk("BMA150 has been closed\n");	
+	#endif
 	return 0;
 }
 
@@ -229,23 +226,23 @@ static int bma150_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 {
 	int err = 0;
 	unsigned char data[6];
-#if DEBUG
-	//printk("bma150_ioctl\n");
-#endif
+	#if DEBUG	
+	//printk("bma150_ioctl\n");	
+	#endif
 
 	/* check cmd */
-	if(_IOC_TYPE(cmd) != BMA150_IOC_MAGIC)
+	if(_IOC_TYPE(cmd) != BMA150_IOC_MAGIC)	
 	{
-#if DEBUG
+		#if DEBUG		
 		printk("cmd magic type error\n");
-#endif
+		#endif
 		return -ENOTTY;
 	}
 	if(_IOC_NR(cmd) > BMA150_IOC_MAXNR)
 	{
-#if DEBUG
+		#if DEBUG
 		printk("cmd number error\n");
-#endif
+		#endif
 		return -ENOTTY;
 	}
 
@@ -255,684 +252,684 @@ static int bma150_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 		err = !access_ok(VERIFY_READ, (void __user*)arg, _IOC_SIZE(cmd));
 	if(err)
 	{
-#if DEBUG
+		#if DEBUG
 		printk("cmd access_ok error\n");
-#endif
+		#endif
 		return -EFAULT;
 	}
 	/* check bam150_client */
 	if( bma150_client == NULL)
 	{
-#if DEBUG
-		printk("I2C driver not install\n");
-#endif
+		#if DEBUG
+		printk("I2C driver not install\n"); 
+		#endif
 		return -EFAULT;
 	}
-
+	
 	/* cmd mapping */
 
 	switch(cmd)
 	{
-		case BMA150_SOFT_RESET:
-			err = smb380_soft_reset();
-			return err;
+	case BMA150_SOFT_RESET:
+		err = smb380_soft_reset();
+		return err;
 
-		case BMA150_GET_OFFSET:
-			//if (!((unsigned short*)data = kmalloc(4, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user((unsigned short*)data,(unsigned short*)arg,4)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_get_offset(*((unsigned short*)data),(unsigned short*)(data+2));
-			if(copy_to_user((unsigned short*)arg,(unsigned short*)data,4)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_OFFSET:
+		//if (!((unsigned short*)data = kmalloc(4, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user((unsigned short*)data,(unsigned short*)arg,4)!=0)
+		{
+			#if DEBUG			
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_get_offset(*((unsigned short*)data),(unsigned short*)(data+2));
+		if(copy_to_user((unsigned short*)arg,(unsigned short*)data,4)!=0)
+		{
+			#if DEBUG			
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_OFFSET:
-			//if (!((unsigned short*)data = kmalloc(4, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user((unsigned short*)data,(unsigned short*)arg,4)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_offset(*((unsigned short*)data),*(unsigned short*)(data+2));
-			//kfree(data);
-			return err;
+	case BMA150_SET_OFFSET:
+		//if (!((unsigned short*)data = kmalloc(4, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user((unsigned short*)data,(unsigned short*)arg,4)!=0)
+		{
+			#if DEBUG			
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_offset(*((unsigned short*)data),*(unsigned short*)(data+2));
+		//kfree(data);
+		return err;
 
-		case BMA150_SELFTEST:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_selftest(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SELFTEST:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG			
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_selftest(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_RANGE:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_range(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_RANGE:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG			
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_range(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_RANGE:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_range(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_RANGE:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_range(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG			
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_MODE:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_mode(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_MODE:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG			
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_mode(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_MODE:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_mode(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_MODE:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_mode(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG			
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_BANDWIDTH:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_bandwidth(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_BANDWIDTH:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_bandwidth(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_BANDWIDTH:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_bandwidth(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_BANDWIDTH:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_bandwidth(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_WAKE_UP_PAUSE:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_wake_up_pause(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_WAKE_UP_PAUSE:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_wake_up_pause(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_WAKE_UP_PAUSE:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_wake_up_pause(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_WAKE_UP_PAUSE:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_wake_up_pause(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_LOW_G_THRESHOLD:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_low_g_threshold(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_LOW_G_THRESHOLD:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG			
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_low_g_threshold(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_LOW_G_THRESHOLD:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_low_g_threshold(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_LOW_G_THRESHOLD:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_low_g_threshold(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_LOW_G_COUNTDOWN:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_low_g_countdown(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_LOW_G_COUNTDOWN:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_low_g_countdown(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_LOW_G_COUNTDOWN:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_low_g_countdown(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_LOW_G_COUNTDOWN:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_low_g_countdown(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_HIGH_G_COUNTDOWN:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_high_g_countdown(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_HIGH_G_COUNTDOWN:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_high_g_countdown(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_HIGH_G_COUNTDOWN:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_high_g_countdown(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_HIGH_G_COUNTDOWN:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_high_g_countdown(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG			
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_LOW_G_DURATION:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_low_g_duration(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_LOW_G_DURATION:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_low_g_duration(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_LOW_G_DURATION:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_low_g_duration(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_LOW_G_DURATION:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_low_g_duration(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_HIGH_G_THRESHOLD:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_high_g_threshold(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_HIGH_G_THRESHOLD:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_high_g_threshold(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_HIGH_G_THRESHOLD:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_high_g_threshold(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_HIGH_G_THRESHOLD:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_high_g_threshold(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_HIGH_G_DURATION:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_high_g_duration(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_HIGH_G_DURATION:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_high_g_duration(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_HIGH_G_DURATION:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_high_g_duration(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_HIGH_G_DURATION:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_high_g_duration(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_ANY_MOTION_THRESHOLD:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_any_motion_threshold(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_ANY_MOTION_THRESHOLD:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_any_motion_threshold(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_ANY_MOTION_THRESHOLD:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_any_motion_threshold(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_ANY_MOTION_THRESHOLD:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_any_motion_threshold(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_ANY_MOTION_COUNT:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_any_motion_count(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_ANY_MOTION_COUNT:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_any_motion_count(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_ANY_MOTION_COUNT:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_any_motion_count(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_ANY_MOTION_COUNT:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_any_motion_count(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_INTERRUPT_MASK:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_interrupt_mask(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_INTERRUPT_MASK:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_interrupt_mask(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_INTERRUPT_MASK:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_interrupt_mask(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_INTERRUPT_MASK:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_interrupt_mask(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_RESET_INTERRUPT:
-			err = smb380_reset_interrupt();
-			return err;
+	case BMA150_RESET_INTERRUPT:
+		err = smb380_reset_interrupt();
+		return err;
 
-		case BMA150_READ_ACCEL_X:
-			//if (!((short*)data = kmalloc(2, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_read_accel_x((short*)data);
-			if(copy_to_user((short*)arg,(short*)data,2)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_READ_ACCEL_X:
+		//if (!((short*)data = kmalloc(2, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_read_accel_x((short*)data);
+		if(copy_to_user((short*)arg,(short*)data,2)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_READ_ACCEL_Y:
-			//if (!((short*)data = kmalloc(2, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_read_accel_y((short*)data);
-			if(copy_to_user((short*)arg,(short*)data,2)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_READ_ACCEL_Y:
+		//if (!((short*)data = kmalloc(2, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_read_accel_y((short*)data);
+		if(copy_to_user((short*)arg,(short*)data,2)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_READ_ACCEL_Z:
-			//if (!((short*)data = kmalloc(2, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_read_accel_z((short*)data);
-			if(copy_to_user((short*)arg,(short*)data,2)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_READ_ACCEL_Z:
+		//if (!((short*)data = kmalloc(2, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_read_accel_z((short*)data);
+		if(copy_to_user((short*)arg,(short*)data,2)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_INTERRUPT_STATUS:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_interrupt_status(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_INTERRUPT_STATUS:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_interrupt_status(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_LOW_G_INT:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_low_g_int(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_LOW_G_INT:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_low_g_int(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_HIGH_G_INT:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_high_g_int(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_HIGH_G_INT:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_high_g_int(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_ANY_MOTION_INT:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_any_motion_int(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_ANY_MOTION_INT:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_any_motion_int(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_ALERT_INT:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_alert_int(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_ALERT_INT:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_alert_int(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_ADVANCED_INT:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_advanced_int(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_ADVANCED_INT:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_advanced_int(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_LATCH_INT:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_latch_int(*data);
-			//kfree(data);
-			return err;
+	case BMA150_LATCH_INT:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_latch_int(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_NEW_DATA_INT:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_new_data_int(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_NEW_DATA_INT:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_new_data_int(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_LOW_G_HYST:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_low_g_hysteresis(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_LOW_G_HYST:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_low_g_hysteresis(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_LOW_G_HYST:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_low_g_hysteresis(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_LOW_G_HYST:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_low_g_hysteresis(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_GET_HIGH_G_HYST:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_get_high_g_hysteresis(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_GET_HIGH_G_HYST:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_get_high_g_hysteresis(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_SET_HIGH_G_HYST:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			if(copy_from_user(data,(unsigned char*)arg,1)!=0)
-			{
-#if DEBUG
-				printk("copy_from_user error\n");
-#endif
-				return -EFAULT;
-			}
-			err = smb380_set_high_g_hysteresis(*data);
-			//kfree(data);
-			return err;
+	case BMA150_SET_HIGH_G_HYST:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		if(copy_from_user(data,(unsigned char*)arg,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_from_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		err = smb380_set_high_g_hysteresis(*data);
+		//kfree(data);
+		return err;
 
-		case BMA150_READ_ACCEL_XYZ:
-			//if (!((short*)data = kmalloc(6, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_read_accel_xyz((smb380acc_t*)data);
-			if(copy_to_user((smb380acc_t*)arg,(smb380acc_t*)data,6)!=0)
-			{
-#if DEBUG
-				printk("copy_to error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
+	case BMA150_READ_ACCEL_XYZ:
+		//if (!((short*)data = kmalloc(6, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_read_accel_xyz((smb380acc_t*)data);
+		if(copy_to_user((smb380acc_t*)arg,(smb380acc_t*)data,6)!=0)
+		{
+			#if DEBUG
+			printk("copy_to error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
 
-		case BMA150_READ_TEMPERATURE:
-			//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
-			//	return = -ENOMEM;
-			err = smb380_read_temperature(data);
-			if(copy_to_user((unsigned char*)arg,data,1)!=0)
-			{
-#if DEBUG
-				printk("copy_to_user error\n");
-#endif
-				return -EFAULT;
-			}
-			//kfree(data);
-			return err;
-		default:
-			return 0;
+	case BMA150_READ_TEMPERATURE:
+		//if (!((unsigned char*)data = kmalloc(1, GFP_KERNEL)))
+		//	return = -ENOMEM;
+		err = smb380_read_temperature(data);
+		if(copy_to_user((unsigned char*)arg,data,1)!=0)
+		{
+			#if DEBUG
+			printk("copy_to_user error\n");
+			#endif
+			return -EFAULT;
+		}
+		//kfree(data);
+		return err;
+	default:
+		return 0;
 	}
 }
 
@@ -945,80 +942,6 @@ static const struct file_operations bma150_fops = {
 	.release = bma150_close,
 	.ioctl = bma150_ioctl,
 };
-#endif
-
-static void bma150_work(struct work_struct *work) {
-
-	smb380acc_t acc;
-	struct bma150_data *data = container_of(to_delayed_work(work), struct bma150_data, wq);
-
-	smb380_read_accel_xyz(&acc);
-	//printk("%s: read %d %d %d\n",__func__, acc.x, acc.y, acc.z );
-
-	input_report_abs(data->input_dev, ABS_X, acc.x);
-	input_report_abs(data->input_dev, ABS_Y, acc.y);
-	input_report_abs(data->input_dev, ABS_Z, acc.z);
-	input_sync(data->input_dev);
-
-	smb380_reset_interrupt();
-}
-
-static irqreturn_t bma150_isr(int o, void *_data) {
-
-	struct bma150_data *data = (struct bma150_data *)_data;
-	/* cap the frequency at 10 times per second */
-	schedule_delayed_work(&data->wq, HZ/10);
-	return IRQ_HANDLED;
-}
-
-static void init_sensor(void) {
-	int ret;
-	smb380.bus_write = bma150_i2c_write;
-	smb380.bus_read = bma150_i2c_read;
-	ret = smb380_init(&smb380);
-	if(ret)
-		printk("%s: smb380_init returned %d\n",__func__,ret);
-
-	mdelay(500);
-	ret = smb380_set_mode(SMB380_MODE_NORMAL);
-	if(ret)
-		printk("%s: smb380_set_mode returned %d\n",__func__,ret);
-
-	ret = smb380_set_bandwidth(SMB380_BW_25HZ);
-	if(ret)
-		printk("%s: smb380_set_bandwidth returned %d\n",__func__,ret);
-
-	ret = smb380_set_any_motion_count(SMB380_ANY_MOTION_DUR_1);
-	if(ret)
-		printk("%s: smb380_set_any_motion_count returned %d\n",__func__,ret);
-
-	char thr = 1;//SMB380_ANY_MOTION_THRES_IN_G(0.1, 2.0);
-	ret = smb380_set_any_motion_threshold(thr);
-	if(ret)
-		printk("%s: smb380_set_any_motion_threshold(%d) returned %d\n",__func__,thr,ret);
-
-	ret = smb380_set_interrupt_mask(SMB380_INT_ANY_MOTION | SMB380_INT_EN_ADV_INT | SMB380_INT_LATCH);
-	if(ret)
-		printk("%s: smb380_set_interrupt_mask returned %d\n",__func__,ret);
-
-	unsigned char mask;
-	smb380_get_interrupt_mask(&mask);
-	printk("%s: smb380_get_interrupt_mask returned %x\n",__func__,mask);
-
-	/* enable any_motion interrupts */
-	ret = smb380_set_any_motion_int(1);
-	if(ret)
-		printk("%s: smb380_set_any_motion_int returned %d\n",__func__,ret);
-	smb380_set_mode(SMB380_MODE_SLEEP);
-}
-
-static int bma150_open(struct input_dev *dev) {
-	smb380_set_mode(SMB380_MODE_NORMAL);
-	return 0;
-}
-static void bma150_close(struct input_dev *dev) {
-	smb380_set_mode(SMB380_MODE_SLEEP);
-}
 
 int bma150_probe(struct i2c_client *client, const struct i2c_device_id * devid)
 {
@@ -1062,40 +985,20 @@ int bma150_probe(struct i2c_client *client, const struct i2c_device_id * devid)
 		bma150_client = NULL;
 		goto exit_kfree;
 	}
-
-	data->input_dev = input_allocate_device();
-
-	if (!data->input_dev) {
-		err = -ENOMEM;
-		printk(KERN_ERR
-				"bm150_probe: Failed to allocate input device\n");
-		goto exit_kfree;
-	}
-
-	set_bit(EV_ABS, data->input_dev->evbit);
-	/* x-axis acceleration */
-	input_set_abs_params(data->input_dev, ABS_X, -5760, 5760, 0, 0);
-	/* y-axis acceleration */
-	input_set_abs_params(data->input_dev, ABS_Y, -5760, 5760, 0, 0);
-	/* z-axis acceleration */
-	input_set_abs_params(data->input_dev, ABS_Z, -5760, 5760, 0, 0);
-	data->input_dev->name = "bma150";
-	data->input_dev->open = bma150_open;
-	data->input_dev->close = bma150_close;
-	err = input_register_device(data->input_dev);
-
-	INIT_DELAYED_WORK(&data->wq, bma150_work);
-
-	request_irq(client->irq, bma150_isr, IRQF_TRIGGER_RISING, "bma150_irq", data);
-
-	init_sensor();
-
+	
 	return 0;
 
 exit_kfree:
 	kfree(data);
 exit:
 	return err;
+}
+
+static int bma150_detect(struct i2c_client *client, int kind,
+			 struct i2c_board_info *info)
+{
+	strlcpy(info->type, "bma150", I2C_NAME_SIZE);
+	return 0;
 }
 
 static int bma150_remove(struct i2c_client *client)
@@ -1116,34 +1019,64 @@ static int bma150_remove(struct i2c_client *client)
 
 	return 0;
 }
-
 #ifdef CONFIG_PM
 static int bma150_suspend(struct i2c_client *client, pm_message_t state)
 {
-	struct bma150_data *dev = i2c_get_clientdata(client);
-
+/*	struct bma150_device *dev = i2c_get_clientdata(client); */
+	int ret;
+	u8 v;
 #if DEBUG
 	printk("%s()\n",__FUNCTION__);
 #endif
 
-	cancel_delayed_work_sync(&dev->wq);
-	smb380_set_mode(SMB380_MODE_SLEEP);
+	v = 0x01 & 0xff;/* set sleep mode "bit0 = 1"*/
+	
+	ret =  i2c_smbus_write_byte_data(client, 0x0A, v);
+	if (ret < 0) {
+		dev_err(&client->dev, "i2c_smbus_write_byte_data failed\n");
+		return -EIO;
+	}
+/* //This msensor_bma150.c
+	if (PM_EVENT_SUSPEND == state.event) {
+		cancel_work_sync(&dev->work);
+
+		if (!dev->use_irq) 
+			hrtimer_cancel(&dev->timer);
+	}
+*///This msensor_bma150.c
 	return 0;
 }
 
 static int bma150_resume(struct i2c_client *client)
 {
-	struct bma150_data *dev = i2c_get_clientdata(client);
+/*	struct bma150_device *dev = i2c_get_clientdata(client); */
+	int ret;
+	u8 v;
+#if DEBUG
+	printk("%s()\n",__FUNCTION__);
+#endif
+	
+	v = 0x00 & 0xff;/*from sleep mode to normal mode "bit0 = 1"*/
 
-	if(dev->input_dev->users)
-		smb380_set_mode(SMB380_MODE_NORMAL);
+	ret =  i2c_smbus_write_byte_data(client, 0x0A, v);
+	if (ret < 0) {
+		dev_err(&client->dev, "i2c_smbus_write_byte_data failed\n");
+		return -EIO;
+	}
+/*	
+	if (bma150_init_chip(client)) //This msensor_bma150.c
+		dev_err(&client->dev, "initialization of chip failed on resuming");
+
+	if (dev->enabled) //This msensor_bma150.c
+		hrtimer_start(&dev->timer, ktime_set(1, 0), HRTIMER_MODE_REL);
+	*///This msensor_bma150.c
 
 	return 0;
 }
 #endif
 
 static struct i2c_driver bma150_driver = {
-	.class = I2C_CLASS_HWMON,
+        .class = I2C_CLASS_HWMON,
 	.probe = bma150_probe,
 	.remove = bma150_remove,
 	.id_table = bma150_id,
@@ -1152,22 +1085,49 @@ static struct i2c_driver bma150_driver = {
 	.resume		= bma150_resume,
 #endif
 	.driver = {
-		.owner = THIS_MODULE,
+                .owner = THIS_MODULE,
 		.name	= "bma150",
 	},
+	.detect	= bma150_detect,
 };
 
 static int __init bma150_init(void)
 {
 	int res;
+	struct device *dev;
+	/* register a char dev	*/
+	res = register_chrdev(BMA150_MAJOR, "BMA150", &bma150_fops);
+	if (res)
+		goto out;
+	/* create BMA-dev device class */
+	bma_dev_class = class_create(THIS_MODULE, "BMA-dev");
+	if (IS_ERR(bma_dev_class)) {
+		res = PTR_ERR(bma_dev_class);
+		goto out_unreg_chrdev;
+	}
 	/* add i2c driver for bma150 */
 	res = i2c_add_driver(&bma150_driver);
 	if (res)
-		goto out;
-
+		goto out_unreg_class;
+	/* create device node for bma150 */
+	dev = device_create(bma_dev_class, NULL,
+				     MKDEV(BMA150_MAJOR, 0),
+				     NULL,
+				     "bma150");
+	if (IS_ERR(dev)) {
+		res = PTR_ERR(dev);
+		goto error_destroy;
+	}
 	printk(KERN_INFO "BMA150 device create ok\n");
 
 	return 0;
+
+error_destroy:
+	i2c_del_driver(&bma150_driver);
+out_unreg_class:
+	class_destroy(bma_dev_class);
+out_unreg_chrdev:
+	unregister_chrdev(BMA150_MAJOR, "BMA150");
 out:
 	printk(KERN_ERR "%s: Driver Initialisation failed\n", __FILE__);
 	return res;
@@ -1176,6 +1136,8 @@ out:
 static void __exit bma150_exit(void)
 {
 	i2c_del_driver(&bma150_driver);
+	class_destroy(bma_dev_class);
+	unregister_chrdev(BMA150_MAJOR,"BMA150");
 	printk(KERN_ERR "BMA150 exit\n");
 }
 
