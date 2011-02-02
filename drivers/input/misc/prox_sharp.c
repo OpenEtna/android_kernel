@@ -31,7 +31,9 @@
 static struct psensor_dev {
 	struct i2c_client *client;
 	int gpio;
+#ifdef REGISTER_INPUT
 	struct input_dev* input_dev;
+#endif
 } psdev;
 
 /*
@@ -121,6 +123,7 @@ static int sharp_psensor_init(struct i2c_client *client)
 	return ret;
 }
 
+#ifdef REGISTER_INPUT
 static int gp2ap002_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	return prox_vreg_set(0);
@@ -146,17 +149,28 @@ static int gp2ap002_resume(struct i2c_client *client)
 
 	return ret;
 }
+#endif
+
+static int status = 0;
+int is_proxi_open(void) {
+	return status;
+}
+EXPORT_SYMBOL(is_proxi_open);
 
 static irqreturn_t gp2ap002_isr(int o, void *_data) {
 
     printk("%s: entered, gpio= %d\n", __func__, gpio_get_value(psdev.gpio));
 
+	status = gpio_get_value(psdev.gpio);
+#ifdef REGISTER_INPUT
 	input_report_abs(psdev.input_dev, ABS_DISTANCE, gpio_get_value(psdev.gpio));
 	input_sync(psdev.input_dev);
+#endif
 
 	return IRQ_HANDLED;
 }
 
+#ifdef REGISTER_INPUT
 static int gp2ap002_open(struct input_dev *dev) {
 
 	int ret = prox_vreg_set(1);
@@ -173,6 +187,7 @@ static int gp2ap002_open(struct input_dev *dev) {
 static void gp2ap002_close(struct input_dev *dev) {
 	prox_vreg_set(0);
 }
+#endif
 
 static int gp2ap002_probe(struct i2c_client *client,
 		const struct i2c_device_id *dev_id)
@@ -187,6 +202,7 @@ static int gp2ap002_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, &psdev);
 	psdev.gpio = client->irq;
 
+#ifdef REGISTER_INPUT
 	psdev.input_dev = input_allocate_device();
 
     if (!psdev.input_dev) {
@@ -201,8 +217,15 @@ static int gp2ap002_probe(struct i2c_client *client,
     psdev.input_dev->open = gp2ap002_open;
     psdev.input_dev->close = gp2ap002_close;
     input_register_device(psdev.input_dev);
-
+#endif
 	request_irq(MSM_GPIO_TO_INT(psdev.gpio), gp2ap002_isr, IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING, "gp2ap002_irq", &psdev);
+
+#ifndef REGISTER_INPUT
+	printk("Starting sharp proximity sensor\n");
+	prox_vreg_set(1);
+	udelay(100);
+	sharp_psensor_init(psdev.client);
+#endif
 }
 
 static int gp2ap002_remove(struct i2c_client *client)
@@ -221,8 +244,10 @@ static struct i2c_driver i2c_gp2ap002_driver = {
 	.probe		= gp2ap002_probe,
 	.remove		= __devexit_p(gp2ap002_remove),
 	.id_table	= gp2ap002_idtable,
+#ifdef REGISTER_INPUT
 	.suspend	= gp2ap002_suspend,
 	.resume		= gp2ap002_resume,
+#endif
 };
 
 static int gp2ap002_init(void)
