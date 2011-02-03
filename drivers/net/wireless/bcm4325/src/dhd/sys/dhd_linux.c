@@ -429,7 +429,7 @@ static void
 _dhd_set_multicast_list(dhd_info_t *dhd, int ifidx)
 {
 	struct net_device *dev;
-	struct dev_mc_list *mclist;
+	struct netdev_hw_addr *ha;
 	uint32 allmulti, cnt;
 
 	wl_ioctl_t ioc;
@@ -439,8 +439,7 @@ _dhd_set_multicast_list(dhd_info_t *dhd, int ifidx)
 
 	ASSERT(dhd && dhd->iflist[ifidx]);
 	dev = dhd->iflist[ifidx]->net;
-	mclist = dev->mc_list;
-	cnt = dev->mc_count;
+	cnt = netdev_mc_count(dev);
 
 	/* Determine initial value of allmulti flag */
 	allmulti = (dev->flags & IFF_ALLMULTI) ? TRUE : FALSE;
@@ -462,9 +461,9 @@ _dhd_set_multicast_list(dhd_info_t *dhd, int ifidx)
 	memcpy(bufp, &cnt, sizeof(cnt));
 	bufp += sizeof(cnt);
 
-	for (cnt = 0; mclist && (cnt < dev->mc_count); cnt++, mclist = mclist->next) {
-		memcpy(bufp, (void *)mclist->dmi_addr, ETHER_ADDR_LEN);
-		bufp += ETHER_ADDR_LEN;
+	netdev_for_each_mc_addr(ha, dev) {
+		memcpy(bufp, ha->addr, ETH_ALEN);
+		bufp += ETH_ALEN;
 	}
 
 	memset(&ioc, 0, sizeof(ioc));
@@ -2072,7 +2071,7 @@ dhd_detach(dhd_pub_t *dhdp)
 	}
 }
 
-static void __exit
+static void
 dhd_module_cleanup(void)
 {
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));

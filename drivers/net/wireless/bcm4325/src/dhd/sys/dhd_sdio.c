@@ -60,7 +60,7 @@
 #include <dhdioctl.h>
 #include <sdiovar.h>
 
-#define DOWNLOAD_ARRAY    /* WAR: Not using malloc when download firmware */
+//#define DOWNLOAD_ARRAY    /* WAR: Not using malloc when download firmware */
 
 #define QLEN		128	/* bulk rx and tx queue lengths */
 #define FCHI		((QLEN) - 10)
