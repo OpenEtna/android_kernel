@@ -1,6 +1,7 @@
 config BCM4325
 	tristate "Broadcom BCM4325 wireless support"
 	depends on WLAN
+	default m
 	select WIRELESS_EXT
 	select WEXT_PRIV
 	---help---
@@ -38,7 +39,7 @@ config BCM4325_GPIO_WL_REGON
 
 config BRCM_LGE_WL_HOSTWAKEUP
 	bool "Support BCM4325/BCM4329 Host Wakeup function"
-	default 94
+	default n
 	depends on BCM4325
 
 config BRCM_LGE_WL_HOSTWAKEUP_IOCTL
@@ -84,5 +85,5 @@ config BRCM_USE_SOFTAP
 
 config BRCM_USE_STATIC_BUF
 	bool "Use static buff of osl_malloc"
-	default n
+	default y
 	depends on BCM4325
