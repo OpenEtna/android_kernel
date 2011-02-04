@@ -127,7 +127,6 @@ static int adsp_pmem_add(struct msm_adsp_module *module,
 		kfree(region);
 		goto end;
 	}
-
 	rc = adsp_pmem_check(module, info->vaddr, len);
 	if (rc < 0) {
 		put_pmem_file(file);
@@ -413,6 +412,24 @@ end:
 	return rc;
 }
 
+static int adsp_pmem_del(struct msm_adsp_module *module)
+{
+	struct hlist_node *node, *tmp;
+	struct adsp_pmem_region *region;
+
+	mutex_lock(&module->pmem_regions_lock);
+	hlist_for_each_safe(node, tmp, &module->pmem_regions) {
+		region = hlist_entry(node, struct adsp_pmem_region, list);
+		hlist_del(node);
+		put_pmem_file(region->file);
+		kfree(region);
+	}
+	mutex_unlock(&module->pmem_regions_lock);
+	BUG_ON(!hlist_empty(&module->pmem_regions));
+
+	return 0;
+}
+
 static long adsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	struct adsp_device *adev = filp->private_data;
@@ -425,7 +442,7 @@ static long adsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		return msm_adsp_disable(adev->module);
 
 	case ADSP_IOCTL_DISABLE_EVENT_RSP:
-		return 0;
+		return msm_adsp_disable_event_rsp(adev->module);
 
 	case ADSP_IOCTL_DISABLE_ACK:
 		pr_err("adsp: ADSP_IOCTL_DISABLE_ACK is not implemented.\n");
@@ -458,6 +475,9 @@ static long adsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		wake_up(&adev->event_wait);
 		break;
 
+	case ADSP_IOCTL_UNREGISTER_PMEM:
+		return adsp_pmem_del(adev->module);
+
 	default:
 		break;
 	}
@@ -468,26 +488,17 @@ static int adsp_release(struct inode *inode, struct file *filp)
 {
 	struct adsp_device *adev = filp->private_data;
 	struct msm_adsp_module *module = adev->module;
-	struct hlist_node *node, *tmp;
-	struct adsp_pmem_region *region;
+	int rc = 0;
 
 	pr_info("adsp_release() '%s'\n", adev->name);
 
 	/* clear module before putting it to avoid race with open() */
 	adev->module = NULL;
 
-	mutex_lock(&module->pmem_regions_lock);
-	hlist_for_each_safe(node, tmp, &module->pmem_regions) {
-		region = hlist_entry(node, struct adsp_pmem_region, list);
-		hlist_del(node);
-		put_pmem_file(region->file);
-		kfree(region);
-	}
-	mutex_unlock(&module->pmem_regions_lock);
-	BUG_ON(!hlist_empty(&module->pmem_regions));
+	rc = adsp_pmem_del(module);
 
 	msm_adsp_put(module);
-	return 0;
+	return rc;
 }
 
 static void adsp_event(void *driver_data, unsigned id, size_t len,
