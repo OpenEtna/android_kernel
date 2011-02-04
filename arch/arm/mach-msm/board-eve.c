@@ -134,7 +134,6 @@ static struct android_pmem_platform_data android_pmem_pdata = {
 	.name = "pmem",
 	.start = MSM_PMEM_MDP_BASE,
 	.size = MSM_PMEM_MDP_SIZE,
-	.no_allocator = 0,
 	.cached = 1,
 };
 
@@ -531,11 +530,11 @@ static struct platform_device *devices[] __initdata = {
 extern struct sys_timer msm_timer;
 
 static struct msm_acpu_clock_platform_data eve_clock_data = {
-	.acpu_switch_time_us = 50,
-	.max_speed_delta_khz = 256000,
-	.vdd_switch_time_us = 62,
-	.power_collapse_khz = 19200000,
-	.wait_for_irq_khz = 128000000,
+	.acpu_switch_time_us	= 50,
+	.max_speed_delta_khz	=    256000,
+	.vdd_switch_time_us		= 62,
+	.power_collapse_khz		=  19200000,
+	.wait_for_irq_khz		= 128000000,
 };
 
 // Please call this function only once.
