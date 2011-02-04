@@ -29,7 +29,7 @@
 #include <mach/board.h>
 #include <media/msm_camera.h>
 
-#define CAMERA_DBG_MSG
+//#define CAMERA_DBG_MSG
 #undef CDBG
 #ifdef CAMERA_DBG_MSG
 #define CDBG(fmt, args...) printk(KERN_INFO "msm_camera: " fmt, ##args)
