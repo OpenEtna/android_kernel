@@ -69,7 +69,7 @@ typedef struct cdc_ioctl {
 
 #define	BDC_HEADER_LEN		4
 
-#define BDC_PROTO_VER		1	/* Protocol version */
+#define BDC_PROTO_VER		2	/* Protocol version */
 
 #define BDC_FLAG_VER_MASK	0xf0	/* Protocol version mask */
 #define BDC_FLAG_VER_SHIFT	4	/* Protocol version shift */
