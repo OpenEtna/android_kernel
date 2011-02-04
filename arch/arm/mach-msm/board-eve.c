@@ -39,6 +39,8 @@
 #include <mach/vreg.h>
 #include <mach/camera.h>
 #include <mach/msm_rpcrouter.h>
+#include <mach/bcm_bt_lpm.h>
+#include <mach/msm_serial_hs.h>
 
 #include <linux/mtd/nand.h>
 #include <linux/mtd/partitions.h>
@@ -317,6 +319,27 @@ static struct platform_device eve_rfkill = {
 	.id = -1,
 };
 
+static struct msm_serial_hs_platform_data msm_uart_dm1_pdata = {
+    .rx_wakeup_irq = -1,
+    .inject_rx_on_wakeup = 0,
+    .exit_lpm_cb = bcm_bt_lpm_exit_lpm_locked,
+};
+
+static struct bcm_bt_lpm_platform_data bcm_bt_lpm_pdata = {
+    .gpio_wake = GPIO_BT_WAKE,
+    .gpio_host_wake = GPIO_BT_HOST_WAKE,
+    .request_clock_off_locked = msm_hs_request_clock_off_locked,
+    .request_clock_on_locked = msm_hs_request_clock_on_locked,
+};
+
+struct platform_device bcm_bt_lpm_device = {
+    .name = "bcm_bt_lpm",
+    .id = 0,
+    .dev = {
+        .platform_data = &bcm_bt_lpm_pdata,
+    },
+};
+
 /* mmc */
 void eve_init_mmc(void);
 
@@ -470,6 +493,8 @@ static struct i2c_board_info i2c_board_touch = {
 /* list of all devices from above or devices-msm7x00.c */
 static struct platform_device *devices[] __initdata = {
 	&msm_device_uart3,
+	&bcm_bt_lpm_device,
+	&msm_device_uart_dm1,
 	&eve_rfkill,
 	&msm_device_smd,
 	&msm_device_nand,
@@ -536,6 +561,7 @@ static void __init eve_init(void)
 	eve_get_hw_rev();
 
 	msm_device_hsusb.dev.platform_data = &msm_hsusb_pdata;
+	msm_device_uart_dm1.dev.platform_data = &msm_uart_dm1_pdata;
 	msm_acpu_clock_init(&eve_clock_data);
 
 	/* the chip does not onky handle the backlight, but also

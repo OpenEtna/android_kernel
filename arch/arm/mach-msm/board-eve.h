@@ -103,6 +103,8 @@
 
 /* wifi */
 #define BCM4325_GPIO_BT_RESET		93
+#define GPIO_BT_HOST_WAKE			83
+#define GPIO_BT_WAKE				92
 #define BCM4325_GPIO_WL_RESET		35
 #define BCM4325_GPIO_WL_WAKE		153
 #define BCM4325_GPIO_WL_REGON		21
