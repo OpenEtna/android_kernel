@@ -504,7 +504,7 @@ static struct platform_device *devices[] __initdata = {
 	&rndis_device,
 	&eve_battery_device,
 
-	&msm_device_i2c,
+	//&msm_device_i2c,
 	&msm_device_touchscreen,
 	&eve_bl_i2c_adap_bus,
 
