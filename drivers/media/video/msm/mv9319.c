@@ -1,18 +1,20 @@
-/*
+/* -*- mode: c; c-basic-offset: 8; -*-
+ * vim: noexpandtab sw=8 ts=8 sts=0:
+ *
  * Copyright (c) 2008-2009 QUALCOMM USA, INC.
  * Copyright (c) 2009 LG Electronics, INC.
- *
+ * 
  * All source code in this file is licensed under the following license
- *
+ * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
- *
+ * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, you can find it at http://www.fsf.org
  */
@@ -25,8 +27,8 @@
 #include <media/msm_camera.h>
 #include <mach/vreg.h>
 #include <mach/gpio.h>
-#include <linux/syscalls.h>
 #include <linux/slab.h>
+#include <linux/syscalls.h>
 #include "mv9319.h"
 
 #define FEATURE_MIMIC_ISP_JPG_SIZE 0
@@ -34,7 +36,8 @@
 #define FEATURE_CONTROL_MCLK 0
 #define FEATURE_NEW_POWER_ON_OFF_SEQUENCE 1
 
-#define CAMERA_DEBUG 1
+//#define CAMERA_DEBUG 1
+#define CAMERA_DEBUG 0
 #if (CAMERA_DEBUG)
 #define LDBG(fmt, args...) printk(fmt,##args)
 #define LDBG1(fmt, args...) do {} while(0) //printk(fmt,##args)
@@ -53,6 +56,7 @@
 
 #define MV9319_SET_DELAY_MSEC 10
 
+#if FEATURE_CONTROL_MCLK
 static unsigned cam_mclk_config[2] = {
 #if 1
 	GPIO_CFG(GPIO_CAM_MCLK, 0, GPIO_OUTPUT, GPIO_PULL_DOWN, GPIO_2MA),
@@ -63,6 +67,7 @@ static unsigned cam_mclk_config[2] = {
 	GPIO_CFG(GPIO_CAM_MCLK, 1, GPIO_OUTPUT, GPIO_PULL_DOWN, GPIO_16MA),
 #endif
 };
+#endif
 
 static int flag_update_firmware = 0;
 static unsigned char firmware_ver_major, firmware_ver_minor;
@@ -82,14 +87,14 @@ static struct i2c_client *mv9319_fw_client;
 
 struct mv9319_ctrl_t {
 	struct msm_camera_sensor_info *sensordata;
-	int sensormode;
-	int flashmode;
+	enum sensor_mode_t sensormode;
+	enum camera_flash_mode_t flashmode;
 
 	unsigned char qfactor;
 	unsigned char jpg_buf_size;
 
 	/* for Video Camera */
-	int effect;
+	enum camera_effect_t effect;
 	enum camera_wb_t wb;
 	enum camera_scene_mode_t scene;
 	unsigned char brightness;
@@ -99,7 +104,7 @@ struct mv9319_ctrl_t {
 	int af_enabled;
 #if FEATURE_MIMIC_ISP_JPG_SIZE
 	/*enum camera_img_quality_t*/ int img_quality;
-	/*int*/ int res;
+	/*enum sensor_resolution_t*/ int res;
 #endif
 };
 
@@ -119,8 +124,8 @@ int eve_flash_set_led_state(int led_state);
 
 int bd6083_set_ldo_power(int ldo_no, int on);
 int bd6083_set_ldo_vout(int ldo_no, unsigned vout_mv);
-//int bd6083_set_camera_on_mode(void);
-//int bd6083_set_camera_off_mode(void);
+int bd6083_set_camera_on_mode(void);
+int bd6083_set_camera_off_mode(void);
 
 static int mv9319_set_vreg_avdd(int on)
 {
@@ -157,15 +162,15 @@ failure:
 }
 
 static int mv9319_i2c_write_buffer(struct i2c_client *write_client,
-		unsigned char *str, unsigned short length)
+				   unsigned char *str, unsigned short length)
 {
 	struct i2c_msg msg[] = {
 		{
-			.addr = write_client->addr,
-			.flags = 0,
-			.len = length,
-			.buf = str,
-		},
+		 .addr = write_client->addr,
+		 .flags = 0,
+		 .len = length,
+		 .buf = str,
+		 },
 	};
 
 	if (i2c_transfer(write_client->adapter, msg, 1) < 0) {
@@ -177,7 +182,7 @@ static int mv9319_i2c_write_buffer(struct i2c_client *write_client,
 }
 
 static int mv9319_i2c_write_byte(struct i2c_client *write_client,
-		unsigned short waddr, unsigned short wdata)
+				 unsigned short waddr, unsigned short wdata)
 {
 	unsigned char str[2];
 	struct i2c_msg msg[1];
@@ -201,16 +206,16 @@ static int mv9319_i2c_write_byte(struct i2c_client *write_client,
 }
 
 static int mv9319_i2c_write_byte_table(struct i2c_client *write_client,
-		struct mv9319_i2c_reg_conf const
-		*reg_conf_tbl, int num_of_items_in_table)
+				       struct mv9319_i2c_reg_conf const
+				       *reg_conf_tbl, int num_of_items_in_table)
 {
 	int i;
 	int rc = -EFAULT;
 
 	for (i = 0; i < num_of_items_in_table; i++) {
 		rc = mv9319_i2c_write_byte(write_client,
-				reg_conf_tbl->waddr,
-				reg_conf_tbl->wdata);
+					   reg_conf_tbl->waddr,
+					   reg_conf_tbl->wdata);
 		if (rc < 0)
 			break;
 		reg_conf_tbl++;
@@ -220,23 +225,23 @@ static int mv9319_i2c_write_byte_table(struct i2c_client *write_client,
 }
 
 static int mv9319_i2c_read_byte(struct i2c_client *read_client,
-		unsigned char raddr, unsigned char *rdata)
+				unsigned char raddr, unsigned char *rdata)
 {
 	int ret = 0;
 
 	struct i2c_msg msgs[2] = {
 		{
-			.addr = read_client->addr,
-			.flags = 0,
-			.len = 1,
-			.buf = &raddr,
-		},
+		 .addr = read_client->addr,
+		 .flags = 0,
+		 .len = 1,
+		 .buf = &raddr,
+		 },
 		{
-			.addr = read_client->addr,
-			.flags = I2C_M_RD,
-			.len = 1,
-			.buf = rdata,
-		},
+		 .addr = read_client->addr,
+		 .flags = I2C_M_RD,
+		 .len = 1,
+		 .buf = rdata,
+		 },
 	};
 
 	ret = i2c_transfer(read_client->adapter, msgs, 2);
@@ -258,7 +263,7 @@ static int mv9319_power_on_1(void)
 	LDBG("mv9319: %s called\n", __func__);
 
 	// RESET to Low
-	gpio_direction_output(GPIO_CAM_RESET, 0);
+	gpio_set_value(GPIO_CAM_RESET, 0);
 
 	mdelay(10);
 
@@ -291,7 +296,7 @@ static int mv9319_power_on_2(void)
 	mdelay(10);
 
 	// RESET to HIGH
-	gpio_direction_output(GPIO_CAM_RESET, 1);
+	gpio_set_value(GPIO_CAM_RESET, 1);
 
 	mdelay(5);
 
@@ -303,17 +308,19 @@ int mv9319_power_off_1(void)
 	int rc = 0;
 	LDBG("mv9319: %s called\n", __func__);
 	// Reset to Low
-	gpio_direction_output(GPIO_CAM_RESET, 0);
+	gpio_set_value(GPIO_CAM_RESET, 0);
 
 	mdelay(10);
-
+#if FEATURE_CONTROL_MCLK	
 	// MCLK to Low
 	rc = gpio_tlmm_config(cam_mclk_config[0], GPIO_ENABLE);
 	if (rc != 0) {
 		printk("mv9319: cam_mclk_config_0 error %d\n", rc);
 		return -1;
 	}
-	gpio_direction_output(GPIO_CAM_MCLK, 0);
+	gpio_configure(GPIO_CAM_MCLK, GPIOF_DRIVE_OUTPUT);
+	gpio_set_value(GPIO_CAM_MCLK, 0);
+#endif
 	mdelay(1);
 
 	return rc;
@@ -348,7 +355,7 @@ static int mv9319_power_on(void)
 	LDBG("mv9319: %s called\n", __func__);
 
 	// RESET to Low
-	gpio_direction_output(GPIO_CAM_RESET, 0);
+	gpio_set_value(GPIO_CAM_RESET, 0);
 
 #if FEATURE_CONTROL_MCLK
 	// MCLK to Low
@@ -357,7 +364,8 @@ static int mv9319_power_on(void)
 		printk("mv9319: cam_mclk_config_0 error\n");
 		return -1;
 	}
-	gpio_direction_output(GPIO_CAM_MCLK, 0);
+	gpio_configure(GPIO_CAM_MCLK, GPIOF_DRIVE_OUTPUT);
+	gpio_set_value(GPIO_CAM_MCLK, 0);
 #endif
 
 	// Enable Power
@@ -394,7 +402,7 @@ static int mv9319_power_on(void)
 	msleep(10);
 
 	// RESET to HIGH
-	gpio_direction_output(GPIO_CAM_RESET, 1);
+	gpio_set_value(GPIO_CAM_RESET, 1);
 
 	msleep(1);
 
@@ -410,7 +418,7 @@ static void mv9319_power_off(void)
 	LDBG("mv9319: %s called\n", __func__);
 
 	// Reset to Low
-	gpio_direction_output(GPIO_CAM_RESET, 0);
+	gpio_set_value(GPIO_CAM_RESET, 0);
 
 	msleep(5);
 
@@ -421,7 +429,8 @@ static void mv9319_power_off(void)
 		printk("mv9319: cam_mclk_config_0 error %d\n", rc);
 		return;
 	}
-	gpio_direction_output(GPIO_CAM_MCLK, 0);
+	gpio_configure(GPIO_CAM_MCLK, GPIOF_DRIVE_OUTPUT);
+	gpio_set_value(GPIO_CAM_MCLK, 0);
 	msleep(1);
 #endif
 
@@ -448,6 +457,8 @@ static int mv9319_configure_pins(void)
 		return -EIO;
 	}
 
+	gpio_direction_output(GPIO_CAM_RESET, 0);
+
 	rc = gpio_request(GPIO_CAM_MCLK, "mv9319_mclk");
 	if (rc != 0) {
 		printk("mv9319: mv9319_mclk gpio_request failed\n");
@@ -463,7 +474,8 @@ static int mv9319_configure_pins(void)
 		return -EIO;
 	}
 
-	gpio_direction_output(GPIO_RES_CHG_BB, 0);
+	gpio_configure(GPIO_RES_CHG_BB, GPIOF_DRIVE_OUTPUT);
+	gpio_set_value(GPIO_RES_CHG_BB, 0);
 #endif
 	return 0;
 }
@@ -483,8 +495,8 @@ int mv9319_is_fw_downloaded(void)
 
 	/* PLL Setup Start */
 	rc = mv9319_i2c_write_byte_table(mv9319_client,
-			&normal_pll_setup_tbl[0],
-			ARRAY_SIZE(normal_pll_setup_tbl));
+					 &normal_pll_setup_tbl[0],
+					 ARRAY_SIZE(normal_pll_setup_tbl));
 
 	if (rc < 0)
 		return rc;
@@ -495,17 +507,17 @@ int mv9319_is_fw_downloaded(void)
 	mv9319_i2c_read_byte(mv9319_client, MV9319_CMD_VER_MAJOR, &firmware_ver_major);
 	mv9319_i2c_read_byte(mv9319_client, MV9319_CMD_VER_MINOR, &firmware_ver_minor);
 
-	printk(KERN_INFO "mv9319: Is firmware 0x%x.0x%x downloaded ? ",
+	LDBG("mv9319: Is firmware 0x%x.0x%x downloaded ? ", 
 			MV9319_FIRMWARE_VER_MAJOR, MV9319_FIRMWARE_VER_MINOR);
 
 	if ((firmware_ver_major != MV9319_FIRMWARE_VER_MAJOR)
-			|| (firmware_ver_minor != MV9319_FIRMWARE_VER_MINOR)) {
-		printk(KERN_INFO "NO. major=0x%x,minor=0x%x\n",
+	    || (firmware_ver_minor != MV9319_FIRMWARE_VER_MINOR)) {
+		LDBG("NO. major=0x%x,minor=0x%x\n", 
 				firmware_ver_major, firmware_ver_minor);
 		return 0;
 	}
 
-	printk(KERN_INFO "YES. major=0x%x, minor=0x%x\n", firmware_ver_major, firmware_ver_minor);
+	LDBG("YES. major=0x%x, minor=0x%x\n", firmware_ver_major, firmware_ver_minor);
 
 	return 1;
 }
@@ -527,12 +539,12 @@ static int mv9319_burn_firmware(void)
 		{0x80, 0x02},	// Start Cmd
 	};
 
-	printk(KERN_INFO "mv9319: burning firwmare....\n");
+	printk("mv9319: burning firwmare....\n");
 
 	/* PLL Setup Start */
 	rc = mv9319_i2c_write_byte_table(mv9319_client,
-			&pll_setup_tbl[0],
-			ARRAY_SIZE(pll_setup_tbl));
+					 &pll_setup_tbl[0],
+					 ARRAY_SIZE(pll_setup_tbl));
 	if (rc < 0)
 		return rc;
 	/* PLL Setup End   */
@@ -544,7 +556,7 @@ static int mv9319_burn_firmware(void)
 		return rc;
 
 	rc = mv9319_i2c_write_buffer(mv9319_fw_client, cmd_buf[0], 3);
-	if (rc < 0)
+	if (rc < 0) 
 		return rc;
 
 	msleep(150);
@@ -554,11 +566,11 @@ static int mv9319_burn_firmware(void)
 		return rc;
 
 	LDBG1("%s: ARRAY_SIZE(mv9319_img_buf) = %d\n",
-			__func__, ARRAY_SIZE(mv9319_img_buf));
+	      __func__, ARRAY_SIZE(mv9319_img_buf));
 
 	rc = mv9319_i2c_write_buffer(mv9319_fw_client,
-			(unsigned char *)mv9319_img_buf,
-			ARRAY_SIZE(mv9319_img_buf));
+				     (unsigned char *)mv9319_img_buf,
+				     ARRAY_SIZE(mv9319_img_buf));
 	if (rc < 0)
 		return rc;
 
@@ -566,7 +578,7 @@ static int mv9319_burn_firmware(void)
 	if (rc < 0)
 		return rc;
 
-	printk(KERN_INFO "mv9319: firmware buring end\n");
+	LDBG("mv9319: firmware buring end\n");
 
 	return 0;
 }
@@ -600,7 +612,7 @@ static int mv9319_burn_firmware_from_file(void)
 	fd = sys_open(MV9319_FIRMWARE_FILE_PATH, O_RDONLY, 0);
 	if (fd < 0) {
 		printk(KERN_WARNING "%s: Can not open %s[%d]\n",
-				__func__, MV9319_FIRMWARE_FILE_PATH, fd);
+			__func__, MV9319_FIRMWARE_FILE_PATH, fd);
 		return -ENOENT;
 	}
 
@@ -616,7 +628,7 @@ static int mv9319_burn_firmware_from_file(void)
 	LDBG("mv9319: firmware file size %u\n", count);
 
 	// XXX: MUST: count <= MV9319_ISP_BINARY_BUF_SIZE
-
+	
 	for (i = 0; i < count; i++) {
 		if ((unsigned)sys_read(fd, (char *)&data, 1) != 1) {
 			rc = -EIO;
@@ -634,8 +646,8 @@ static int mv9319_burn_firmware_from_file(void)
 
 	/* PLL Setup Start */
 	rc = mv9319_i2c_write_byte_table(mv9319_client,
-			&pll_setup_tbl[0],
-			ARRAY_SIZE(pll_setup_tbl));
+					 &pll_setup_tbl[0],
+					 ARRAY_SIZE(pll_setup_tbl));
 	if (rc < 0)
 		return rc;
 	/* PLL Setup End   */
@@ -647,13 +659,13 @@ static int mv9319_burn_firmware_from_file(void)
 		return rc;
 
 	rc = mv9319_i2c_write_buffer(mv9319_fw_client, cmd_buf[0], 3);
-	if (rc < 0)
+	if (rc < 0) 
 		return rc;
 
 	msleep(150);
 
 	rc = mv9319_i2c_write_buffer(mv9319_fw_client, cmd_buf[1], 3);
-	if (rc < 0)
+	if (rc < 0) 
 		return rc;
 
 	printk("mv9319: firmware buring start\n");
@@ -700,8 +712,8 @@ static int mv9319_verify_firmware(void)
 
 	/* PLL Setup Start */
 	rc = mv9319_i2c_write_byte_table(mv9319_client,
-			&pll_setup_tbl[0],
-			ARRAY_SIZE(pll_setup_tbl));
+					 &pll_setup_tbl[0],
+					 ARRAY_SIZE(pll_setup_tbl));
 
 	if (rc < 0)
 		return rc;
@@ -726,12 +738,12 @@ static int mv9319_verify_firmware(void)
 	}
 
 	mv9319_i2c_read_byte(mv9319_client,
-			MV9319_CMD_FW_CHECKSUM_MSB, &checksum_msb);
+			     MV9319_CMD_FW_CHECKSUM_MSB, &checksum_msb);
 	mv9319_i2c_read_byte(mv9319_client,
-			MV9319_CMD_FW_CHECKSUM_LSB, &checksum_lsb);
+			     MV9319_CMD_FW_CHECKSUM_LSB, &checksum_lsb);
 
 	if ((checksum_msb != MV9319_FIRMWARE_CHECKSUM_MSB)
-			|| (checksum_lsb != MV9319_FIRMWARE_CHECKSUM_LSB)) {
+	    || (checksum_lsb != MV9319_FIRMWARE_CHECKSUM_LSB)) {
 		printk("mv9319: Veficiation Failed: 0x%x:msb=0x%x, 0x%x:lsb=0x%x\n",
 				MV9319_FIRMWARE_CHECKSUM_MSB,
 				checksum_msb,
@@ -740,8 +752,8 @@ static int mv9319_verify_firmware(void)
 		return 1;
 	}
 
-	printk(KERN_INFO "Firmware checksum check succeed. msb=0x%x, lsb=0x%x\n",
-			checksum_msb, checksum_lsb);
+	LDBG("Firmware checksum check succeed. msb=0x%x, lsb=0x%x\n",
+	      checksum_msb, checksum_lsb);
 
 	return 0;
 }
@@ -770,8 +782,8 @@ static long mv9319_normal_boot(void)
 
 	/* PLL Setup Start */
 	rc = mv9319_i2c_write_byte_table(mv9319_client,
-			&normal_pll_setup_tbl[0],
-			ARRAY_SIZE(normal_pll_setup_tbl));
+					 &normal_pll_setup_tbl[0],
+					 ARRAY_SIZE(normal_pll_setup_tbl));
 
 	if (rc < 0)
 		return rc;
@@ -834,7 +846,7 @@ static int mv9319_enable_flash_led_strobe(int is_pre_flash)
 		}
 		LDBG("mv9319: current luminance 0x%x\n", current_luminance);
 
-		if (current_luminance < 2) { /* 50 Lux */
+		if (current_luminance < 2) { /* 50 Lux */ 
 			if (is_pre_flash) {
 				eve_flash_set_led_state(7);
 
@@ -859,7 +871,7 @@ static int mv9319_enable_flash_led_strobe(int is_pre_flash)
 		}
 
 		if (is_pre_flash) {
-			if (current_luminance < 2) {/* 50 Lux */
+			if (current_luminance < 2) {/* 50 Lux */ 
 				eve_flash_set_led_state(7);
 #if 0 /* 2009/09/25 too dark */
 				rc = mv9319_i2c_write_byte(mv9319_client,
@@ -898,7 +910,7 @@ static int32_t mv9319_suspend_auto_focus(void)
 			return rc;
 
 		LDBG1("%s: Auto Focus status 0xCC ?= 0x%x\n", __func__,
-				data);
+		      data);
 
 		retry++;
 		msleep(10);
@@ -954,7 +966,7 @@ static int32_t mv9319_set_auto_focus(int macro_focus)
 			return rc;
 
 		LDBG1("%s: Auto Focus Change Finish Check 0x%x\n", __func__,
-				data);
+		      data);
 
 		retry++;
 		msleep(10);
@@ -974,7 +986,7 @@ static int32_t mv9319_set_auto_focus(int macro_focus)
 	return 1;
 }
 
-static int mv9319_check_resolution_change(int mode)
+static int mv9319_check_resolution_change(enum sensor_mode_t mode)
 {
 	long rc = 0;
 	unsigned char data = 0;
@@ -986,7 +998,7 @@ static int mv9319_check_resolution_change(int mode)
 			return rc;
 
 		LDBG1("%s: Resolution Change Finish Check 0x%x\n", __func__,
-				data);
+		      data);
 
 		retry++;
 		msleep(10);
@@ -1026,8 +1038,8 @@ static int mv9319_check_resolution_change(int mode)
 	return 0;
 }
 
-static int32_t mv9319_video_config(int mode,
-		int res)
+static int32_t mv9319_video_config(enum sensor_mode_t mode,
+				   enum sensor_resolution_t res)
 {
 	long rc;
 	unsigned char image_format_cmd;
@@ -1037,40 +1049,40 @@ static int32_t mv9319_video_config(int mode,
 	/* We uses only VGA resolution. VFE will crop for QVGA */
 #if 0
 	switch (res) {
-		case SENSOR_QVGA_SIZE:
-			break;
-		case SENSOR_VGA_SIZE:
-			image_format_cmd = MV9319_F_VGA;
-			break;
-		case SENSOR_QUADVGA_SIZE:
-		case SENSOR_UXGA_SIZE:
-		case SENSOR_QXGA_SIZE:
-		case SENSOR_QSXGA_SIZE:
-			break;
-		default:
-			printk("mv9319: wrong capture image size, set VGA\n");
-			image_format_cmd = MV9319_F_VGA;
+	case SENSOR_QVGA_SIZE:
+		break;
+	case SENSOR_VGA_SIZE:
+		image_format_cmd = MV9319_F_VGA;
+		break;
+	case SENSOR_QUADVGA_SIZE:
+	case SENSOR_UXGA_SIZE:
+	case SENSOR_QXGA_SIZE:
+	case SENSOR_QSXGA_SIZE:
+		break;
+	default:
+		printk("mv9319: wrong capture image size, set VGA\n");
+		image_format_cmd = MV9319_F_VGA;
 	}
 #endif
 	image_format_cmd = MV9319_F_VGA;
 
 	rc = mv9319_i2c_write_byte(mv9319_client,
-			MV9319_CMD_STATUS_SET_FORMAT, 0x00);
+				   MV9319_CMD_STATUS_SET_FORMAT, 0x00);
 	if (rc < 0)
 		return rc;
 
 	LDBG("mv9319: image format cmd 0x%x\n", image_format_cmd);
 
 	rc = mv9319_i2c_write_byte(mv9319_client,
-			MV9319_CMD_FORMAT, image_format_cmd);
+				   MV9319_CMD_FORMAT, image_format_cmd);
 	if (rc < 0)
 		return rc;
 
 	return mv9319_check_resolution_change(mode);
 }
 
-static int32_t mv9319_snapshot_config(int mode,
-		int res)
+static int32_t mv9319_snapshot_config(enum sensor_mode_t mode,
+		enum sensor_resolution_t res)
 {
 	long rc;
 	unsigned char image_format_cmd;
@@ -1100,7 +1112,7 @@ static int32_t mv9319_snapshot_config(int mode,
 	}
 
 	/* Image Size Change & Mode Selection */
-	rc = mv9319_i2c_write_byte(mv9319_client,
+	rc = mv9319_i2c_write_byte(mv9319_client, 
 			MV9319_CMD_STATUS_SET_FORMAT, 0x00);
 	if (rc < 0)
 		return rc;
@@ -1127,8 +1139,8 @@ static long mv9319_set_jpg_control(void)
 	unsigned char dbg_temp = 0;
 #endif
 	rc = mv9319_i2c_write_byte(mv9319_client,
-			MV9319_CMD_JPG_Q_FACTOR,
-			mv9319_ctrl->qfactor);
+				   MV9319_CMD_JPG_Q_FACTOR,
+				   mv9319_ctrl->qfactor);
 	if (rc < 0)
 		return rc;
 
@@ -1143,8 +1155,8 @@ static long mv9319_set_jpg_control(void)
 #endif
 
 	rc = mv9319_i2c_write_byte(mv9319_client,
-			MV9319_CMD_JPG_BUFFER_SIZE,
-			mv9319_ctrl->jpg_buf_size);
+				   MV9319_CMD_JPG_BUFFER_SIZE, 
+				   mv9319_ctrl->jpg_buf_size);
 	if (rc < 0)
 		return rc;
 
@@ -1153,7 +1165,7 @@ static long mv9319_set_jpg_control(void)
 #if CAMERA_DEBUG
 	dbg_temp = 0;
 	rc = mv9319_i2c_read_byte(mv9319_client,
-			MV9319_CMD_JPG_BUFFER_SIZE, &dbg_temp);
+				  MV9319_CMD_JPG_BUFFER_SIZE, &dbg_temp);
 	if (rc < 0)
 		return rc;
 	LDBG("##### %s: JPEG Buffer size 0x%x\n", __func__, dbg_temp);
@@ -1162,8 +1174,8 @@ static long mv9319_set_jpg_control(void)
 	return rc;
 }
 
-static int32_t mv9319_raw_snapshot_config(int mode,
-		int res)
+static int32_t mv9319_raw_snapshot_config(enum sensor_mode_t mode,
+					  enum sensor_resolution_t res)
 {
 
 	long rc = 0;
@@ -1202,7 +1214,7 @@ static int32_t mv9319_raw_snapshot_config(int mode,
 		return rc;
 
 	rc = mv9319_i2c_write_byte(mv9319_client,
-			MV9319_CMD_STATUS_SET_FORMAT, 0x00);
+				   MV9319_CMD_STATUS_SET_FORMAT, 0x00);
 	if (rc < 0)
 		return rc;
 
@@ -1213,7 +1225,7 @@ static int32_t mv9319_raw_snapshot_config(int mode,
 		return rc;
 
 	rc = mv9319_i2c_write_byte(mv9319_client,
-			MV9319_CMD_FORMAT, image_format_cmd);
+				   MV9319_CMD_FORMAT, image_format_cmd);
 	if (rc < 0)
 		return rc;
 
@@ -1249,7 +1261,6 @@ static int mv9319_probe_init_sensor(struct msm_camera_sensor_info *data)
 	}
 
 #if FEATURE_NEW_POWER_ON_OFF_SEQUENCE
-	mv9319_power_on_1();
 	mv9319_power_on_2();
 #else
 	mv9319_power_on();
@@ -1311,18 +1322,18 @@ static int mv9319_probe_init_sensor(struct msm_camera_sensor_info *data)
 			}
 		}
 		LDBG1("%s: fw check end[%lu]\n", __func__, jiffies);
-		//	} else {
-		//		bd6083_set_camera_on_mode(); // To disable ALC mode
-}
+	} else {
+		bd6083_set_camera_on_mode(); // To disable ALC mode
+	}
 
-if (rc >= 0)
-	goto init_done;
+	if (rc >= 0)
+		goto init_done;
 
 init_fail:
-return rc;
+	return rc;
 init_done:
-LDBG("%s: init success [%lu]\n", __func__, jiffies);
-return rc;
+	LDBG("%s: init success [%lu]\n", __func__, jiffies);
+	return rc;
 }
 
 static int mv9319_sensor_open_init(struct msm_camera_sensor_info *data)
@@ -1357,7 +1368,7 @@ static int mv9319_sensor_open_init(struct msm_camera_sensor_info *data)
 	if (rc < 0)
 		goto init_fail1;
 
-	if (rc >= 0)
+	if (rc >= 0) 
 		rc = mv9319_normal_boot();
 	else
 		goto init_fail1;
@@ -1385,28 +1396,28 @@ static int mv9319_init_client(struct i2c_client *client)
 	return 0;
 }
 
-static int32_t mv9319_set_sensor_mode(int mode,
-		int res)
+static int32_t mv9319_set_sensor_mode(enum sensor_mode_t mode,
+				      enum sensor_resolution_t res)
 {
 	int32_t rc = 0;
 
 	LDBG("%s: called\n", __func__);
 	switch (mode) {
-		case SENSOR_PREVIEW_MODE:
-			rc = mv9319_video_config(mode, res);
-			break;
+	case SENSOR_PREVIEW_MODE:
+		rc = mv9319_video_config(mode, res);
+		break;
 
-		case SENSOR_SNAPSHOT_MODE:
-			rc = mv9319_snapshot_config(mode, res);
-			break;
+	case SENSOR_SNAPSHOT_MODE:
+		rc = mv9319_snapshot_config(mode, res);
+		break;
 
-		case SENSOR_RAW_SNAPSHOT_MODE:
-			rc = mv9319_raw_snapshot_config(mode, res);
-			break;
+	case SENSOR_RAW_SNAPSHOT_MODE:
+		rc = mv9319_raw_snapshot_config(mode, res);
+		break;
 
-		default:
-			rc = -EINVAL;
-			break;
+	default:
+		rc = -EINVAL;
+		break;
 	}
 
 	msleep(MV9319_SET_DELAY_MSEC);
@@ -1414,92 +1425,92 @@ static int32_t mv9319_set_sensor_mode(int mode,
 	return rc;
 }
 
-static long mv9319_set_effect(int mode, int8_t effect)
+static long mv9319_set_effect(enum sensor_mode_t mode, int8_t effect)
 {
 	long rc = 0;
 
 	LDBG("%s: called, %d\n", __func__, effect);
 
-	switch ((int)effect) {
-		case CAMERA_EFFECT_OFF:
-			rc = mv9319_i2c_write_byte(mv9319_client,
-					MV9319_CMD_EFFECT_CONTORL,
-					MV9319_EFFECT_NORMAL);
-			if (rc < 0)
-				return rc;
-			break;
-		case CAMERA_EFFECT_MONO:
-			rc = mv9319_i2c_write_byte(mv9319_client,
-					MV9319_CMD_EFFECT_CONTORL,
-					MV9319_EFFECT_BNW);
-			if (rc < 0)
-				return rc;
-			break;
-		case CAMERA_EFFECT_NEGATIVE:
-			rc = mv9319_i2c_write_byte(mv9319_client,
-					MV9319_CMD_EFFECT_CONTORL,
-					MV9319_EFFECT_NNP);
-			if (rc < 0)
-				return rc;
+	switch ((enum camera_effect_t)effect) {
+	case CAMERA_EFFECT_OFF:
+		rc = mv9319_i2c_write_byte(mv9319_client,
+					   MV9319_CMD_EFFECT_CONTORL,
+					   MV9319_EFFECT_NORMAL);
+		if (rc < 0)
+			return rc;
+		break;
+	case CAMERA_EFFECT_MONO:
+		rc = mv9319_i2c_write_byte(mv9319_client,
+					   MV9319_CMD_EFFECT_CONTORL,
+					   MV9319_EFFECT_BNW);
+		if (rc < 0)
+			return rc;
+		break;
+	case CAMERA_EFFECT_NEGATIVE:
+		rc = mv9319_i2c_write_byte(mv9319_client,
+					   MV9319_CMD_EFFECT_CONTORL,
+					   MV9319_EFFECT_NNP);
+		if (rc < 0)
+			return rc;
 
-			break;
-		case CAMERA_EFFECT_SOLARIZE:
-			rc = mv9319_i2c_write_byte(mv9319_client,
-					MV9319_CMD_EFFECT_CONTORL,
-					MV9319_EFFECT_SOLARIZE);
-			if (rc < 0)
-				return rc;
-			break;
-		case CAMERA_EFFECT_SEPIA:
-			rc = mv9319_i2c_write_byte(mv9319_client,
-					MV9319_CMD_EFFECT_CONTORL,
-					MV9319_EFFECT_SEPIA);
-			if (rc < 0)
-				return rc;
+		break;
+	case CAMERA_EFFECT_SOLARIZE:
+		rc = mv9319_i2c_write_byte(mv9319_client,
+					   MV9319_CMD_EFFECT_CONTORL,
+					   MV9319_EFFECT_SOLARIZE);
+		if (rc < 0)
+			return rc;
+		break;
+	case CAMERA_EFFECT_SEPIA:
+		rc = mv9319_i2c_write_byte(mv9319_client,
+					   MV9319_CMD_EFFECT_CONTORL,
+					   MV9319_EFFECT_SEPIA);
+		if (rc < 0)
+			return rc;
 
-			break;
-		case CAMERA_EFFECT_AQUA:
-			rc = mv9319_i2c_write_byte(mv9319_client,
-					MV9319_CMD_EFFECT_CONTORL,
-					MV9319_EFFECT_AQUA);
-			if (rc < 0)
-				return rc;
+		break;
+	case CAMERA_EFFECT_AQUA:
+		rc = mv9319_i2c_write_byte(mv9319_client,
+					   MV9319_CMD_EFFECT_CONTORL,
+					   MV9319_EFFECT_AQUA);
+		if (rc < 0)
+			return rc;
 
-			break;
-		case CAMERA_EFFECT_SKETCH:
-			rc = mv9319_i2c_write_byte(mv9319_client,
-					MV9319_CMD_EFFECT_CONTORL,
-					MV9319_EFFECT_SKETCH);
-			if (rc < 0)
-				return rc;
+		break;
+	case CAMERA_EFFECT_SKETCH:
+		rc = mv9319_i2c_write_byte(mv9319_client,
+					   MV9319_CMD_EFFECT_CONTORL,
+					   MV9319_EFFECT_SKETCH);
+		if (rc < 0)
+			return rc;
 
-			break;
-		case CAMERA_EFFECT_EMBOSS:
-			rc = mv9319_i2c_write_byte(mv9319_client,
-					MV9319_CMD_EFFECT_CONTORL,
-					MV9319_EFFECT_EMBOSS);
-			if (rc < 0)
-				return rc;
+		break;
+	case CAMERA_EFFECT_EMBOSS:
+		rc = mv9319_i2c_write_byte(mv9319_client,
+					   MV9319_CMD_EFFECT_CONTORL,
+					   MV9319_EFFECT_EMBOSS);
+		if (rc < 0)
+			return rc;
 
-			break;
-		case CAMERA_EFFECT_RED:
-			rc = mv9319_i2c_write_byte(mv9319_client,
-					MV9319_CMD_EFFECT_CONTORL,
-					MV9319_EFFECT_RED);
-			if (rc < 0)
-				return rc;
+		break;
+	case CAMERA_EFFECT_RED:
+		rc = mv9319_i2c_write_byte(mv9319_client,
+					   MV9319_CMD_EFFECT_CONTORL,
+					   MV9319_EFFECT_RED);
+		if (rc < 0)
+			return rc;
 
-			break;
-		case CAMERA_EFFECT_GREEN:
-			rc = mv9319_i2c_write_byte(mv9319_client,
-					MV9319_CMD_EFFECT_CONTORL,
-					MV9319_EFFECT_GREEN);
-			if (rc < 0)
-				return rc;
+		break;
+	case CAMERA_EFFECT_GREEN:
+		rc = mv9319_i2c_write_byte(mv9319_client,
+					   MV9319_CMD_EFFECT_CONTORL,
+					   MV9319_EFFECT_GREEN);
+		if (rc < 0)
+			return rc;
 
-			break;
-		default:
-			return -EFAULT;
+		break;
+	default:
+		return -EFAULT;
 	}
 
 	mv9319_ctrl->effect = effect;
@@ -1517,28 +1528,28 @@ static long mv9319_set_wb(int8_t wb)
 	LDBG("%s: called, new wb: %d\n", __func__, wb);
 
 	switch ((enum camera_wb_t)wb) {
-		case CAMERA_WB_AUTO:
-			new_wb = MV9319_WB_AUTO_START;
-			break;
-		case CAMERA_WB_INCANDESCENT:
-			new_wb = MV9319_WB_INCANDESCENT;
-			break;
-		case CAMERA_WB_FLUORESCENT:
-			new_wb = MV9319_WB_FLUORESCENT;
-			break;
-		case CAMERA_WB_DAYLIGHT:
-			new_wb = MV9319_WB_DAYLIGHT;
-			break;
-		case CAMERA_WB_CLOUDY_DAYLIGHT:
-			new_wb = MV9319_WB_CLOUDY;
-			break;
-		default:
-			printk("mv9319: wrong white balance value\n");
-			return -EFAULT;
+	case CAMERA_WB_AUTO:
+		new_wb = MV9319_WB_AUTO_START;
+		break;
+	case CAMERA_WB_INCANDESCENT:
+		new_wb = MV9319_WB_INCANDESCENT;
+		break;
+	case CAMERA_WB_FLUORESCENT:
+		new_wb = MV9319_WB_FLUORESCENT;
+		break;
+	case CAMERA_WB_DAYLIGHT:
+		new_wb = MV9319_WB_DAYLIGHT;
+		break;
+	case CAMERA_WB_CLOUDY_DAYLIGHT:
+		new_wb = MV9319_WB_CLOUDY;
+		break;
+	default:
+		printk("mv9319: wrong white balance value\n");
+		return -EFAULT;
 	}
 
 	rc = mv9319_i2c_write_byte(mv9319_client,
-			MV9319_CMD_WB, MV9319_WB_AUTO_STOP);
+				   MV9319_CMD_WB, MV9319_WB_AUTO_STOP);
 
 	if (rc < 0)
 		return rc;
@@ -1546,7 +1557,7 @@ static long mv9319_set_wb(int8_t wb)
 	rc = mv9319_i2c_write_byte(mv9319_client, MV9319_CMD_WB, new_wb);
 
 	mv9319_ctrl->wb = wb;
-
+	
 	msleep(MV9319_SET_DELAY_MSEC);
 
 	return rc;
@@ -1559,21 +1570,21 @@ static long mv9319_set_iso(int8_t iso)
 	LDBG("%s: called: new iso %d\n", __func__, iso);
 
 	switch ((enum camera_iso_t)iso) {
-		case CAMERA_ISO_AUTO:
-			new_iso = MV9319_ISO_AUTO;
-			break;
-		case CAMERA_ISO_100:
-			new_iso = MV9319_ISO_100;
-			break;
-		case CAMERA_ISO_200:
-			new_iso = MV9319_ISO_200;
-			break;
-		case CAMERA_ISO_400:
-			new_iso = MV9319_ISO_400;
-			break;
-		default:
-			printk("mv9319: wrong iso value\n");
-			return -EINVAL;
+	case CAMERA_ISO_AUTO:
+		new_iso = MV9319_ISO_AUTO;
+		break;
+	case CAMERA_ISO_100:
+		new_iso = MV9319_ISO_100;
+		break;
+	case CAMERA_ISO_200:
+		new_iso = MV9319_ISO_200;
+		break;
+	case CAMERA_ISO_400:
+		new_iso = MV9319_ISO_400;
+		break;
+	default:
+		printk("mv9319: wrong iso value\n");
+		return -EINVAL;
 	}
 
 	rc = mv9319_i2c_write_byte(mv9319_client, MV9319_CMD_ISO, new_iso);
@@ -1588,19 +1599,19 @@ static long mv9319_set_image_quality(int8_t quality)
 	LDBG("%s: called: quality %u\n", __func__, quality);
 
 	switch (quality) {
-		case CAMERA_IMG_QUALITY_NORMAL:
-			mv9319_ctrl->qfactor = 0xb0;
-			break;
-		case CAMERA_IMG_QUALITY_FINE:
-			mv9319_ctrl->qfactor = 0x90;
-			break;
-		case CAMERA_IMG_QUALITY_SUPER_FINE:
-			mv9319_ctrl->qfactor = 0x70;
-			break;
-		default:
-			mv9319_ctrl->qfactor = 0x70;
-			printk("mv9319: wrong jpeg quality value. set the normal\n");
-			//return -EINVAL;
+	case CAMERA_IMG_QUALITY_NORMAL:
+		mv9319_ctrl->qfactor = 0xb0;
+		break;
+	case CAMERA_IMG_QUALITY_FINE:
+		mv9319_ctrl->qfactor = 0x90;
+		break;
+	case CAMERA_IMG_QUALITY_SUPER_FINE:
+		mv9319_ctrl->qfactor = 0x70;
+		break;
+	default:
+		mv9319_ctrl->qfactor = 0x70;
+		printk("mv9319: wrong jpeg quality value. set the normal\n");
+		//return -EINVAL;
 	}
 
 	if (mv9319_ctrl->effect == CAMERA_EFFECT_SKETCH)
@@ -1624,40 +1635,40 @@ static long mv9319_set_scene_mode(int8_t mode)
 	LDBG("%s: called: scene mode %u\n", __func__, mode);
 
 	switch ((enum camera_scene_mode_t)mode) {
-		case CAMERA_SCENE_NORMAL:
-			new_scene_mode = MV9319_SCENE_NORMAL;
-			break;
-		case CAMERA_SCENE_NIGHT:
-			new_scene_mode = MV9319_SCENE_NIGHT;
-			break;
-		case CAMERA_SCENE_BACKLIGHT:
-			new_scene_mode = MV9319_SCENE_BACKLIGHT;
-			break;
-		case CAMERA_SCENE_LANDSCAPE:
-			new_scene_mode = MV9319_SCENE_LANDSCAPE;
-			break;
-		case CAMERA_SCENE_PORTRAIT:
-			new_scene_mode = MV9319_SCENE_PORTRAIT;
-			break;
-		case CAMERA_SCENE_NIGHT_PORTRAIT:
-			new_scene_mode = MV9319_SCENE_NIGHT_PORTRAIT;
-			break;
-		case CAMERA_SCENE_BEACH:
-			new_scene_mode = MV9319_SCENE_BEACH;
-			break;
-		case CAMERA_SCENE_PARTY:
-			new_scene_mode = MV9319_SCENE_PARTY;
-			break;
-		case CAMERA_SCENE_SPORT:
-			new_scene_mode = MV9319_SCENE_SPORT;
-			break;
-		default:
-			printk("mv9319: wrong scene mode value, set to the normal\n");
-			new_scene_mode = MV9319_SCENE_NORMAL;
+	case CAMERA_SCENE_NORMAL:
+		new_scene_mode = MV9319_SCENE_NORMAL;
+		break;
+	case CAMERA_SCENE_NIGHT:
+		new_scene_mode = MV9319_SCENE_NIGHT;
+		break;
+	case CAMERA_SCENE_BACKLIGHT:
+		new_scene_mode = MV9319_SCENE_BACKLIGHT;
+		break;
+	case CAMERA_SCENE_LANDSCAPE:
+		new_scene_mode = MV9319_SCENE_LANDSCAPE;
+		break;
+	case CAMERA_SCENE_PORTRAIT:
+		new_scene_mode = MV9319_SCENE_PORTRAIT;
+		break;
+	case CAMERA_SCENE_NIGHT_PORTRAIT:
+		new_scene_mode = MV9319_SCENE_NIGHT_PORTRAIT;
+		break;
+	case CAMERA_SCENE_BEACH:
+		new_scene_mode = MV9319_SCENE_BEACH;
+		break;
+	case CAMERA_SCENE_PARTY:
+		new_scene_mode = MV9319_SCENE_PARTY;
+		break;
+	case CAMERA_SCENE_SPORT:
+		new_scene_mode = MV9319_SCENE_SPORT;
+		break;
+	default:
+		printk("mv9319: wrong scene mode value, set to the normal\n");
+		new_scene_mode = MV9319_SCENE_NORMAL;
 	}
 
 	rc = mv9319_i2c_write_byte(mv9319_client,
-			MV9319_CMD_SCENE_MODE, new_scene_mode);
+				   MV9319_CMD_SCENE_MODE, new_scene_mode);
 
 	mv9319_ctrl->scene = mode;
 
@@ -1674,48 +1685,48 @@ static long mv9319_set_exposure_value(int8_t ev)
 	LDBG("%s: called: ev %u\n", __func__, ev);
 
 	switch (ev) {
-		case 0:
-			new_ev = MV9319_EV_N_6;
-			break;
-		case 1:
-			new_ev = MV9319_EV_N_5;
-			break;
-		case 2:
-			new_ev = MV9319_EV_N_4;
-			break;
-		case 3:
-			new_ev = MV9319_EV_N_3;
-			break;
-		case 4:
-			new_ev = MV9319_EV_N_2;
-			break;
-		case 5:
-			new_ev = MV9319_EV_N_1;
-			break;
-		case 6:
-			new_ev = MV9319_EV_DEFAULT;
-			break;
-		case 7:
-			new_ev = MV9319_EV_P_1;
-			break;
-		case 8:
-			new_ev = MV9319_EV_P_2;
-			break;
-		case 9:
-			new_ev = MV9319_EV_P_3;
-			break;
-		case 10:
-			new_ev = MV9319_EV_P_4;
-			break;
-		case 11:
-			new_ev = MV9319_EV_P_5;
-			break;
-		case 12:
-			new_ev = MV9319_EV_P_6;
-			break;
-		default:
-			printk("mv9319: wrong ev value, set to the default\n");
-			new_ev = MV9319_EV_DEFAULT;
+	case 0:
+		new_ev = MV9319_EV_N_6;
+		break;
+	case 1:
+		new_ev = MV9319_EV_N_5;
+		break;
+	case 2:
+		new_ev = MV9319_EV_N_4;
+		break;
+	case 3:
+		new_ev = MV9319_EV_N_3;
+		break;
+	case 4:
+		new_ev = MV9319_EV_N_2;
+		break;
+	case 5:
+		new_ev = MV9319_EV_N_1;
+		break;
+	case 6:
+		new_ev = MV9319_EV_DEFAULT;
+		break;
+	case 7:
+		new_ev = MV9319_EV_P_1;
+		break;
+	case 8:
+		new_ev = MV9319_EV_P_2;
+		break;
+	case 9:
+		new_ev = MV9319_EV_P_3;
+		break;
+	case 10:
+		new_ev = MV9319_EV_P_4;
+		break;
+	case 11:
+		new_ev = MV9319_EV_P_5;
+		break;
+	case 12:
+		new_ev = MV9319_EV_P_6;
+		break;
+	default:
+		printk("mv9319: wrong ev value, set to the default\n");
+		new_ev = MV9319_EV_DEFAULT;
 	}
 
 	rc = mv9319_i2c_write_byte(mv9319_client, MV9319_CMD_EV, new_ev);
@@ -1743,7 +1754,7 @@ static long mv9319_set_zoom(int8_t zoom)
 		return rc;
 
 	mv9319_ctrl->zoom = zoom;
-
+	
 	msleep(MV9319_SET_DELAY_MSEC);
 
 	return rc;
@@ -1758,14 +1769,14 @@ static long mv9319_set_flash_mode(int8_t mode)
 		return -EINVAL;
 	}
 
-	/* This controls only flash in Camera mode, not Camcorder
+	/* This controls only flash in Camera mode, not Camcorder 
 	 * Camcorder uses sysfs interface to control flash.*/
 	mv9319_ctrl->flashmode = mode;
 
 	return 0;
 }
 
-static int32_t mv9319_move_focus(int direction,
+static int32_t mv9319_move_focus(enum sensor_move_focus_t direction,
 		int32_t num_steps)
 {
 	long rc = 0;
@@ -1773,7 +1784,7 @@ static int32_t mv9319_move_focus(int direction,
 	LDBG("%s: called, step %d\n", __func__, num_steps);
 
 	rc = mv9319_i2c_write_byte(mv9319_client,
-			MV9319_CMD_MF_CONTROL, num_steps);
+				  MV9319_CMD_MF_CONTROL, num_steps);
 	if (rc < 0)
 		return rc;
 
@@ -1885,13 +1896,13 @@ static uint32_t mv9319_get_jpg_image_size(void)
 
 int mv9319_sensor_config(void __user * argp)
 {
-	struct sensor_cfg_data cdata;
+	struct sensor_cfg_data_t cdata;
 	long rc = 0;
 
 	LDBG1("%s: called [%lu]\n", __func__, jiffies);
 
 	if (copy_from_user(&cdata,
-				(void *)argp, sizeof(struct sensor_cfg_data)))
+			   (void *)argp, sizeof(struct sensor_cfg_data_t)))
 		return -EFAULT;
 
 	down(&mv9319_sem);
@@ -1899,67 +1910,67 @@ int mv9319_sensor_config(void __user * argp)
 	LDBG1("%s: cfgtype=%d\n", __func__, cdata.cfgtype);
 
 	switch (cdata.cfgtype) {
-		case CFG_SET_MODE:
-			rc = mv9319_set_sensor_mode(cdata.mode, cdata.rs);
-			break;
+	case CFG_SET_MODE:
+		rc = mv9319_set_sensor_mode(cdata.mode, cdata.rs);
+		break;
 
-		case CFG_SET_DEFAULT_FOCUS:
-			if (cdata.cfg.focus.steps == 5)
-				cdata.cfg.focus.steps = mv9319_suspend_auto_focus();
-			else {
-				cdata.cfg.focus.steps = mv9319_set_auto_focus(cdata.cfg.focus.dir);
-			}
-			if (copy_to_user
-					((void *)argp, &cdata, sizeof(struct sensor_cfg_data)))
-				rc = -EFAULT;
-			break;
-		case CFG_MOVE_FOCUS:
-			rc = mv9319_move_focus(
-					cdata.cfg.focus.dir,
-					cdata.cfg.focus.steps);
-			break;
-
-		case CFG_SET_EFFECT:
-			rc = mv9319_set_effect(cdata.mode, cdata.cfg.effect);
-			break;
-		case CFG_SET_WB:
-			rc = mv9319_set_wb(cdata.cfg.wb);
-			break;
-		case CFG_SET_ISO:
-			rc = mv9319_set_iso(cdata.cfg.iso);
-			break;
-		case CFG_SET_IMG_QUALITY:
-			rc = mv9319_set_image_quality(cdata.cfg.img_quality);
-			break;
-		case CFG_SET_SCENE_MODE:
-			rc = mv9319_set_scene_mode(cdata.cfg.scene_mode);
-			break;
-		case CFG_SET_EXPOSURE_VALUE:
-			rc = mv9319_set_exposure_value(cdata.cfg.ev);
-			break;
-		case CFG_SET_ZOOM:
-			rc = mv9319_set_zoom(cdata.cfg.zoom);
-			break;
-		case CFG_SET_FLASH_MODE:
-			rc = mv9319_set_flash_mode(cdata.cfg.flash);
-			break;
-		case CFG_GET_JPG_IMAGE_SIZE:
-			cdata.cfg.jpg_size = mv9319_get_jpg_image_size();
-			if (copy_to_user
-					((void *)argp, &cdata, sizeof(struct sensor_cfg_data)))
-				rc = -EFAULT;
-			break;
-		case CFG_SET_FLICKER:
-			rc = mv9319_set_flicker(cdata.cfg.flicker);
-			break;
-		case CFG_SET_RECORDING_MODE:
-			rc = mv9319_set_recording_mode(cdata.cfg.is_recording_mode);
-			break;
-		default:
+	case CFG_SET_DEFAULT_FOCUS:
+		if (cdata.cfg.focus.steps == 5)
+			cdata.cfg.focus.steps = mv9319_suspend_auto_focus();
+		else {
+			cdata.cfg.focus.steps = mv9319_set_auto_focus(cdata.cfg.focus.dir);
+		}
+		if (copy_to_user
+		    ((void *)argp, &cdata, sizeof(struct sensor_cfg_data_t)))
 			rc = -EFAULT;
-			break;
-	}
+		break;
+	case CFG_MOVE_FOCUS:
+		rc = mv9319_move_focus(
+				cdata.cfg.focus.dir,
+				cdata.cfg.focus.steps);
+		break;
 
+	case CFG_SET_EFFECT:
+		rc = mv9319_set_effect(cdata.mode, cdata.cfg.effect);
+		break;
+	case CFG_SET_WB:
+		rc = mv9319_set_wb(cdata.cfg.wb);
+		break;
+	case CFG_SET_ISO:
+		rc = mv9319_set_iso(cdata.cfg.iso);
+		break;
+	case CFG_SET_IMG_QUALITY:
+		rc = mv9319_set_image_quality(cdata.cfg.img_quality);
+		break;
+	case CFG_SET_SCENE_MODE:
+		rc = mv9319_set_scene_mode(cdata.cfg.scene_mode);
+		break;
+	case CFG_SET_EXPOSURE_VALUE:
+		rc = mv9319_set_exposure_value(cdata.cfg.ev);
+		break;
+	case CFG_SET_ZOOM:
+		rc = mv9319_set_zoom(cdata.cfg.zoom);
+		break;
+	case CFG_SET_FLASH_MODE:
+		rc = mv9319_set_flash_mode(cdata.cfg.flash);
+		break;
+	case CFG_GET_JPG_IMAGE_SIZE:
+		cdata.cfg.jpg_size = mv9319_get_jpg_image_size();
+		if (copy_to_user
+		    ((void *)argp, &cdata, sizeof(struct sensor_cfg_data_t)))
+			rc = -EFAULT;
+		break;
+	case CFG_SET_FLICKER:
+		rc = mv9319_set_flicker(cdata.cfg.flicker);
+		break;
+	case CFG_SET_RECORDING_MODE:
+		rc = mv9319_set_recording_mode(cdata.cfg.is_recording_mode);
+		break;
+	default:
+		rc = -EFAULT;
+		break;
+	}
+	
 	if (rc < 0)
 		printk("mv9319: ERROR in sensor_config, %ld\n", rc);
 
@@ -1973,7 +1984,7 @@ static ssize_t mv9319_brightness_show(struct device* dev, struct device_attribut
 	unsigned char val;
 
 	if (mv9319_ctrl == NULL)
-		return sprintf(buf,"%x\n", 0);
+		return sprintf(buf,"%x\n", 0); 
 
 	val = mv9319_ctrl->brightness;
 	return sprintf(buf,"%x\n", val);
@@ -2002,7 +2013,7 @@ static ssize_t mv9319_flash_show(struct device* dev, struct device_attribute* at
 	unsigned char val;
 
 	if (mv9319_ctrl == NULL)
-		return sprintf(buf,"%x\n", 0);
+		return sprintf(buf,"%x\n", 0); 
 
 	val = mv9319_ctrl->video_flash;
 	return sprintf(buf,"%d\n", val);
@@ -2033,7 +2044,7 @@ static ssize_t mv9319_scene_show(struct device* dev, struct device_attribute* at
 	unsigned char val;
 
 	if (mv9319_ctrl == NULL)
-		return sprintf(buf,"%x\n", 0);
+		return sprintf(buf,"%x\n", 0); 
 
 	val = mv9319_ctrl->scene;
 	return sprintf(buf,"%x\n", val);
@@ -2071,7 +2082,7 @@ static ssize_t mv9319_zoom_show(struct device* dev, struct device_attribute* att
 	unsigned char val;
 
 	if (mv9319_ctrl == NULL)
-		return sprintf(buf,"%x\n", 0);
+		return sprintf(buf,"%x\n", 0); 
 
 	val = mv9319_ctrl->zoom;
 	return sprintf(buf,"%x\n", val);
@@ -2105,7 +2116,7 @@ static ssize_t mv9319_wb_show(struct device* dev, struct device_attribute* attr,
 	unsigned char val;
 
 	if (mv9319_ctrl == NULL)
-		return sprintf(buf,"%x\n", 0);
+		return sprintf(buf,"%x\n", 0); 
 
 	val = mv9319_ctrl->wb;
 	return sprintf(buf,"%x\n", val);
@@ -2139,7 +2150,7 @@ static ssize_t mv9319_effect_show(struct device* dev, struct device_attribute* a
 	unsigned char val;
 
 	if (mv9319_ctrl == NULL)
-		return sprintf(buf,"%x\n", 0);
+		return sprintf(buf,"%x\n", 0); 
 
 	val = mv9319_ctrl->effect;
 	return sprintf(buf,"%x\n", val);
@@ -2170,7 +2181,7 @@ static DEVICE_ATTR(effect, S_IRUGO|S_IWUGO, mv9319_effect_show, mv9319_effect_st
 
 static ssize_t mv9319_firmware_show(struct device* dev, struct device_attribute* attr, char* buf)
 {
-	return sprintf(buf,"Current version %d.%d, update: %d\n",
+	return sprintf(buf,"Current version %d.%d, update: %d\n", 
 			firmware_ver_major, firmware_ver_minor,
 			flag_update_firmware);
 
@@ -2309,7 +2320,6 @@ int mv9319_sensor_release(void)
 	eve_flash_set_led_state(3);
 
 #if FEATURE_NEW_POWER_ON_OFF_SEQUENCE
-	mv9319_power_off_1();
 	mv9319_power_off_2();
 #else
 	mv9319_power_off();
@@ -2330,15 +2340,15 @@ int mv9319_sensor_release(void)
 	kfree(mv9319_ctrl);
 	mv9319_ctrl = NULL;
 
-	//	if (!flag_update_firmware)
-	//		bd6083_set_camera_off_mode();
+	if (!flag_update_firmware) 
+		bd6083_set_camera_off_mode();
 	flag_update_firmware = 0;
 
 	up(&mv9319_sem);
 	return rc;
 }
 
-static int mv9319_i2c_probe(struct i2c_client *client,
+static int mv9319_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
 	int rc = 0;
@@ -2390,6 +2400,23 @@ probe_failure:
 	return rc;
 }
 
+static int __exit mv9319_remove(struct i2c_client *client)
+{
+	/* TODO: this function is called twice. Handle It! */
+
+	struct mv9319_work_t *sensorw = i2c_get_clientdata(client);
+
+	LDBG("%s: called\n", __func__);
+
+	mv9319_sysfs_rm(&client->dev.kobj);
+	free_irq(client->irq, sensorw);
+//	i2c_detach_client(client);
+	mv9319_client = NULL;
+	mv9319_fw_client = NULL;
+	kfree(sensorw);
+	return 0;
+}
+
 static const struct i2c_device_id mv9319_id[] = {
 	{"mv9319", 0},
 	{"mv9319_firmware", 0},
@@ -2400,58 +2427,76 @@ MODULE_DEVICE_TABLE(i2c, mv9319__id);
 
 static struct i2c_driver mv9319_driver = {
 	.id_table = mv9319_id,
-	.probe = mv9319_i2c_probe,
+	.probe = mv9319_probe,
+	.remove = __exit_p(mv9319_remove),
 	.driver = {
 		.name = "mv9319",
 	},
 };
 
-int mv9319_sensor_probe(struct msm_camera_sensor_info *info,
-					  struct msm_sensor_ctrl *s)
+static int32_t mv9319_init(void)
 {
-	int rc = i2c_add_driver(&mv9319_driver);
-    if (rc < 0 || mv9319_client == NULL || mv9319_fw_client == NULL ) {
-        rc = -ENOTSUPP;
-        goto probe_done;
-    }
+	int32_t rc = 0;
+
+	printk("mv9319: init\n");
+
+	rc = i2c_add_driver(&mv9319_driver);
+	if (IS_ERR_VALUE(rc))
+		goto init_fail;
+	return rc;
+
+init_fail:
+	printk("mv9319_init failed, rc = %d\n", rc);
+	return rc;
+
+}
+
+void mv9319_exit(void)
+{
+	LDBG("%s: called\n", __func__);
+	i2c_del_driver(&mv9319_driver);
+}
+
+int mv9319_probe_init(void *dev, void *ctrl)
+{
+	int rc = 0;
+#if 0	/* Disabled because GPIO I2C driver initialized
+	 * after msm_camera driver */
+
+	struct msm_camera_sensor_info *info =
+		(struct msm_camera_sensor_info *)dev;
+#endif
+
+	struct msm_sensor_ctrl_t *s = (struct msm_sensor_ctrl_t *)ctrl;
 
 	LDBG("%s: called\n", __func__);
 
-	msm_camio_clk_rate_set(MV9319_DEFAULT_CLOCK_RATE);
-	mdelay(20);
+	rc = mv9319_init();	/* Just add I2C driver */
+	if (rc < 0)
+		goto probe_done;
 
+	msm_camio_clk_rate_set(MV9319_DEFAULT_CLOCK_RATE);
+
+#if 0	/* Disabled because GPIO I2C driver initialized
+	 * after msm_camera driver */
 	rc = mv9319_probe_init_sensor(info);
 	if (rc < 0)
 		goto probe_done;
+#endif
 
 	s->s_init = mv9319_sensor_open_init;
 	s->s_release = mv9319_sensor_release;
 	s->s_config = mv9319_sensor_config;
+#if FEATURE_NEW_POWER_ON_OFF_SEQUENCE
+	s->s_power_on = mv9319_power_on_1;
+	s->s_power_off = mv9319_power_off_1;
+#else
+	s->s_power_on = NULL;
+	s->s_power_off = NULL;
+#endif
 
 probe_done:
 	printk("%s %s:%d\n", __FILE__, __func__, __LINE__);
 	return rc;
 }
-
-static int __mv9319_probe(struct platform_device *pdev)
-{
-	printk("%s: called\n", __func__);
-	return msm_camera_drv_start(pdev, mv9319_sensor_probe);
-}
-
-static struct platform_driver msm_camera_driver = {
-	.probe = __mv9319_probe,
-	.driver = {
-		.name = "msm_camera_mv9319",
-		.owner = THIS_MODULE,
-	},
-};
-
-static int __init mv9319_init(void)
-{
-	printk("%s: called\n", __func__);
-	return platform_driver_register(&msm_camera_driver);
-}
-
-module_init(mv9319_init);
 

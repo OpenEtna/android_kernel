@@ -22,7 +22,6 @@
 
 #include <mach/board.h>
 #include <mach/camera.h>
-#include <mach/proc_comm.h>
 #include "mv9319_firmware_4_0_2.h"
 
 #define MV9319_PID_REG  0x00
@@ -160,14 +159,3 @@
 #define swab16_new(x) ((unsigned short)((((unsigned short)(x) & (unsigned short)0x00ff)<<8) | (((unsigned short)(x) & (unsigned short)0xff00)>>8)))
 
 #endif /* CAMSENSOR_MV9319_SONY */
-
-/* extended gpio api */
-
-#define GPIOF_IRQF_MASK         0x0000ffff /* use to specify edge detection without */
-#define GPIOF_IRQF_TRIGGER_NONE 0x00010000 /* IRQF_TRIGGER_NONE is 0 which also means "as already configured" */
-#define GPIOF_INPUT             0x00020000
-#define GPIOF_DRIVE_OUTPUT      0x00040000
-#define GPIOF_OUTPUT_LOW        0x00080000
-#define GPIOF_OUTPUT_HIGH       0x00100000
-
-#define GPIOIRQF_SHARED         0x00000001 /* the irq line is shared with other inputs */

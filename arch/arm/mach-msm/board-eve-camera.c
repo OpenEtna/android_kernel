@@ -60,6 +60,7 @@ static void config_camera_off_gpios(void)
 			ARRAY_SIZE(camera_off_gpio_table));
 }
 
+#ifdef NEW_MSM_CAMERA
 static struct msm_camera_device_platform_data msm_camera_device_data = {
     .camera_gpio_on  = config_camera_on_gpios,
     .camera_gpio_off = config_camera_off_gpios,
@@ -111,53 +112,56 @@ static int __init eve_init_camera(void)
 }
 
 device_initcall(eve_init_camera);
+#else
 
-
-#if 0
-static struct resource msm_camera_resources[] = {
-	{
-		.start  = MSM_VFE_PHYS,
-		.end    = MSM_VFE_PHYS + MSM_VFE_SIZE - 1,
-		.flags  = IORESOURCE_MEM,
-	},
-	{
-		.start  = INT_VFE,
-		INT_VFE,
-		.flags  = IORESOURCE_IRQ,
-	},
+#define MSM_PROBE_INIT(name) name##_probe_init
+static struct msm_camera_sensor_info msm_camera_sensor[] = {
+    {
+        .sensor_reset = 0,
+        .sensor_pwd   = 0,
+        .vcm_pwd      = 0,
+        .sensor_name  = "mv9319_sony",
+        .flash_type     = MSM_CAMERA_FLASH_NONE,
+#ifdef CONFIG_MSM_CAMERA
+        .sensor_probe = MSM_PROBE_INIT(mv9319),
+#endif
+    },
 };
-/* bravo */
+#undef MSM_PROBE_INIT
+
 static struct msm_camera_device_platform_data msm_camera_device_data = {
-	.camera_gpio_on  = config_camera_on_gpios,
-	.camera_gpio_off = config_camera_off_gpios,
-	.ioext.mdcphy = MSM_MDC_PHYS,
-	.ioext.mdcsz  = MSM_MDC_SIZE,
-	.ioext.appphy = MSM_CLK_CTL_PHYS,
-	.ioext.appsz  = MSM_CLK_CTL_SIZE,
+    .camera_gpio_on  = config_camera_on_gpios,
+    .camera_gpio_off = config_camera_off_gpios,
+    .snum = ARRAY_SIZE(msm_camera_sensor),
+    .sinfo = &msm_camera_sensor[0],
+    .ioext.mdcphy = MSM_MDC_PHYS,
+    .ioext.mdcsz  = MSM_MDC_SIZE,
+    .ioext.appphy = MSM_CLK_CTL_PHYS,
+    .ioext.appsz  = MSM_CLK_CTL_SIZE,
 };
 
-static struct camera_flash_cfg msm_camera_sensor_flash_cfg = {
-	.camera_flash       = flashlight_control,
-	.num_flash_levels   = FLASHLIGHT_NUM,
-	.low_temp_limit     = 5,
-	.low_cap_limit      = 15,
+static struct platform_device msm_camera_device = {
+    .name   = "msm_camera",
+    .id = 0,
 };
 
-static struct msm_camera_sensor_info msm_camera_sensor_s5k3e2fx_data = {
-	.sensor_name    = "s5k3e2fx",
-	.sensor_reset   = 144,  /* CAM1_RST */
-	.sensor_pwd     = 143,  /* CAM1_PWDN, enabled in a9 */
-	/*.vcm_pwd  = 31,*/ /* CAM1_VCM_EN, enabled in a9 */
-	.pdata      = &msm_camera_device_data,
-	.resource   = msm_camera_resources,
-	.num_resources  = ARRAY_SIZE(msm_camera_resources),
-	.flash_cfg  = &msm_camera_sensor_flash_cfg,
+static struct platform_device eve_camera_flashlight_device = {
+        .name   = "camera_flash_led",
+        .id     = -1,
+        .dev = {
+                .platform_data = 0,
+          },
 };
 
-static struct platform_device msm_camera_sensor_s5k3e2fx = {
-	.name   = "msm_camera_s5k3e2fx",
-	.dev    = {
-		.platform_data = &msm_camera_sensor_s5k3e2fx_data,
-	},
-};
+static void __init eve_init_camera(void)
+{
+	msm_camera_device.dev.platform_data = &msm_camera_device_data;
+
+    platform_device_register(&eve_camera_flashlight_device);
+	platform_device_register(&msm_camera_device);
+
+    config_camera_off_gpios();
+}
+
+device_initcall(eve_init_camera);
 #endif

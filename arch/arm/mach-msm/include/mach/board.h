@@ -43,10 +43,15 @@ struct msm_camera_io_ext {
 };
 
 struct msm_camera_device_platform_data {
-	void (*camera_gpio_on) (void);
-	void (*camera_gpio_off)(void);
-	struct msm_camera_io_ext ioext;
+    void (*camera_gpio_on) (void);
+    void (*camera_gpio_off)(void);
+        uint8_t snum;
+        struct msm_camera_sensor_info *sinfo;
+    struct msm_camera_io_ext ioext;
+        void (*config_gpio_on) (void);
+        void (*config_gpio_off)(void);
 };
+
 enum msm_camera_csi_data_format {
 	CSI_8BIT,
 	CSI_10BIT,
@@ -160,6 +165,7 @@ struct msm_camera_sensor_info {
 	struct msm_camera_csi_params csi_params;
 	int sensor_lc_disable; /* for sensor lens correction support */
 	uint8_t (*preview_skip_frame)(void);
+	int (*sensor_probe)(void *, void *);
 };
 struct clk;
 
