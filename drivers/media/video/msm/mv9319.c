@@ -124,8 +124,6 @@ int eve_flash_set_led_state(int led_state);
 
 int bd6083_set_ldo_power(int ldo_no, int on);
 int bd6083_set_ldo_vout(int ldo_no, unsigned vout_mv);
-int bd6083_set_camera_on_mode(void);
-int bd6083_set_camera_off_mode(void);
 
 static int mv9319_set_vreg_avdd(int on)
 {
@@ -1322,8 +1320,6 @@ static int mv9319_probe_init_sensor(struct msm_camera_sensor_info *data)
 			}
 		}
 		LDBG1("%s: fw check end[%lu]\n", __func__, jiffies);
-	} else {
-		bd6083_set_camera_on_mode(); // To disable ALC mode
 	}
 
 	if (rc >= 0)
@@ -2340,8 +2336,6 @@ int mv9319_sensor_release(void)
 	kfree(mv9319_ctrl);
 	mv9319_ctrl = NULL;
 
-	if (!flag_update_firmware) 
-		bd6083_set_camera_off_mode();
 	flag_update_firmware = 0;
 
 	up(&mv9319_sem);
