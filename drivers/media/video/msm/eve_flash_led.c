@@ -314,7 +314,7 @@ static struct platform_driver eve_flash_led_driver =
 	.remove = eve_flash_led_remove,
 	.driver =
 	{
-		.name = "camera_flash_led",
+		.name = "flashlight",
 		.owner = THIS_MODULE,
 	}
 };

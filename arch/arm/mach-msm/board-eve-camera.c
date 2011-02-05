@@ -146,8 +146,8 @@ static struct platform_device msm_camera_device = {
 };
 
 static struct platform_device eve_camera_flashlight_device = {
-        .name   = "camera_flash_led",
-        .id     = -1,
+        .name   = "flashlight",
+        .id     = 0,
         .dev = {
                 .platform_data = 0,
           },
