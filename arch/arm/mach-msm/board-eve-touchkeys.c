@@ -26,131 +26,10 @@
 #include <linux/platform_device.h>
 #include <mach/vreg.h>          //LGE_CHANGE [diyu@lge.com] To set vreg
 #include <mach/system.h>        //for reading REV. in Board.
+#include "board-eve.h"
 
 #define SYNAPTICS_I2C_TOUCH_NAME "touch_so240001"
 
-//LGE_CHANGE_S [bluerti@lge.com]
-static int msm_touch_timer_value = 800;
-static int msm_touch_option = 2;
-static int slideon_timer_value = 1000;
-static int invalid_touch_event_time = 100;
-#define TOUCH_IGNORE_EVENT      1
-#define TOUCH_INVERT_EVENT      2
-
-#define LONGKEY_TIMER_STOPPED   0
-#define LONGKEY_TIMER_STARTED   1
-#define LONGKEY_TIMER_EXPIRED   2
-
-#define TOUCH_HOME_KEY  1
-#define TOUCH_BACK_KEY  2
-
-static int lg_block_touch_event = 0;
-static int touch_longkey_timer_value = 500;
-static int is_menukey_pressed = 0;
-int is_slideon_event = 0;
-static int is_menutimer_initialized = 0;
-static int is_slideon_timer_initialized = 0;
-
-//LGE_CHANGE [blue.park@lge.com]
-unsigned long home_touch_time = 0;
-unsigned long back_touch_time = 0;
-
-struct timer_list lg_enhanced_longkey;
-struct timer_list lg_enhanced_menukey;  //[bluerti@lge.com] 2009-09-15
-struct timer_list lg_enhanced_sliedon;  //[bluerti@lge.com] 2009-10-16
-static int is_longkey_timer_state = LONGKEY_TIMER_STOPPED;
-struct input_dev *input_dev_ptr = NULL;
-//static struct touchbutton *touchbutton; //touch-key //diyu@lge.com
-
-void lg_enhanced_slideon_timer(unsigned long arg)
-{
-	// Expired SlideOn Timer. Clear is_slideon_event state.
-	is_slideon_event = 0;   // to allow Home Key.
-}
-
-void lg_slideon_event_func(void)
-{
-	if (is_slideon_timer_initialized) {
-		is_slideon_event = 1;
-		mod_timer(&lg_enhanced_sliedon,
-				jiffies + (slideon_timer_value * HZ / 1000));
-
-		if (is_longkey_timer_state == LONGKEY_TIMER_STARTED) {  // remove longkey_timer
-			del_timer(&lg_enhanced_longkey);
-			is_longkey_timer_state = LONGKEY_TIMER_STOPPED;
-		}
-
-	}
-}
-
-void lg_block_touch_event_func(int value)
-{
-	if (value == 0 || value == 1)
-		lg_block_touch_event = value;
-
-	if (lg_block_touch_event == 1 && is_longkey_timer_state == LONGKEY_TIMER_STARTED) {     // remove longkey_timer
-		del_timer(&lg_enhanced_longkey);
-		is_longkey_timer_state = LONGKEY_TIMER_STOPPED;
-	}
-}
-
-static void lg_enhanced_longkey_timer(unsigned long arg)
-{
-	input_report_key(input_dev_ptr, KEY_HOME, 1);
-	is_longkey_timer_state = LONGKEY_TIMER_EXPIRED;
-}
-
-void lg_enhanced_menukey_func(int value)
-{
-	if (is_menutimer_initialized) {
-		is_menukey_pressed = 1;
-		mod_timer(&lg_enhanced_menukey,
-				jiffies + (msm_touch_timer_value * HZ / 1000));
-
-		if (is_longkey_timer_state == LONGKEY_TIMER_STARTED) {  // remove longkey_timer
-			del_timer(&lg_enhanced_longkey);
-			is_longkey_timer_state = LONGKEY_TIMER_STOPPED;
-		}
-	}
-}
-
-static void lg_enhanced_menukey_timer(unsigned long arg)
-{
-	// Expired MenuKey Timer. Clear is_menukey_pressed state.
-	is_menukey_pressed = 0;
-}
-
-// LGE_CHANGE_S [blue.park@lge.com] 2010.2.16
-static unsigned long blue_get_time(void)
-{
-	struct timeval tv;
-
-	do_gettimeofday(&tv);
-	return (1000000 * tv.tv_sec + tv.tv_usec);
-}
-
-static int Is_valid_touch_event(int key_type)
-{
-	unsigned long curr_time;
-
-	curr_time = blue_get_time();
-
-	if (key_type == TOUCH_HOME_KEY) {
-		if ((curr_time - home_touch_time) >
-				invalid_touch_event_time * 1000)
-			return 1;
-	} else if (key_type == TOUCH_BACK_KEY) {
-		if ((curr_time - back_touch_time) >
-				invalid_touch_event_time * 1000)
-			return 1;
-	}
-
-	return 0;
-}
-
-// LGE_CHANGE_E [blue.park@lge.com] 2010.2.16
-
-//LGE_CHANGE_E [bluerti@lge.com]
 #define KBDIRQNO(kbdrec)  MSM_GPIO_TO_INT(GPIO_IRQ_PP2106M2)    /*kbdrec->mykeyboard->irq) */
 #define QKBD_PHYSLEN 128
 #if 1
@@ -269,16 +148,58 @@ struct synaptics_ts_data {
 	uint16_t max[2];
 	uint32_t flags;
 	int (*power) (int on);
-	unsigned int leftkey_pressed;   //LGE_CHANGE diyu@lge.com
-	unsigned int rightkey_pressed;  //LGE_CHANGE diyu@lge.com
+	int pressed;
 	struct early_suspend early_suspend;
 	unsigned char keycode[ARRAY_SIZE(touchbutton_keycode)];
-};
+} *g_ts;
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void synaptics_ts_early_suspend(struct early_suspend *h);
 static void synaptics_ts_late_resume(struct early_suspend *h);
 #endif
+
+/* block the home and back button this time after the menu button has been pressed down */
+static int block_after_menu_value = 800;
+static int invalid_touch_event_time = 100;
+static int touch_longkey_timer_value = 600;
+
+#define TOUCH_HOME_KEY  1
+#define TOUCH_BACK_KEY  2
+
+
+static int is_menukey_pressed = 0;
+int is_slideon_event = 0;
+static int is_menutimer_initialized = 0;
+
+unsigned long touch_time = 0;
+
+static int is_longkey_timer_running;
+
+struct timer_list lg_enhanced_menukey;
+struct timer_list lg_enhanced_longkey;
+
+static void lg_enhanced_longkey_timer(unsigned long arg)
+{
+	input_report_key(g_ts->input_dev, g_ts->pressed, 1);
+	input_sync(g_ts->input_dev);
+	eve_vibrator_set(25);
+	is_longkey_timer_running = 0;
+}
+
+void lg_enhanced_menukey_func(int value)
+{
+	if (is_menutimer_initialized) {
+		is_menukey_pressed = 1;
+		mod_timer(&lg_enhanced_menukey,
+				jiffies + (block_after_menu_value * HZ / 1000));
+	}
+}
+EXPORT_SYMBOL(lg_enhanced_menukey_func);
+
+static void lg_enhanced_menukey_timer(unsigned long arg)
+{
+	is_menukey_pressed = 0;
+}
 
 static int synaptics_ts_set_vreg(int onoff)
 {
@@ -286,7 +207,6 @@ static int synaptics_ts_set_vreg(int onoff)
 	struct vreg *vreg_touch;
 	int rc;
 
-	printk("[Touch] %s() onoff:%d\n", __FUNCTION__, onoff);
 	vreg_touch = vreg_get(0, "synt");
 
 	if (onoff) {
@@ -379,6 +299,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 		},
 	};
 
+	printk("synaptics_ts_work_func\n");
 	// GPIO State
 	pReg[0] = TOUCH_OT_GPIO_STATE_ADDR_HIGH;
 	pReg[1] = TOUCH_OT_GPIO_STATE_ADDR_LOW;
@@ -403,115 +324,57 @@ static void synaptics_ts_work_func(struct work_struct *work)
 	/* LGE_CHANGE [bluerti@lge.com] 2009-09-15
 	 * <skip Home/Back key Event for some period after menukey. >
 	 */
-	if (!is_menukey_pressed && !is_slideon_event) {
-		//(buf2[0]>30)  : HOME-KEY
-		if (buf[3] == 0x02) {
-			//if((buf[3] ==0x02) && ((buf2[0]&0x0ff)>30)&&((buf2[0]&0x0ff)<128) ) {
-			/* LGE_CHANGE_S [antispoon@lge.com,diyu@lge.com] 2009-07-17
-			 * send HOME key (AT cmd ASCII "soft2" key ) for AT+GKPD
-			 */
-			//printk("Left key pressed\n");
-			if (lg_block_touch_event == 0) {
-				if (msm_touch_option == TOUCH_INVERT_EVENT) {   // Invert Event
-					mod_timer(&lg_enhanced_longkey,
-							jiffies + (touch_longkey_timer_value * HZ / 1000));
-					//input_report_key(ts->input_dev, KEY_HOME/*KEY_MENU*/, 0);
-					is_longkey_timer_state =
-						LONGKEY_TIMER_STARTED;
-					input_dev_ptr = ts->input_dev;
-				} else
-					input_report_key(ts->input_dev, KEY_HOME        /*KEY_MENU */
-							, 1);
+	if (is_menukey_pressed) {
+		printk("touchkey: blocked by menu\n");
+		return;
+	}
+
+	printk("buf[3] = %x\n", buf[3]);
+	if (buf[3] == 0x02 || buf[3] == 0x04) {
+		printk("Touch key pressed\n");
+		mod_timer(&lg_enhanced_longkey,
+				jiffies + (touch_longkey_timer_value * HZ / 1000));
+		is_longkey_timer_running = 1;
+		if (buf[3] == 0x04)
+			ts->pressed = KEY_BACK;
+		else
+			ts->pressed = KEY_HOME;
+
+		touch_time = jiffies;
+	} else if (buf[3] == 0x00) {
+		printk("Some key released\n");
+		if (!ts->pressed)
+			return;
+
+		unsigned long uptime = jiffies*1000/HZ;
+		if (is_longkey_timer_running) {
+			del_timer(&lg_enhanced_longkey);
+			if ((uptime - touch_time) > invalid_touch_event_time) {
+				/* report down, if it was not already reported by the longkey_timer
+				   and the touch time span is not invalid */
+				input_report_key(ts->input_dev, ts->pressed, 1);
+				input_sync(ts->input_dev);
+				mdelay(10);
 			}
+		}
+		if ((uptime - touch_time) > invalid_touch_event_time
+			|| !is_longkey_timer_running) {
+			/* report up, if a down was reported by the longkey_timer
+			   or it is a valid time span */
+			input_report_key(ts->input_dev, ts->pressed, 0);
 			input_sync(ts->input_dev);
-			ts->leftkey_pressed = 1;
-			home_touch_time = blue_get_time();
-			//LGE_CHAGNE [blue.park@lge.com]
-#ifdef CONFIG_KEYLED
-			//msm_touchled_send(); //keyled on //code is in keyled_pm.c
-#endif
+			if (is_longkey_timer_running)
+				eve_vibrator_set(15);
 		}
-		//(buf2[4]>30)  : BACK-KEY
-		if (buf[3] == 0x04) {
-			//if((buf[3] ==0x04) && ((buf2[3]&0x0ff)>30)&&((buf2[3]&0x0ff)<128)) {
-			/* LGE_CHANGE_S [antispoon@lge.com,diyu@lge.com] 2009-07-17
-			 * send HOME key (AT cmd ASCII "soft2" key ) for AT+GKPD
-			 */
-			//printk("Right key pressed\n");
-			if (lg_block_touch_event == 0) {
-				if (msm_touch_option == TOUCH_INVERT_EVENT) ;   //input_report_key(ts->input_dev, KEY_BACK, 0);
-				else
-					input_report_key(ts->input_dev,
-							KEY_BACK, 1);
-			}
-			input_sync(ts->input_dev);
-			ts->rightkey_pressed = 1;
-			back_touch_time = blue_get_time();
-			//LGE_CHANGE [blue.park@lge.com]
-#ifdef CONFIG_KEYLED
-			//msm_touchled_send(); //keyled on //code is in keyled_pm.c
-#endif
-		}
-
-		if (buf[3] == 0x00) {
-			if (ts->leftkey_pressed) {
-				if (is_longkey_timer_state == LONGKEY_TIMER_STARTED) {  // remove longkey_timer
-					del_timer(&lg_enhanced_longkey);
-					is_longkey_timer_state =
-						LONGKEY_TIMER_STOPPED;
-				}
-				//printk("Left key released\n");
-				ts->leftkey_pressed = 0;
-				//LGE_CHANGE [blue.park@lge.com]
-				if (lg_block_touch_event == 0 && Is_valid_touch_event(TOUCH_HOME_KEY)) {
-					if (msm_touch_option ==
-							TOUCH_INVERT_EVENT) {
-						input_report_key(ts->input_dev,
-								KEY_HOME, 1);
-						mdelay(50);
-						input_report_key(ts->input_dev,
-								KEY_HOME, 0);
-
-					} else
-						input_report_key(ts->input_dev,
-								KEY_HOME, 0);
-				}
-
-				if (is_longkey_timer_state ==
-						LONGKEY_TIMER_EXPIRED
-						&& lg_block_touch_event == 1) {
-					input_report_key(ts->input_dev,
-							KEY_HOME, 0);
-					is_longkey_timer_state =
-						LONGKEY_TIMER_STOPPED;
-				}
-
-			} else if (ts->rightkey_pressed) {
-				//printk("Right key released\n");
-				ts->rightkey_pressed = 0;
-				//LGE_CHANGE [blue.park@lge.com]
-				if (lg_block_touch_event == 0 && Is_valid_touch_event(TOUCH_BACK_KEY)) {
-					if (msm_touch_option ==
-							TOUCH_INVERT_EVENT) {
-						input_report_key(ts->input_dev,
-								KEY_BACK, 1);
-						mdelay(50);
-						input_report_key(ts->input_dev,
-								KEY_BACK, 0);
-					} else
-						input_report_key(ts->input_dev,
-								KEY_BACK, 0);
-				}
-			}
-		}
-
-	}                       //LGE_CHANGE [bluerti@lge.com] 2009-09-15
+		is_longkey_timer_running = 0;
+		ts->pressed = 0;
+	}
 }
 
 static irqreturn_t synaptics_ts_irq_handler(int irq, void *dev_id)
 {
 	struct synaptics_ts_data *ts = dev_id;
-	//printk("synaptics_ts_irq_handler\n : %d == %d", ts->client->irq, gpio_to_irq(GPIO_TOUCH_IRQ));
+	printk("synaptics_ts_irq_handler\n");
 	queue_work(synaptics_wq, &ts->work);
 	return IRQ_HANDLED;
 }
@@ -537,8 +400,6 @@ static int synaptics_ts_init_chip(struct i2c_client *client)
 		},
 	};
 
-	//      Write the configuration to the OneTouch
-	/*for reading Board revision, by jinwoonam@lge.com */
 	struct i2c_msg msg[] = {
 		{
 			.addr = client->addr,
@@ -578,7 +439,7 @@ static int synaptics_ts_probe(struct i2c_client *client,
 		goto err_check_functionality_failed;
 	}
 
-	ts = kzalloc(sizeof(*ts), GFP_KERNEL);
+	g_ts = ts = kzalloc(sizeof(*ts), GFP_KERNEL);
 	if (ts == NULL) {
 		ret = -ENOMEM;
 		goto err_alloc_data_failed;
@@ -642,8 +503,7 @@ static int synaptics_ts_probe(struct i2c_client *client,
 	set_bit(KEY_HOME, ts->input_dev->keybit);        //diyu@lge.com
 	set_bit(KEY_BACK, ts->input_dev->keybit);       //diyu@lge.com
 
-	ts->leftkey_pressed = 0;
-	ts->rightkey_pressed = 0;
+	ts->pressed = 0;
 
 	ret = input_register_device(ts->input_dev);
 	if (ret) {
@@ -667,9 +527,7 @@ static int synaptics_ts_probe(struct i2c_client *client,
 
 	setup_timer(&lg_enhanced_longkey, lg_enhanced_longkey_timer, 0);
 	setup_timer(&lg_enhanced_menukey, lg_enhanced_menukey_timer, 0);
-	setup_timer(&lg_enhanced_sliedon, lg_enhanced_slideon_timer, 0);
 	is_menutimer_initialized = 1;   // LGE_CHANGE [bluerti@lge.com] 2009-09-24
-	is_slideon_timer_initialized = 1;       // LGE_CHANGE [bluerti@lge.com] 2009-10-16
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	ts->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
 	ts->early_suspend.suspend = synaptics_ts_early_suspend;
@@ -686,7 +544,6 @@ err_input_register_device_failed:
 	input_free_device(ts->input_dev);
 
 err_input_dev_alloc_failed:
-	//err_detect_failed:
 err_power_failed:
 	kfree(ts);
 err_alloc_data_failed:
@@ -763,7 +620,6 @@ static int synaptics_ts_resume(struct i2c_client *client)
 			}
 		}
 	}
-	// LGE_CHANGE_E
 
 	synaptics_init_panel(ts);
 
