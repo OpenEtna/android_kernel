@@ -201,16 +201,8 @@ typedef struct {
 //static point res;
 #endif
 
-/* LGE_CHANGE_S [bluerti@lge.com] 2009-09-01 */
-struct timer_list lg_enhanced_touch;
-extern void lg_block_touch_event_func(int value);
 static int msm_touch_option = 2;
 static int msm_touch_timer_value = 800;
-
-static void lg_enhanced_touch_timer(unsigned long arg)
-{
-	lg_block_touch_event_func(0);   // Free Touch Event
-}
 
 /* LGE_CHANGE_E [bluerti@lge.com] 2009-09-01 */
 
@@ -311,24 +303,6 @@ static point pbwa(point points[])
 }
 #endif
 #endif
-
-/* LGE_CHANGE_S, [munyoung@lge.com] */
-static void block_touch_key(void)
-{
-	// LGE_CHANGE_S [bluerti@lge.com] 2009-09-01
-	if (msm_touch_timer_value) {
-		if (msm_touch_option != 0)
-			lg_block_touch_event_func(1);   //Block touch event
-
-		mod_timer(&lg_enhanced_touch,
-				jiffies + (msm_touch_timer_value * HZ / 1000));
-	} else
-		lg_block_touch_event_func(0);   // Free Touch Event
-
-	// LGE_CHANGE_S [bluerti@lge.com] 2009-09-01
-}
-
-/* LGE_CHANGE_E */
 
 //LGE_CHANGE_S by cleaneye@lge.com for performance,  2009.8.26
 static int ts_check_region(struct ts *ts, int x, int y, int pressure)
@@ -534,7 +508,6 @@ static irqreturn_t ts_interrupt(int irq, void *dev_id)
 		//mod_timer(&ts->timer,
 		//      jiffies + msecs_to_jiffies(s_penup_time));
 		/* LGE_CHANGE_E, [luckyjun77@lge.com] 2009-10-23*/
-		block_touch_key();
 	}
 		else {
 #ifdef DEBUG
@@ -709,8 +682,6 @@ static int __devinit ts_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, ts);
 
 	setup_timer(&ts->timer, ts_timer, (unsigned long)ts);
-	// LGE_CHANGE [bluerti@lge.com] 2009-09-01
-	setup_timer(&lg_enhanced_touch, lg_enhanced_touch_timer, 0);
 	result = request_irq(ts->irq, ts_interrupt, IRQF_TRIGGER_RISING,
 			"touchscreen", ts);
 	if (result)
