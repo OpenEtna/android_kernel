@@ -31,9 +31,8 @@
 static struct psensor_dev {
 	struct i2c_client *client;
 	int gpio;
-#ifdef REGISTER_INPUT
-	struct input_dev* input_dev;
-#endif
+	int enabled;
+	int status;
 } psdev;
 
 /*
@@ -123,71 +122,34 @@ static int sharp_psensor_init(struct i2c_client *client)
 	return ret;
 }
 
-#ifdef REGISTER_INPUT
-static int gp2ap002_suspend(struct i2c_client *client, pm_message_t mesg)
-{
-	return prox_vreg_set(0);
-}
-
-static int gp2ap002_resume(struct i2c_client *client)
-{
-	int ret = 0;
-	struct psensor_dev *pdev = i2c_get_clientdata(client);
-
-	//this is a race condition
-	if(psdev.input_dev->users) {
-		ret = prox_vreg_set(1);
-		if(ret) {
-			printk("%s: prox_vreg_set(1) returned %d\n", __func__, ret);
-			return ret;
-		}
-
-		mdelay(100);
-
-		ret = sharp_psensor_init(pdev->client);
-	}
-
-	return ret;
-}
-#endif
-
-static int status = 0;
 int is_proxi_open(void) {
-	return status;
+	return psdev.status;
 }
 EXPORT_SYMBOL(is_proxi_open);
+
+void sharp_prox_enable(int on) {
+	printk("%s: %d -> %d\n", __func__, psdev.enabled, on);
+	if( on == psdev.enabled )
+		return;
+
+	psdev.enabled = on;
+    prox_vreg_set(on);
+    udelay(100);
+    if(on)
+		sharp_psensor_init(psdev.client);
+
+	set_irq_wake(MSM_GPIO_TO_INT(psdev.gpio), on);
+}
+EXPORT_SYMBOL(sharp_prox_enable);
 
 static irqreturn_t gp2ap002_isr(int o, void *_data) {
 
     printk("%s: entered, gpio= %d\n", __func__, gpio_get_value(psdev.gpio));
 
-	status = gpio_get_value(psdev.gpio);
-#ifdef REGISTER_INPUT
-	input_report_abs(psdev.input_dev, ABS_DISTANCE, gpio_get_value(psdev.gpio));
-	input_sync(psdev.input_dev);
-#endif
+	psdev.status = gpio_get_value(psdev.gpio);
 
 	return IRQ_HANDLED;
 }
-
-#ifdef REGISTER_INPUT
-static int gp2ap002_open(struct input_dev *dev) {
-
-	int ret = prox_vreg_set(1);
-    if(ret)
-        return ret;
-
-    udelay(100);
-
-    printk("proximity device_open\n");
-    ret = sharp_psensor_init(psdev.client);
-    return 0;
-}
-
-static void gp2ap002_close(struct input_dev *dev) {
-	prox_vreg_set(0);
-}
-#endif
 
 static int gp2ap002_probe(struct i2c_client *client,
 		const struct i2c_device_id *dev_id)
@@ -195,37 +157,16 @@ static int gp2ap002_probe(struct i2c_client *client,
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		printk("%s: need I2C_FUNC_I2C\n", __func__);
 		return -ENODEV;
-		//goto err_check_functionality;
 	}
 
 	psdev.client = client;
 	i2c_set_clientdata(client, &psdev);
 	psdev.gpio = client->irq;
 
-#ifdef REGISTER_INPUT
-	psdev.input_dev = input_allocate_device();
-
-    if (!psdev.input_dev) {
-        printk(KERN_ERR
-                "%s: Failed to allocate input device\n", __func__);
-		return -ENOMEM;
-    }
-
-    set_bit(EV_ABS, psdev.input_dev->evbit);
-    input_set_abs_params(psdev.input_dev, ABS_DISTANCE, 0, 1, 0, 0);
-    psdev.input_dev->name = "gp2ap002";
-    psdev.input_dev->open = gp2ap002_open;
-    psdev.input_dev->close = gp2ap002_close;
-    input_register_device(psdev.input_dev);
-#endif
+	psdev.enabled = 0;
 	request_irq(MSM_GPIO_TO_INT(psdev.gpio), gp2ap002_isr, IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING, "gp2ap002_irq", &psdev);
 
-#ifndef REGISTER_INPUT
-	printk("Starting sharp proximity sensor\n");
-	prox_vreg_set(1);
-	udelay(100);
-	sharp_psensor_init(psdev.client);
-#endif
+	return 0;
 }
 
 static int gp2ap002_remove(struct i2c_client *client)
@@ -244,10 +185,6 @@ static struct i2c_driver i2c_gp2ap002_driver = {
 	.probe		= gp2ap002_probe,
 	.remove		= __devexit_p(gp2ap002_remove),
 	.id_table	= gp2ap002_idtable,
-#ifdef REGISTER_INPUT
-	.suspend	= gp2ap002_suspend,
-	.resume		= gp2ap002_resume,
-#endif
 };
 
 static int gp2ap002_init(void)
