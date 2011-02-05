@@ -30,6 +30,7 @@
 #include <mach/system.h> //for reading REV. in Board.
 
 extern int is_proxi_open(void);
+extern void sharp_prox_enable(int);
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
@@ -722,7 +723,8 @@ static void AKECS_CloseDone(void)
 	atomic_set(&a_flag, 1);
 	atomic_set(&t_flag, 1);
 	atomic_set(&mv_flag, 1);
-	atomic_set(&p_flag, 1);
+	atomic_set(&p_flag, 0);
+	sharp_prox_enable(atomic_read(&p_flag));
 }
 
 static int akm_aot_open(struct inode *inode, struct file *file)
@@ -833,6 +835,7 @@ akm_aot_ioctl(struct inode *inode, struct file *file,
 			printk(KERN_INFO "diyu %s-8\n", __FUNCTION__);
 		#endif
 		atomic_set(&p_flag, flag);
+		sharp_prox_enable(atomic_read(&p_flag));
 		break;
 	case ECS_IOCTL_APP_GET_PFLAG:
 		#if DEBUG
@@ -1277,7 +1280,7 @@ static int akm8973_init_client(struct i2c_client *client)
 	atomic_set(&a_flag, 1);
 	atomic_set(&t_flag, 1);
 	atomic_set(&mv_flag, 1);
-	atomic_set(&p_flag, 1);
+	atomic_set(&p_flag, 0);
 
 	return 0;
 
