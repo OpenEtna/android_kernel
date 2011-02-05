@@ -88,6 +88,21 @@ static struct platform_device hw3d_device = {
 	.resource	= resources_hw3d,
 };
 
+/* ear jack sense */
+static struct gpio_switch_platform_data eve_hs_pdata = {
+#define GPIO_EAR_SENSE  29
+        .gpio = GPIO_EAR_SENSE,
+        .name = "h2w",
+};
+
+static struct platform_device eve_hs_device = {
+    .name = "switch-gpio",
+    .id = -1,
+    .dev    = {
+        .platform_data = &eve_hs_pdata
+    },
+};
+
 /* sound */
 #define SND(desc, num) { .name = #desc, .id = num }
 /* original mapping from lg
@@ -511,6 +526,7 @@ static struct platform_device *devices[] __initdata = {
 	&android_pmem_adsp_device,
 	&hw3d_device,
 	&eve_snd,
+	&eve_hs_device,
 };
 
 extern struct sys_timer msm_timer;
