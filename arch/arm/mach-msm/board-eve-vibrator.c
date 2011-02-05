@@ -159,11 +159,6 @@ static void vibrator_set(int amp)
 	}
 }
 
-static int is_vib_state(void)
-{
-	return s_vibstate;
-}
-
 static void vibrator_work_func(struct work_struct *work)
 {
 	vibrator_set(0);
@@ -216,6 +211,10 @@ static struct timed_output_dev pmic_vibrator = {
 	.enable = to_vibrator_enable,
 };
 
+void eve_vibrator_set(int timeout) {
+	to_vibrator_enable(0, timeout);
+}
+EXPORT_SYMBOL(eve_vibrator_set);
 
 static int __init android_vibrator_init(void)
 {
