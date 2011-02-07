@@ -91,7 +91,7 @@ static struct bl_init_table_s bd6083_normal_mode_config[] = {
 	{0x0a, 0x11},
 	{0x0b, 0x00},
 	{0x14, 0xc0},       /*LDO2 Vout Control for the vibrator: 3.0V *//*diyu@lge.com */
-	{0x02, 0x41},
+	{0x02, 0x4d},
 	{I2C_NO_REG, 0x00}	/* End of array */
 };
 
@@ -386,10 +386,10 @@ ssize_t lcd_backlight_onoff(struct device * dev, struct device_attribute * attr,
 	sscanf(buf, "%d", &onoff);
 
 	if (onoff) {
-		bd6083_write_reg(bd6083_dev->client, 0x02, 0x41);
+		bd6083_write_reg(bd6083_dev->client, 0x02, 0x4d);
 		eve_bl_set_intensity(bd6083_dev->bl_dev);
 	} else {
-		bd6083_write_reg(bd6083_dev->client, 0x02, 0x00);
+		bd6083_write_reg(bd6083_dev->client, 0x02, 0x4c);
 	}
 
 	return 0;
@@ -464,14 +464,14 @@ static void bd6083_early_suspend(struct early_suspend *h)
 {
 	int ret;
 	cancel_delayed_work_sync(&sensor_task);
-	ret = bd6083_write_reg(bd6083_dev->client, 0x02, 0x00);
+	ret = bd6083_write_reg(bd6083_dev->client, 0x02, 0x4c);
 }
 
 static void bd6083_late_resume(struct early_suspend *h)
 {
 	bd6083_set_main_current_level(bd6083_dev->client,
 	                              bd6083_dev->bl_dev->props.brightness);
-	bd6083_write_reg(bd6083_dev->client, 0x02, 0x41);
+	bd6083_write_reg(bd6083_dev->client, 0x02, 0x4d);
 	schedule_delayed_work(&sensor_task, HZ/2);
 }
 #endif
