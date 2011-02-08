@@ -61,6 +61,7 @@ struct bd6083_device {
 	struct work_struct work;
 };
 
+#define DELAY 0x1f
 struct bl_init_table_s {
 	unsigned short reg;
 	unsigned short val;
@@ -84,14 +85,17 @@ static void bd6083_late_resume(struct early_suspend *h);
 static struct bd6083_device *bd6083_dev = NULL;
 
 static struct bl_init_table_s bd6083_normal_mode_config[] = {
-	{0x00, 0x00},
-	{0x01, 0x0e},
-	{0x03, 0x40},
+	{0x00, 0x00}, /* reset off */
+	{0x01, 0x0e}, /* W6MD(1), W5MD(1), W4MD(1), MLEDMD(0) */
+	{0x03, 0x40}, /* IMLED */
 	{0x09, 0x87}, //speed of transition
-	{0x0a, 0x11},
-	{0x0b, 0x00},
-	{0x14, 0xc0},       /*LDO2 Vout Control for the vibrator: 3.0V *//*diyu@lge.com */
-	{0x02, 0x4d},
+	{0x0a, 0x11}, /* ADCYC(0), GAIN(1), MDCIR(0), SBIASON(1) */
+	{0x0b, 0x00}, /* CRV(0), STEP(0) */
+	{0x14, 0xc0}, /*LDO2 Vout Control for the vibrator: 3.0V *//*diyu@lge.com */
+	{DELAY, 82},
+	{0x02, 0x40}, /* WPWMEN(0), ALC(1), W6EN(0), W5EN(0), MLEDEN(0) */
+	{DELAY, 82},
+	{0x02, 0x41}, /* WPWMEN(0), ALC(1), W6EN(0), W5EN(0), MLEDEN(1) */
 	{I2C_NO_REG, 0x00}	/* End of array */
 };
 
@@ -99,7 +103,7 @@ static void read_sensor(struct work_struct *work)
 {
 	bd6083_read_reg(bd6083_dev->client, 0x0C, &sensor_value);
 	//printk("read_sensor: %d\n", sensor_value);
-	schedule_delayed_work(&sensor_task, HZ/2);
+	schedule_delayed_work(&sensor_task, HZ*2);
 }
 
 int bl_bd_get_brightness(void)
@@ -117,7 +121,9 @@ static int bd6083_write_reg(struct i2c_client *client, unsigned char reg,
 		client->addr, 0, 2, buf
 	};
 
-	//printk("%s() reg : %x, val : %x\n", __FUNCTION__, reg, val);
+	mutex_lock( &bl_lock );
+
+	printk("%s() reg : %x, val : %x\n", __FUNCTION__, reg, val);
 
 	buf[0] = reg;
 	buf[1] = val;
@@ -125,6 +131,7 @@ static int bd6083_write_reg(struct i2c_client *client, unsigned char reg,
 	if ((err = i2c_transfer(client->adapter, &msg, 1)) < 0) {
 		dev_err(&client->dev, "i2c write error\n");
 	}
+	mutex_unlock( &bl_lock );
 
 	return 0;
 }
@@ -322,10 +329,11 @@ static int bd6083_read_reg(struct i2c_client *client, unsigned char reg,
 		{client->addr, I2C_M_RD, 1, ret}
 	};
 
+	mutex_lock( &bl_lock );
 	if ((err = i2c_transfer(client->adapter, msg, 2)) < 0) {
 		dev_err(&client->dev, "i2c read error\n");
 	}
-
+	mutex_unlock( &bl_lock );
 	return 0;
 }
 
@@ -335,9 +343,13 @@ void bd6083_init(struct i2c_client *client)
 	int ret;
 
 	for (i = 0; bd6083_normal_mode_config[i].reg != I2C_NO_REG; i++) {
-		ret =
-		    bd6083_write_reg(client, bd6083_normal_mode_config[i].reg,
+		if( bd6083_normal_mode_config[i].reg == DELAY )
+			mdelay(bd6083_normal_mode_config[i].val);
+		else
+			ret =
+			    bd6083_write_reg(client, bd6083_normal_mode_config[i].reg,
 				     bd6083_normal_mode_config[i].val);
+		
 	}
 }
 
@@ -378,25 +390,7 @@ ssize_t lcd_backlight_show_alc_brightness(struct device * dev,
 	return r;
 }
 
-ssize_t lcd_backlight_onoff(struct device * dev, struct device_attribute * attr,
-			    const char *buf, size_t count)
-{
-	int onoff;
-
-	sscanf(buf, "%d", &onoff);
-
-	if (onoff) {
-		bd6083_write_reg(bd6083_dev->client, 0x02, 0x4d);
-		eve_bl_set_intensity(bd6083_dev->bl_dev);
-	} else {
-		bd6083_write_reg(bd6083_dev->client, 0x02, 0x4c);
-	}
-
-	return 0;
-}
-
 DEVICE_ATTR(alc_brightness, 0666, lcd_backlight_show_alc_brightness, NULL);
-DEVICE_ATTR(bl_onoff, 0666, NULL, lcd_backlight_onoff);
 
 static struct backlight_ops eve_bl_ops = {
 	.update_status = eve_bl_set_intensity,
@@ -441,10 +435,9 @@ static int __init bd6083_probe(struct i2c_client *i2c_dev,
 #endif
 
 	INIT_DELAYED_WORK(&sensor_task, read_sensor);
-	schedule_delayed_work(&sensor_task, HZ/2);
+	schedule_delayed_work(&sensor_task, HZ*2);
 
 	ret = device_create_file(&bl_dev->dev, &dev_attr_alc_brightness);
-	ret = device_create_file(&bl_dev->dev, &dev_attr_bl_onoff);
 	return 0;
 }
 
@@ -464,15 +457,17 @@ static void bd6083_early_suspend(struct early_suspend *h)
 {
 	int ret;
 	cancel_delayed_work_sync(&sensor_task);
-	ret = bd6083_write_reg(bd6083_dev->client, 0x02, 0x4c);
+	ret = bd6083_write_reg(bd6083_dev->client, 0x02, 0x40);
 }
 
 static void bd6083_late_resume(struct early_suspend *h)
 {
+	bd6083_init(bd6083_dev->client);
 	bd6083_set_main_current_level(bd6083_dev->client,
 	                              bd6083_dev->bl_dev->props.brightness);
-	bd6083_write_reg(bd6083_dev->client, 0x02, 0x4d);
-	schedule_delayed_work(&sensor_task, HZ/2);
+
+	//bd6083_write_reg(bd6083_dev->client, 0x02, 0x41);
+	schedule_delayed_work(&sensor_task, HZ*2);
 }
 #endif
 
