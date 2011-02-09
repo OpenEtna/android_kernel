@@ -171,6 +171,22 @@ static struct platform_device android_pmem_adsp_device = {
     .dev = { .platform_data = &android_pmem_adsp_pdata },
 };
 
+/* last_kmesg */
+static struct resource ram_console_resources[] = {
+    {
+        .start  = MSM_RAM_CONSOLE_BASE,
+        .end    = MSM_RAM_CONSOLE_BASE + MSM_RAM_CONSOLE_SIZE - 1,
+        .flags  = IORESOURCE_MEM,
+    },
+};
+
+static struct platform_device ram_console_device = {
+    .name       = "ram_console",
+    .id     = -1,
+    .num_resources  = ARRAY_SIZE(ram_console_resources),
+    .resource   = ram_console_resources,
+};
+
 /* usb */
 #define HSUSB_API_INIT_PHY_PROC 2
 #define HSUSB_API_PROG      0x30000064
@@ -493,6 +509,7 @@ static struct i2c_board_info i2c_board_touch = {
 
 /* list of all devices from above or devices-msm7x00.c */
 static struct platform_device *devices[] __initdata = {
+	&ram_console_device,
 	&msm_device_uart3,
 	&bcm_bt_lpm_device,
 	&msm_device_uart_dm1,
