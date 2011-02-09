@@ -1218,6 +1218,25 @@ dhd_arp_offload_enable(dhd_pub_t * dhd, int arp_enable)
 }
 #endif
 
+#if 0
+btc_mode=1
+country=AU !
+vlan_mode=0
+mpc=1
+wme=1
+wme_apsd=1
+wme_qosinfo=0x03
+wme_auto_trigger=0
+wme_apsd_trigger=290000
+roam_off=0
+roam_scan_period=10
+roam_delta=20
+roam_trigger=-70
+PM=2
+assoc_listen=1
+assoc_retry_max=7
+#endif
+
 int
 dhd_preinit_ioctls(dhd_pub_t *dhd)
 {
@@ -1235,6 +1254,24 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 #ifdef GET_CUSTOM_MAC_ENABLE
 	struct ether_addr ea_addr;
 #endif /* GET_CUSTOM_MAC_ENABLE */
+
+/* config */
+    uint btc_mode = 1;
+    uint vlan_mode = 0;
+    uint mpc = 1;
+    uint wme = 1;
+    uint wme_apsd = 1;
+    uint wme_qosinfo = 0x03;
+    uint wme_auto_trigger = 0;
+    uint wme_apsd_trigger = 290000;
+    int roam_scan_period=10;
+    int roam_delta=20;
+    int roam_trigger=-70;
+    uint assoc_listen=1;
+    uint assoc_retry_max=7;
+	dhd_roam = 0;
+	power_mode = 2;
+/* config end */
 
 	dhd_os_proto_block(dhd);
 
@@ -1303,6 +1340,36 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	/* Print fw version info */
 	DHD_ERROR(("Firmware version = %s\n", buf));
 
+	bcm_mkiovar("btc_mode", (char *)&btc_mode, 4, iovbuf, sizeof(iovbuf));
+    dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+
+	bcm_mkiovar("vlan_mode", (char *)&vlan_mode, 4, iovbuf, sizeof(iovbuf));
+    dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+
+	bcm_mkiovar("mpc", (char *)&mpc, 4, iovbuf, sizeof(iovbuf));
+    dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+
+	bcm_mkiovar("wme", (char *)&wme, 4, iovbuf, sizeof(iovbuf));
+    dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+
+	bcm_mkiovar("wme_apsd", (char *)&wme_apsd, 4, iovbuf, sizeof(iovbuf));
+    dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+
+	bcm_mkiovar("wme_qosinfo", (char *)&wme_qosinfo, 4, iovbuf, sizeof(iovbuf));
+    dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+
+	bcm_mkiovar("wme_auto_trigger", (char *)&wme_auto_trigger, 4, iovbuf, sizeof(iovbuf));
+    dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+
+	bcm_mkiovar("wme_apsd_trigger", (char *)&wme_apsd_trigger, 4, iovbuf, sizeof(iovbuf));
+    dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+
+	bcm_mkiovar("assoc_listen", (char *)&assoc_listen, 4, iovbuf, sizeof(iovbuf));
+    dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+
+	bcm_mkiovar("assoc_retry_max", (char *)&assoc_retry_max, 4, iovbuf, sizeof(iovbuf));
+    dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+
 	/* Set PowerSave mode */
 	dhdcdc_set_ioctl(dhd, 0, WLC_SET_PM, (char *)&power_mode, sizeof(power_mode));
 
@@ -1325,10 +1392,7 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	if (dhd_roam == 0)
 	{
 		/* set internal roaming roaming parameters */
-		int roam_scan_period = 30; /* in sec */
 		int roam_fullscan_period = 120; /* in sec */
-		int roam_trigger = -85;
-		int roam_delta = 15;
 		int band;
 		int band_temp_set = WLC_BAND_2G;
 
