@@ -2514,6 +2514,8 @@ dhd_detach(dhd_pub_t *dhdp)
 	}
 }
 
+static struct wake_lock wlock;
+
 static void __exit
 dhd_module_cleanup(void)
 {
@@ -2525,6 +2527,8 @@ dhd_module_cleanup(void)
 #endif
 	/* Call customer gpio to turn off power with WL_REG_ON signal */
 	dhd_customer_gpio_wlan_ctrl(WLAN_POWER_OFF);
+
+	wake_unlock(&wlock);
 }
 
 static int __init
@@ -2534,6 +2538,8 @@ dhd_module_init(void)
 
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
 
+	wake_lock_init(&wlock, WAKE_LOCK_SUSPEND, "bcm4329_running");
+	wake_lock(&wlock);
 	/* Sanity check on the module parameters */
 	do {
 		/* Both watchdog and DPC as tasklets are ok */
@@ -2602,9 +2608,10 @@ fail_1:
 	wifi_del_dev();
 fail_0:
 #endif /* defined(CUSTOMER_HW2) && defined(CONFIG_WIFI_CONTROL_FUNC) */
-
 	/* Call customer gpio to turn off power with WL_REG_ON signal */
 	dhd_customer_gpio_wlan_ctrl(WLAN_POWER_OFF);
+
+	wake_unlock(&wlock);
 
 	return error;
 }
@@ -2943,6 +2950,11 @@ dhd_dev_reset(struct net_device *dev, uint8 flag)
 		return ret;
 	}
 	DHD_ERROR(("%s: WLAN %s DONE\n", __FUNCTION__, flag ? "OFF" : "ON"));
+
+	if( flag )
+		wake_unlock(&wlock);
+	else
+		wake_lock(&wlock);
 
 	return ret;
 }
