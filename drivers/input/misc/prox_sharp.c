@@ -15,6 +15,7 @@
  *
  */
 #include <linux/module.h>
+#include <linux/wakelock.h>
 #include <linux/i2c.h>
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
@@ -33,6 +34,7 @@ static struct psensor_dev {
 	int gpio;
 	int enabled;
 	int status;
+	struct wake_lock wlock;
 } psdev;
 
 /*
@@ -146,6 +148,7 @@ static irqreturn_t gp2ap002_isr(int o, void *_data) {
 
     printk("%s: entered, gpio= %d\n", __func__, gpio_get_value(psdev.gpio));
 
+	wake_lock_timeout(&psdev.wlock, 2 * HZ);
 	psdev.status = gpio_get_value(psdev.gpio);
 
 	return IRQ_HANDLED;
@@ -164,6 +167,7 @@ static int gp2ap002_probe(struct i2c_client *client,
 	psdev.gpio = client->irq;
 
 	psdev.enabled = 0;
+	wake_lock_init(&psdev.wlock, WAKE_LOCK_SUSPEND, "prox_sharp");
 	request_irq(MSM_GPIO_TO_INT(psdev.gpio), gp2ap002_isr, IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING, "gp2ap002_irq", &psdev);
 
 	return 0;
