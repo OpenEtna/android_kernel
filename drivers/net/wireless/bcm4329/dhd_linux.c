@@ -2528,7 +2528,9 @@ dhd_module_cleanup(void)
 	/* Call customer gpio to turn off power with WL_REG_ON signal */
 	dhd_customer_gpio_wlan_ctrl(WLAN_POWER_OFF);
 
-	wake_unlock(&wlock);
+	if( wake_lock_active(&wlock) )
+		wake_unlock(&wlock);
+	wake_lock_destroy(&wlock);
 }
 
 static int __init
@@ -2951,9 +2953,9 @@ dhd_dev_reset(struct net_device *dev, uint8 flag)
 	}
 	DHD_ERROR(("%s: WLAN %s DONE\n", __FUNCTION__, flag ? "OFF" : "ON"));
 
-	if( flag )
+	if( flag && wake_lock_active(&wlock) )
 		wake_unlock(&wlock);
-	else
+	else if (!flag && !wake_lock_active(&wlock) )
 		wake_lock(&wlock);
 
 	return ret;
