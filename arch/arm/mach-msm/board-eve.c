@@ -41,6 +41,7 @@
 #include <mach/msm_rpcrouter.h>
 #include <mach/bcm_bt_lpm.h>
 #include <mach/msm_serial_hs.h>
+#include <mach/system.h>
 
 #include <linux/mtd/nand.h>
 #include <linux/mtd/partitions.h>
@@ -573,9 +574,50 @@ static void eve_get_hw_rev(void) {
 	system_rev = (unsigned int)lge_hw_rev;
 }
 
+static void eve_reset(void)
+{
+	printk("eve_reset\n");
+    /* all other msm7200 based platforms use
+	 * gpio_set_value(GPIO_PS_HOLD, 0)
+	 * but this does not work on the eve.
+	 * lg does not use this either.
+	 */
+	/* The ARM9 can be reset by
+	 * msm_proc_comm(PCOM_RESET_CHIP, &restart_reason, 0);
+	 * but this does not work after a panic. (Why?)
+	 */
+	#define PMPROG 0x30000061
+	#define PMVERS 0x00010001
+	#define ONCRPC_PM_RESET_BY_LINUX    63
+    int rc = 0;
+	struct msm_rpc_endpoint *pm_vid_reset_LGE;
+    struct msm_pm_reset_LGE_req {
+		struct rpc_request_hdr hdr;
+		uint32_t data_value;
+    } req;
+	pm_vid_reset_LGE = msm_rpc_connect(PMPROG, PMVERS, 0);
+	if (IS_ERR(pm_vid_reset_LGE)) {
+		printk(KERN_ERR "%s: msm_rpc_connect failed! rc = %ld\n",
+			   __func__, PTR_ERR(pm_vid_reset_LGE));
+		return -EINVAL;
+	}
+
+	req.data_value =  cpu_to_be32(1);     //reset
+
+	rc = msm_rpc_call(pm_vid_reset_LGE,
+					  ONCRPC_PM_RESET_BY_LINUX,
+					  &req, sizeof(req),
+					  5 * HZ);
+	if (rc)
+		printk(KERN_ERR "%s: msm_rpc_call failed! rc = %d\n", __func__, rc);
+	msm_rpc_close(pm_vid_reset_LGE);
+}
+
 static void __init eve_init(void)
 {
 	eve_get_hw_rev();
+
+	msm_hw_reset_hook = eve_reset;
 
 	msm_device_hsusb.dev.platform_data = &msm_hsusb_pdata;
 	msm_device_uart_dm1.dev.platform_data = &msm_uart_dm1_pdata;
