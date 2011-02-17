@@ -504,7 +504,6 @@ static struct platform_device eve_touch_i2c_bus = {
 
 static struct i2c_board_info i2c_board_touch = {
 	I2C_BOARD_INFO("touch_so240001", 0x2C),
-	.irq = MSM_GPIO_TO_INT(GPIO_TOUCH_IRQ),
 };
 
 /* list of all devices from above or devices-msm7x00.c */

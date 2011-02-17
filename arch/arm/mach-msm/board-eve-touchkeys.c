@@ -512,17 +512,15 @@ static int synaptics_ts_probe(struct i2c_client *client,
 		goto err_input_register_device_failed;
 	}
 
-	printk("%s:  client->irq :  %d \n", __FUNCTION__, client->irq);
-
-	gpio_request(client->irq, "touch_irq");
-	gpio_direction_input(client->irq);
-	ret = request_irq(client->irq,
+	gpio_request(GPIO_TOUCH_IRQ, "touch_irq");
+	gpio_direction_input(GPIO_TOUCH_IRQ);
+	ret = request_irq(gpio_to_irq(GPIO_TOUCH_IRQ),
 			synaptics_ts_irq_handler, IRQF_TRIGGER_FALLING,
 			client->name, ts);
 	if (ret == 0) {
 		ret = i2c_smbus_write_byte_data(ts->client, 0xf1, 0x01);        /* enable abs int */
 		if (ret)
-			free_irq(client->irq, ts);
+			free_irq(gpio_to_irq(GPIO_TOUCH_IRQ), ts);
 	}
 
 	setup_timer(&lg_enhanced_longkey, lg_enhanced_longkey_timer, 0);
@@ -557,7 +555,7 @@ static int synaptics_ts_remove(struct i2c_client *client)
 	printk("%s\n", __FUNCTION__);
 
 	unregister_early_suspend(&ts->early_suspend);
-	free_irq(client->irq, ts);
+	free_irq(gpio_to_irq(GPIO_TOUCH_IRQ), ts);
 	input_unregister_device(ts->input_dev);
 	kfree(ts);
 	return 0;
@@ -569,7 +567,7 @@ static int synaptics_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 	struct synaptics_ts_data *ts = i2c_get_clientdata(client);
 	printk("%s\n", __FUNCTION__);
 
-	disable_irq(client->irq);
+	disable_irq(gpio_to_irq(GPIO_TOUCH_IRQ));
 	ret = cancel_work_sync(&ts->work);
 	ret = i2c_smbus_write_byte_data(ts->client, 0xf1, 0);   /* disable interrupt */
 	if (ret < 0)
@@ -623,7 +621,7 @@ static int synaptics_ts_resume(struct i2c_client *client)
 
 	synaptics_init_panel(ts);
 
-	enable_irq(client->irq);
+	enable_irq(gpio_to_irq(GPIO_TOUCH_IRQ));
 	i2c_smbus_write_byte_data(ts->client, 0xf1, 0x01);      /* enable abs int */
 
 	return 0;
