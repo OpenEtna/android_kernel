@@ -2519,7 +2519,7 @@ static struct wake_lock wlock;
 static void __exit
 dhd_module_cleanup(void)
 {
-	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
+	printk("%s: Enter\n", __FUNCTION__);
 
 	dhd_bus_unregister();
 #if defined(CUSTOMER_HW2) && defined(CONFIG_WIFI_CONTROL_FUNC)
@@ -2538,7 +2538,7 @@ dhd_module_init(void)
 {
 	int error;
 
-	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
+	printk("%s: Enter\n", __FUNCTION__);
 
 	wake_lock_init(&wlock, WAKE_LOCK_SUSPEND, "bcm4329_running");
 	wake_lock(&wlock);
@@ -2600,6 +2600,8 @@ dhd_module_init(void)
 		goto fail_2;
 	}
 #endif
+	if(error)
+		BUG();
 	return error;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27))
 fail_2:
@@ -2614,6 +2616,7 @@ fail_0:
 	dhd_customer_gpio_wlan_ctrl(WLAN_POWER_OFF);
 
 	wake_unlock(&wlock);
+	wake_lock_destroy(&wlock);
 
 	return error;
 }
