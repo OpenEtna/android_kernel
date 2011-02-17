@@ -909,6 +909,7 @@ static void usb_chg_set_type(struct usb_info *ui)
 {
     ui->chg_type = CHG_UNDEFINED;
 
+	/*TODO: this always detects CHG_HOST_PC, even for wall charges */
     msleep(10);
     //USB_PHY_EXTERNAL:
         if (ulpi_write(ui, 0x30, 0x3A)) {
@@ -1454,9 +1455,8 @@ static void usb_do_work(struct work_struct *w)
 
 				/* detect shorted D+/D-, indicating AC power */
 				msleep(10);
-				if ((readl(USB_PORTSC) & PORTSC_LS) == PORTSC_LS)
-					if (ui->usb_connected)
-						ui->usb_connected(2);
+				if (ui->usb_connected)
+					ui->usb_connected(2);
 
 				ui->state = USB_STATE_ONLINE;
 			}
