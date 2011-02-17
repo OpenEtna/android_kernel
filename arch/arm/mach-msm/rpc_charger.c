@@ -216,7 +216,7 @@ int rpc_chg_is_charging(uint32_t * result)
 	if (!chg_ep || IS_ERR(chg_ep)) {
 		return -EAGAIN;
 	}
-
+	printk("%s\n",__func__);
 	memset(&rsp, 0, sizeof(rsp));
 	rc = msm_rpc_call_reply(chg_ep, chg_rpc_ids.chg_is_charging,
 			&req, sizeof(req), &rsp, sizeof(rsp), (5 * HZ));
@@ -588,7 +588,8 @@ void lge_battery_info_update(struct lge_battery_info_type *new_batt_info) {
 }
 
 void notify_usb_connected(int online) {
-	cancel_delayed_work(&lge_batt.monitor_work);
+	printk("%s %d\n",__func__,online);
+	cancel_delayed_work_sync(&lge_batt.monitor_work);
 	queue_delayed_work(lge_batt.monitor_wqueue, &lge_batt.monitor_work, HZ/2);
 }
 EXPORT_SYMBOL(notify_usb_connected);
